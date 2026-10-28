@@ -16,7 +16,7 @@ import (
 	"github.com/shad0wcrawl3r/relay/internal/config"
 )
 
-var httpClient = &http.Client{Timeout: 30 * time.Second}
+var httpClient = &http.Client{Timeout: 30 * time.Second, Transport: transport()}
 
 // client is a thin Plane REST v1 client. Plane rate-limits per token, so all
 // requests share a small token bucket.

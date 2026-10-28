@@ -123,6 +123,9 @@ func (a *auth) authorize(ctx context.Context, openURL func(string)) (*Token, err
 	done := make(chan result, 1)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/oauth/callback", func(w http.ResponseWriter, r *http.Request) {
+		if debugHTTP() {
+			log.Printf("plane <<< OAuth redirect: %s", r.URL.String())
+		}
 		q := r.URL.Query()
 		// app_installation_id arrives when consent also installs the app.
 		res := result{code: q.Get("code"), installation: q.Get("app_installation_id")}
@@ -166,7 +169,11 @@ func (a *auth) authorize(ctx context.Context, openURL func(string)) (*Token, err
 	}
 	// Not secret, and the first thing to compare when Plane answers 400.
 	log.Printf("plane: opening consent page; redirect_uri=%s scope=%q", redirectURI(cfg), cfg.Plane.Scope)
-	openURL(baseURL(cfg) + "/auth/o/authorize-app/?" + q.Encode())
+	consent := baseURL(cfg) + "/auth/o/authorize-app/?" + q.Encode()
+	if debugHTTP() {
+		log.Printf("plane >>> consent URL: %s", consent)
+	}
+	openURL(consent)
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
