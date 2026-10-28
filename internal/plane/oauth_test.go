@@ -40,8 +40,8 @@ func TestExchangeClientAuth(t *testing.T) {
 		wantCalls   int
 		wantErr     bool
 	}{
-		{"basic accepted", true, false, 1, false},
-		{"body only falls back", false, true, 2, false},
+		{"body accepted (documented user flow)", false, true, 1, false},
+		{"basic only falls back", true, false, 2, false},
 		{"both rejected", false, false, 2, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -64,5 +64,40 @@ func TestExchangeClientAuth(t *testing.T) {
 				t.Errorf("calls = %d, want %d", calls, tc.wantCalls)
 			}
 		})
+	}
+}
+
+func TestDiscoverWorkspaceFallsBackToBotToken(t *testing.T) {
+	var sawBotGrant bool
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/auth/o/token/":
+			_ = r.ParseForm()
+			if _, _, ok := r.BasicAuth(); !ok || r.PostForm.Get("grant_type") != "client_credentials" || r.PostForm.Get("app_installation_id") != "inst-1" {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			sawBotGrant = true
+			fmt.Fprint(w, `{"access_token":"bot","expires_in":60}`)
+		case "/auth/o/app-installation/":
+			// Only the bot token may read installations here.
+			if r.Header.Get("Authorization") != "Bearer bot" || r.URL.Query().Get("id") != "inst-1" {
+				w.WriteHeader(http.StatusForbidden)
+				return
+			}
+			fmt.Fprint(w, `[{"id":"inst-1","workspace_detail":{"slug":"my-ws"}}]`)
+		}
+	}))
+	defer srv.Close()
+	config.Override(func(c *config.Config) {
+		c.Plane.BaseURL = srv.URL
+		c.Plane.ClientID, c.Plane.ClientSecret = "id", "secret"
+	})
+	slug, id, err := discoverWorkspace(context.Background(), config.GetConfig(), "user", "inst-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if slug != "my-ws" || id != "inst-1" || !sawBotGrant {
+		t.Errorf("slug=%q id=%q bot=%v", slug, id, sawBotGrant)
 	}
 }

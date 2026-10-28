@@ -117,14 +117,15 @@ func (a *auth) authorize(ctx context.Context, openURL func(string)) (*Token, err
 	}
 
 	type result struct {
-		code string
-		err  error
+		code, installation string
+		err                error
 	}
 	done := make(chan result, 1)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/oauth/callback", func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
-		res := result{code: q.Get("code")}
+		// app_installation_id arrives when consent also installs the app.
+		res := result{code: q.Get("code"), installation: q.Get("app_installation_id")}
 		switch {
 		case q.Get("error") != "":
 			msg := q.Get("error")
@@ -188,15 +189,17 @@ func (a *auth) authorize(ctx context.Context, openURL func(string)) (*Token, err
 	if err != nil {
 		return nil, err
 	}
-	// The user-token redirect carries only code and state, so the workspace
-	// comes from the installation list the token can see.
+	tok.InstallationID = res.installation
 	tok.Workspace = cfg.Plane.Workspace
 	if tok.Workspace == "" {
-		slug, id, err := installation(ctx, cfg, tok.AccessToken)
+		slug, id, err := discoverWorkspace(ctx, cfg, tok.AccessToken, res.installation)
 		if err != nil {
 			return nil, fmt.Errorf("connected, but couldn't determine the workspace (%v); set the workspace slug in Settings", err)
 		}
-		tok.Workspace, tok.InstallationID = slug, id
+		tok.Workspace = slug
+		if tok.InstallationID == "" {
+			tok.InstallationID = id
+		}
 	}
 	if err := a.store(tok); err != nil {
 		return nil, fmt.Errorf("could not save token to the keychain: %w", err)
@@ -243,20 +246,51 @@ func (a *auth) refresh(ctx context.Context, t *Token) (*Token, error) {
 // with invalid_client, it retries with them in the form body. Client
 // authentication runs before the code is checked, so the retry is safe.
 func exchange(ctx context.Context, cfg *config.Config, grant url.Values) (*Token, error) {
-	id := strings.TrimSpace(cfg.Plane.ClientID)
-	secret := strings.TrimSpace(cfg.Plane.ClientSecret)
-	tok, err := tokenRequest(ctx, cfg, grant, func(req *http.Request, form url.Values) {
-		// RFC 6749 §2.3.1: form-encode each part before Basic encoding.
-		req.SetBasicAuth(url.QueryEscape(id), url.QueryEscape(secret))
-	})
+	tok, err := tokenRequest(ctx, cfg, grant, bodyAuth(cfg))
 	var te *tokenError
 	if !errors.As(err, &te) || te.code != "invalid_client" {
 		return tok, err
 	}
-	return tokenRequest(ctx, cfg, grant, func(_ *http.Request, form url.Values) {
-		form.Set("client_id", id)
-		form.Set("client_secret", secret)
-	})
+	return tokenRequest(ctx, cfg, grant, basicAuth(cfg))
+}
+
+// bodyAuth sends client credentials as form fields, as Plane documents for
+// the user-token flow (code exchange and refresh).
+func bodyAuth(cfg *config.Config) func(*http.Request, url.Values) {
+	return func(_ *http.Request, form url.Values) {
+		form.Set("client_id", strings.TrimSpace(cfg.Plane.ClientID))
+		form.Set("client_secret", strings.TrimSpace(cfg.Plane.ClientSecret))
+	}
+}
+
+// basicAuth sends client credentials as HTTP Basic, as Plane documents for
+// the bot-token flow.
+func basicAuth(cfg *config.Config) func(*http.Request, url.Values) {
+	return func(req *http.Request, _ url.Values) {
+		// RFC 6749 §2.3.1 form-encodes each part; django-oauth-toolkit decodes
+		// them, and Plane's alphanumeric credentials are unchanged by it.
+		req.SetBasicAuth(url.QueryEscape(strings.TrimSpace(cfg.Plane.ClientID)), url.QueryEscape(strings.TrimSpace(cfg.Plane.ClientSecret)))
+	}
+}
+
+// discoverWorkspace finds the workspace slug for a fresh user token. It asks
+// app-installation with the user token first; if that fails and the redirect
+// carried an installation id, it falls back to the documented bot path: a
+// client_credentials token, used only for this lookup and then dropped.
+// Relay itself keeps acting as the user, so writes are attributed to them.
+func discoverWorkspace(ctx context.Context, cfg *config.Config, userToken, installationID string) (slug, id string, err error) {
+	slug, id, err = installation(ctx, cfg, userToken, installationID)
+	if err == nil || installationID == "" {
+		return slug, id, err
+	}
+	bot, botErr := tokenRequest(ctx, cfg, url.Values{
+		"grant_type":          {"client_credentials"},
+		"app_installation_id": {installationID},
+	}, basicAuth(cfg))
+	if botErr != nil {
+		return "", "", fmt.Errorf("%v; bot token: %v", err, botErr)
+	}
+	return installation(ctx, cfg, bot.AccessToken, installationID)
 }
 
 type tokenError struct {
@@ -306,8 +340,12 @@ func tokenRequest(ctx context.Context, cfg *config.Config, grant url.Values, aut
 
 // installation returns the workspace slug and installation id for the app
 // installation visible to the token.
-func installation(ctx context.Context, cfg *config.Config, access string) (slug, id string, err error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL(cfg)+"/auth/o/app-installation/", nil)
+func installation(ctx context.Context, cfg *config.Config, access, installationID string) (slug, id string, err error) {
+	endpoint := baseURL(cfg) + "/auth/o/app-installation/"
+	if installationID != "" {
+		endpoint += "?id=" + url.QueryEscape(installationID)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return "", "", err
 	}
