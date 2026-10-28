@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"html"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -181,8 +182,6 @@ func (a *auth) authorize(ctx context.Context, openURL func(string)) (*Token, err
 	tok, err := exchange(ctx, cfg, url.Values{
 		"grant_type":    {"authorization_code"},
 		"code":          {res.code},
-		"client_id":     {cfg.Plane.ClientID},
-		"client_secret": {cfg.Plane.ClientSecret},
 		"redirect_uri":  {redirectURI(cfg)},
 		"code_verifier": {verifier},
 	})
@@ -225,8 +224,6 @@ func (a *auth) refresh(ctx context.Context, t *Token) (*Token, error) {
 	next, err := exchange(ctx, cfg, url.Values{
 		"grant_type":    {"refresh_token"},
 		"refresh_token": {t.RefreshToken},
-		"client_id":     {cfg.Plane.ClientID},
-		"client_secret": {cfg.Plane.ClientSecret},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%w: refresh failed: %v", ErrNotConnected, err)
@@ -241,12 +238,53 @@ func (a *auth) refresh(ctx context.Context, t *Token) (*Token, error) {
 	return next, nil
 }
 
-func exchange(ctx context.Context, cfg *config.Config, form url.Values) (*Token, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL(cfg)+"/auth/o/token/", strings.NewReader(form.Encode()))
+// exchange calls the token endpoint. Client credentials go in an HTTP Basic
+// header first (what Plane's docs and MCP server use); if Plane rejects that
+// with invalid_client, it retries with them in the form body. Client
+// authentication runs before the code is checked, so the retry is safe.
+func exchange(ctx context.Context, cfg *config.Config, grant url.Values) (*Token, error) {
+	id := strings.TrimSpace(cfg.Plane.ClientID)
+	secret := strings.TrimSpace(cfg.Plane.ClientSecret)
+	tok, err := tokenRequest(ctx, cfg, grant, func(req *http.Request, form url.Values) {
+		// RFC 6749 §2.3.1: form-encode each part before Basic encoding.
+		req.SetBasicAuth(url.QueryEscape(id), url.QueryEscape(secret))
+	})
+	var te *tokenError
+	if !errors.As(err, &te) || te.code != "invalid_client" {
+		return tok, err
+	}
+	return tokenRequest(ctx, cfg, grant, func(_ *http.Request, form url.Values) {
+		form.Set("client_id", id)
+		form.Set("client_secret", secret)
+	})
+}
+
+type tokenError struct {
+	status, code, desc string
+}
+
+func (e *tokenError) Error() string {
+	if e.desc != "" {
+		return fmt.Sprintf("token request failed: %s (%s)", e.desc, e.code)
+	}
+	return fmt.Sprintf("token request failed: %s %s", e.status, e.code)
+}
+
+func tokenRequest(ctx context.Context, cfg *config.Config, grant url.Values, authn func(*http.Request, url.Values)) (*Token, error) {
+	form := url.Values{}
+	for k, v := range grant {
+		form[k] = v
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL(cfg)+"/auth/o/token/", nil)
 	if err != nil {
 		return nil, err
 	}
+	authn(req, form)
+	body := form.Encode()
+	req.Body = io.NopCloser(strings.NewReader(body))
+	req.ContentLength = int64(len(body))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Accept", "application/json")
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -254,13 +292,10 @@ func exchange(ctx context.Context, cfg *config.Config, form url.Values) (*Token,
 	defer resp.Body.Close()
 	var tr tokenResponse
 	if err := json.NewDecoder(resp.Body).Decode(&tr); err != nil {
-		return nil, fmt.Errorf("token endpoint returned %s", resp.Status)
+		return nil, &tokenError{status: resp.Status}
 	}
 	if resp.StatusCode >= 300 || tr.AccessToken == "" {
-		if tr.ErrorDesc != "" {
-			return nil, fmt.Errorf("token request failed: %s", tr.ErrorDesc)
-		}
-		return nil, fmt.Errorf("token request failed: %s %s", resp.Status, tr.Error)
+		return nil, &tokenError{status: resp.Status, code: tr.Error, desc: tr.ErrorDesc}
 	}
 	t := &Token{AccessToken: tr.AccessToken, RefreshToken: tr.RefreshToken}
 	if tr.ExpiresIn > 0 {

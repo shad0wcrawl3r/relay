@@ -71,17 +71,17 @@ func (s *SettingsService) Save(in SettingsInput) (Settings, error) {
 			// Leave it derived unless the user actually changed it.
 			c.Plane.AppURL = ""
 		}
-		c.Plane.ClientID = in.PlaneClientID
-		if in.PlaneSecret != "" {
-			c.Plane.ClientSecret = in.PlaneSecret
+		c.Plane.ClientID = strings.TrimSpace(in.PlaneClientID)
+		if secret := strings.TrimSpace(in.PlaneSecret); secret != "" {
+			c.Plane.ClientSecret = secret
 		}
 		c.Plane.Workspace = in.PlaneWorkspace
 		c.Plane.Scope = strings.Join(strings.Fields(in.PlaneScope), " ")
 		if in.PlaneRedirectPort > 0 {
 			c.Plane.RedirectPort = in.PlaneRedirectPort
 		}
-		if in.DevtoKey != "" {
-			c.DevTo.APIKey = in.DevtoKey
+		if key := strings.TrimSpace(in.DevtoKey); key != "" {
+			c.DevTo.APIKey = key
 		}
 		if in.SyncInterval >= 30 {
 			c.Sync.IntervalSeconds = in.SyncInterval
