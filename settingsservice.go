@@ -23,7 +23,6 @@ type Settings struct {
 	PlaneWorkspace    string `json:"planeWorkspace"`
 	PlaneRedirectPort int    `json:"planeRedirectPort"`
 	PlaneScope        string `json:"planeScope"`
-	DefaultScope      string `json:"defaultScope"`
 	PlaneConnected    bool   `json:"planeConnected"`
 	ConnectedSlug     string `json:"connectedSlug"`
 	DevtoKeySet       bool   `json:"devtoKeySet"`
@@ -54,7 +53,7 @@ func (s *SettingsService) Get() Settings {
 	return Settings{
 		PlaneBaseURL: c.Plane.BaseURL, PlaneAppURL: plane.AppURL(), PlaneClientID: c.Plane.ClientID,
 		PlaneSecretSet: c.Plane.ClientSecret != "", PlaneWorkspace: c.Plane.Workspace,
-		PlaneRedirectPort: c.Plane.RedirectPort, PlaneScope: c.Plane.Scope, DefaultScope: config.DefaultPlaneScope,
+		PlaneRedirectPort: c.Plane.RedirectPort, PlaneScope: c.Plane.Scope,
 		PlaneConnected: s.plane.client.Connected(),
 		ConnectedSlug:  s.plane.client.Workspace(), DevtoKeySet: c.DevTo.APIKey != "",
 		SyncInterval: c.Sync.IntervalSeconds, AgentName: c.Agent.Name, AgentLabel: c.Agent.Label,
@@ -64,10 +63,11 @@ func (s *SettingsService) Get() Settings {
 }
 
 func (s *SettingsService) Save(in SettingsInput) (Settings, error) {
+	derivedAppURL := plane.AppURL()
 	err := config.Update(func(c *config.Config) {
 		c.Plane.BaseURL = in.PlaneBaseURL
 		c.Plane.AppURL = in.PlaneAppURL
-		if in.PlaneAppURL == plane.AppURL() {
+		if in.PlaneAppURL == derivedAppURL {
 			// Leave it derived unless the user actually changed it.
 			c.Plane.AppURL = ""
 		}

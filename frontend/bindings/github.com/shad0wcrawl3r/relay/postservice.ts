@@ -8,7 +8,7 @@
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Create } from "@wailsio/runtime";
+import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wailsio/runtime";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -19,9 +19,7 @@ import * as posts$0 from "./internal/posts/models.js";
 import * as $models from "./models.js";
 
 export function Create(): $CancellablePromise<posts$0.Post> {
-    return $Call.ByID(3052295323).then(($result: any) => {
-        return $$createType0($result);
-    });
+    return $Call.ByID(3052295323);
 }
 
 export function Delete(id: string): $CancellablePromise<void> {
@@ -32,44 +30,30 @@ export function Delete(id: string): $CancellablePromise<void> {
  * Get loads a post; a Dev.to-only article is imported into a local file first.
  */
 export function Get(id: string): $CancellablePromise<posts$0.Post> {
-    return $Call.ByID(3294469573, id).then(($result: any) => {
-        return $$createType0($result);
-    });
+    return $Call.ByID(3294469573, id);
 }
 
 /**
  * List merges local files with the last-fetched Dev.to articles.
  */
 export function List(): $CancellablePromise<$models.PostList> {
-    return $Call.ByID(891579411).then(($result: any) => {
-        return $$createType1($result);
-    });
+    return $Call.ByID(891579411);
 }
 
 export function Save(p: posts$0.Post): $CancellablePromise<posts$0.Post> {
-    return $Call.ByID(2219860006, p).then(($result: any) => {
-        return $$createType0($result);
-    });
+    return $Call.ByID(2219860006, p);
 }
 
 /**
  * Send creates an unpublished Dev.to draft, or updates the existing article.
  */
 export function Send(id: string): $CancellablePromise<posts$0.Post> {
-    return $Call.ByID(1736885549, id).then(($result: any) => {
-        return $$createType0($result);
-    });
+    return $Call.ByID(1736885549, id);
 }
 
 /**
  * Sync refreshes the Dev.to article list.
  */
 export function Sync(): $CancellablePromise<$models.PostList> {
-    return $Call.ByID(215217372).then(($result: any) => {
-        return $$createType1($result);
-    });
+    return $Call.ByID(215217372);
 }
-
-// Private type creation functions
-const $$createType0 = posts$0.Post.createFrom;
-const $$createType1 = $models.PostList.createFrom;

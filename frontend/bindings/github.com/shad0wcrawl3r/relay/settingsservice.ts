@@ -9,7 +9,7 @@
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Create } from "@wailsio/runtime";
+import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wailsio/runtime";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -19,22 +19,13 @@ import * as $models from "./models.js";
  * ClearDevtoKey removes the stored Dev.to key.
  */
 export function ClearDevtoKey(): $CancellablePromise<$models.Settings> {
-    return $Call.ByID(357252920).then(($result: any) => {
-        return $$createType0($result);
-    });
+    return $Call.ByID(357252920);
 }
 
 export function Get(): $CancellablePromise<$models.Settings> {
-    return $Call.ByID(710695688).then(($result: any) => {
-        return $$createType0($result);
-    });
+    return $Call.ByID(710695688);
 }
 
 export function Save($in: $models.SettingsInput): $CancellablePromise<$models.Settings> {
-    return $Call.ByID(2704157817, $in).then(($result: any) => {
-        return $$createType0($result);
-    });
+    return $Call.ByID(2704157817, $in);
 }
-
-// Private type creation functions
-const $$createType0 = $models.Settings.createFrom;

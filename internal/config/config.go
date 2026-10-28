@@ -12,9 +12,12 @@ import (
 )
 
 var (
-	mu  sync.RWMutex
-	cfg Config
-	v   = viper.New()
+	mu sync.RWMutex // guards cfg
+	// writeMu serialises Update. fn runs without mu held, so it may call
+	// GetConfig (directly or via helpers) without deadlocking.
+	writeMu sync.Mutex
+	cfg     Config
+	v       = viper.New()
 )
 
 func init() {
@@ -25,7 +28,9 @@ func init() {
 	v.SetConfigType("toml")
 	v.SetDefault("plane.BASE_URL", "https://api.plane.so")
 	v.SetDefault("plane.REDIRECT_PORT", 47821)
-	v.SetDefault("plane.SCOPE", DefaultPlaneScope)
+	// Empty: request no explicit scope, so Plane grants the scopes ticked on
+	// the OAuth app. Asking for any scope the app lacks fails with invalid_scope.
+	v.SetDefault("plane.SCOPE", "")
 	v.SetDefault("sync.INTERVAL_SECONDS", 120)
 	v.SetDefault("agent.NAME", "Claude Code")
 	v.SetDefault("agent.LABEL", "agent")
@@ -41,13 +46,6 @@ func init() {
 	}
 	// Never log cfg itself: it holds secrets.
 }
-
-// DefaultPlaneScope is what Relay reads and writes. Tick the same scopes on
-// the Plane OAuth app.
-const DefaultPlaneScope = "profile:read workspaces.members:read projects:read projects.states:read " +
-	"projects.labels:read projects.modules:read projects.cycles:read projects.work_items:read " +
-	"projects.work_items:write projects.work_items.comments:read projects.work_items.comments:write " +
-	"projects.work_items.activities:read"
 
 // Path is the config file in use: ./config.toml when present (dev), otherwise
 // the OS config dir (e.g. ~/Library/Application Support/relay/config.toml).
@@ -83,9 +81,9 @@ func Override(fn func(c *Config)) {
 
 // Update applies fn to a copy of the config and persists it to Path().
 func Update(fn func(c *Config)) error {
-	mu.Lock()
-	defer mu.Unlock()
-	next := cfg
+	writeMu.Lock()
+	defer writeMu.Unlock()
+	next := *GetConfig()
 	fn(&next)
 	v.Set("devto.API_KEY", next.DevTo.APIKey)
 	v.Set("plane.BASE_URL", next.Plane.BaseURL)
@@ -108,7 +106,9 @@ func Update(fn func(c *Config)) error {
 	if err := os.Chmod(path, 0o600); err != nil {
 		return err
 	}
+	mu.Lock()
 	cfg = next
+	mu.Unlock()
 	return nil
 }
 

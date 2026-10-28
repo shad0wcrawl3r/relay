@@ -168,12 +168,9 @@ export function Settings() {
             label="Scopes"
             hint={
               <>
-                Space-separated. Tick the same scopes on the Plane app.{" "}
-                {form.planeScope !== s.defaultScope && (
-                  <button className="text-[#93c5fd] hover:underline" onClick={() => set({ planeScope: s.defaultScope })}>
-                    Reset to Relay's defaults
-                  </button>
-                )}
+                Leave empty to get the scopes ticked on the Plane app (recommended). If you fill this in, every scope must also be
+                ticked there, or Plane answers invalid_scope. Relay needs read access to projects, states, labels, modules, cycles,
+                members and activity, plus write access to work items and comments.
               </>
             }
           >

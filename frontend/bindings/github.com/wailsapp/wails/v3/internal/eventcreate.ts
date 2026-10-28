@@ -6,17 +6,4 @@
 // @ts-ignore: Unused imports
 import { Create as $Create } from "@wailsio/runtime";
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore: Unused imports
-import * as plane$0 from "../../../../shad0wcrawl3r/relay/internal/plane/models.js";
-
-function configure() {
-    Object.freeze(Object.assign($Create.Events, {
-        "plane:snapshot": $$createType0,
-    }));
-}
-
-// Private type creation functions
-const $$createType0 = plane$0.Snapshot.createFrom;
-
-configure();
+Object.freeze($Create.Events);

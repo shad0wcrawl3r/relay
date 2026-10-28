@@ -9,7 +9,7 @@
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
-import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Create } from "@wailsio/runtime";
+import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wailsio/runtime";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -24,15 +24,11 @@ export function Connect(): $CancellablePromise<void> {
 }
 
 export function Create(item: plane$0.NewItem): $CancellablePromise<plane$0.Item> {
-    return $Call.ByID(3202185819, item).then(($result: any) => {
-        return $$createType0($result);
-    });
+    return $Call.ByID(3202185819, item);
 }
 
 export function Detail(projectID: string, itemID: string): $CancellablePromise<plane$0.ItemDetail> {
-    return $Call.ByID(280525018, projectID, itemID).then(($result: any) => {
-        return $$createType1($result);
-    });
+    return $Call.ByID(280525018, projectID, itemID);
 }
 
 export function Disconnect(): $CancellablePromise<void> {
@@ -43,25 +39,16 @@ export function Disconnect(): $CancellablePromise<void> {
  * Snapshot returns the last synced state without a network round trip.
  */
 export function Snapshot(): $CancellablePromise<plane$0.Snapshot> {
-    return $Call.ByID(359131323).then(($result: any) => {
-        return $$createType2($result);
-    });
+    return $Call.ByID(359131323);
 }
 
 /**
  * SyncNow fetches everything immediately and returns the result.
  */
 export function SyncNow(): $CancellablePromise<plane$0.Snapshot> {
-    return $Call.ByID(2346408804).then(($result: any) => {
-        return $$createType2($result);
-    });
+    return $Call.ByID(2346408804);
 }
 
 export function Update(projectID: string, itemID: string, patch: plane$0.ItemPatch): $CancellablePromise<void> {
     return $Call.ByID(2526487114, projectID, itemID, patch);
 }
-
-// Private type creation functions
-const $$createType0 = plane$0.Item.createFrom;
-const $$createType1 = plane$0.ItemDetail.createFrom;
-const $$createType2 = plane$0.Snapshot.createFrom;

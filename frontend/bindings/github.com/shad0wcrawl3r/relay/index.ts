@@ -10,7 +10,7 @@ export {
     SettingsService
 };
 
-export {
+export type {
     PostList,
     PostSummary,
     Settings,
