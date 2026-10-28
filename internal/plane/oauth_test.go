@@ -17,7 +17,7 @@ func tokenServer(t *testing.T, acceptBasic, acceptBody bool, calls *int) *httpte
 		if err := r.ParseForm(); err != nil {
 			t.Fatal(err)
 		}
-		if r.PostForm.Get("code") != "the-code" || r.PostForm.Get("code_verifier") != "v" {
+		if r.PostForm.Get("code") != "the-code" {
 			t.Errorf("grant params lost: %v", r.PostForm)
 		}
 		user, pass, basic := r.BasicAuth()
@@ -33,7 +33,7 @@ func tokenServer(t *testing.T, acceptBasic, acceptBody bool, calls *int) *httpte
 }
 
 func TestExchangeClientAuth(t *testing.T) {
-	grant := url.Values{"grant_type": {"authorization_code"}, "code": {"the-code"}, "code_verifier": {"v"}}
+	grant := url.Values{"grant_type": {"authorization_code"}, "code": {"the-code"}}
 	for _, tc := range []struct {
 		name        string
 		basic, body bool

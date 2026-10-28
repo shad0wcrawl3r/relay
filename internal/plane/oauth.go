@@ -3,8 +3,6 @@ package plane
 import (
 	"context"
 	"crypto/rand"
-	"crypto/sha256"
-	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -107,10 +105,6 @@ func (a *auth) authorize(ctx context.Context, openURL func(string)) (*Token, err
 		return nil, errors.New("set the Plane client ID and secret in Settings first")
 	}
 	state := randomHex(16)
-	// PKCE (S256): Plane is built on django-oauth-toolkit, which can require it.
-	verifier := randomHex(32)
-	sum := sha256.Sum256([]byte(verifier))
-	challenge := base64.RawURLEncoding.EncodeToString(sum[:])
 	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", cfg.Plane.RedirectPort))
 	if err != nil {
 		return nil, fmt.Errorf("could not listen for the OAuth redirect on port %d: %w", cfg.Plane.RedirectPort, err)
@@ -157,12 +151,10 @@ func (a *auth) authorize(ctx context.Context, openURL func(string)) (*Token, err
 	defer srv.Close()
 
 	q := url.Values{
-		"client_id":             {cfg.Plane.ClientID},
-		"response_type":         {"code"},
-		"redirect_uri":          {redirectURI(cfg)},
-		"state":                 {state},
-		"code_challenge":        {challenge},
-		"code_challenge_method": {"S256"},
+		"client_id":     {cfg.Plane.ClientID},
+		"response_type": {"code"},
+		"redirect_uri":  {redirectURI(cfg)},
+		"state":         {state},
 	}
 	if cfg.Plane.Scope != "" {
 		q.Set("scope", cfg.Plane.Scope)
@@ -188,10 +180,9 @@ func (a *auth) authorize(ctx context.Context, openURL func(string)) (*Token, err
 	}
 
 	tok, err := exchange(ctx, cfg, url.Values{
-		"grant_type":    {"authorization_code"},
-		"code":          {res.code},
-		"redirect_uri":  {redirectURI(cfg)},
-		"code_verifier": {verifier},
+		"grant_type":   {"authorization_code"},
+		"code":         {res.code},
+		"redirect_uri": {redirectURI(cfg)},
 	})
 	if err != nil {
 		return nil, err
@@ -248,9 +239,9 @@ func (a *auth) refresh(ctx context.Context, t *Token) (*Token, error) {
 	return next, nil
 }
 
-// exchange calls the token endpoint. Client credentials go in an HTTP Basic
-// header first (what Plane's docs and MCP server use); if Plane rejects that
-// with invalid_client, it retries with them in the form body. Client
+// exchange calls the token endpoint the way Plane's Node and Python SDKs do
+// for user tokens: client credentials in the form body, no PKCE. If Plane
+// answers invalid_client it retries once with HTTP Basic; client
 // authentication runs before the code is checked, so the retry is safe.
 func exchange(ctx context.Context, cfg *config.Config, grant url.Values) (*Token, error) {
 	tok, err := tokenRequest(ctx, cfg, grant, bodyAuth(cfg))
@@ -326,6 +317,7 @@ func tokenRequest(ctx context.Context, cfg *config.Config, grant url.Values, aut
 	req.ContentLength = int64(len(body))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Cache-Control", "no-cache")
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
