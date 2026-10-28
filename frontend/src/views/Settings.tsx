@@ -8,6 +8,7 @@ import { useToast } from "@/components/Toaster";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dot } from "@/components/bits";
+import { PlaneAppGuide } from "@/components/PlaneAppGuide";
 
 export function Settings() {
   const toast = useToast();
@@ -102,7 +103,13 @@ export function Settings() {
           <p className="mt-1 text-[13px] text-dim">Saved to {s.configPath}. Secrets are never shown again once saved.</p>
         </div>
 
-        <Section title="Plane" description="Relay connects as a Plane OAuth app. Create one in your workspace settings with the redirect URI below.">
+        <Section title="Plane" description="Relay connects as a Plane OAuth app that you create in your workspace.">
+          <PlaneAppGuide
+            redirectUri={s.redirectUri}
+            appUrl={form.planeAppUrl || s.planeAppUrl}
+            workspace={s.connectedSlug || form.planeWorkspace}
+            defaultOpen={!s.planeConnected}
+          />
           <div className="flex items-center gap-3 rounded-[10px] border border-column-border bg-column px-4 py-3">
             <Dot color={s.planeConnected ? "#46a758" : "#71717a"} />
             <div className="flex min-w-0 flex-1 flex-col">
