@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Work board</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#09090B}
+a{color:#A1A1AA}a:hover{color:#FAFAFA}
+.app *{box-sizing:border-box}
+.app{position:relative;font-family:Inter,system-ui,sans-serif;font-size:13px;color:#E4E4E7;background:#09090B;display:flex;flex-wrap:wrap;width:100%;min-height:900px}
+.app ::-webkit-scrollbar{width:6px;height:6px}.app ::-webkit-scrollbar-thumb{background:#2A2A2F;border-radius:3px}.app ::-webkit-scrollbar-track{background:transparent}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.side{flex:0 0 220px;background:#0C0C0E;border-right:1px solid #1F1F23;padding:14px 10px;display:flex;flex-direction:column;gap:20px}
+.brand{display:flex;align-items:center;gap:10px;padding:2px 8px;font-weight:600;font-size:14px;color:#FAFAFA}
+.logo{width:24px;height:24px;border-radius:6px;background:#FAFAFA;color:#09090B;display:grid;place-items:center;font-size:12px;font-weight:700}
+.navgroup{display:flex;flex-direction:column;gap:2px}
+.sect{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:#8B8B94;padding:0 10px 6px}
+.navitem{display:flex;align-items:center;gap:10px;min-height:34px;padding:0 10px;border-radius:6px;color:#A1A1AA;text-decoration:none}
+.navitem:hover{background:#141417;color:#FAFAFA}
+.navitem.on{background:#1A1A1E;color:#FAFAFA}
+.badge{margin-left:auto;font-size:11px;color:#8B8B94}
+.badge.pink{color:#FBCFE8;background:#4A1D35;padding:1px 7px;border-radius:999px}
+.glyph{width:20px;height:20px;border-radius:5px;display:grid;place-items:center;font-size:11px;font-weight:600;flex:0 0 20px}
+.gw{background:#1E293B;color:#93C5FD}.gl{background:#2E1A47;color:#D8B4FE}.gh{background:#123534;color:#5EEAD4}
+.sync{display:flex;align-items:center;gap:8px;padding:0 10px;font-size:12px;color:#8B8B94}
+.iconbtn{margin-left:auto;width:28px;height:28px;border-radius:6px;border:0;background:transparent;color:#A1A1AA;display:grid;place-items:center;cursor:pointer}
+.iconbtn:hover{background:#18181B;color:#FAFAFA}
+.main{flex:999 1 560px;min-width:0;display:flex;flex-direction:column}
+.top{min-height:56px;border-bottom:1px solid #1F1F23;display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:10px 20px}
+.crumb{display:flex;align-items:center;gap:10px;margin-right:6px}
+.crumb h1{margin:0;font-size:15px;font-weight:600;color:#FAFAFA}
+.dim{color:#8B8B94;font-size:11px}
+.seg{display:inline-flex;padding:2px;border:1px solid #27272A;border-radius:7px;background:#0F0F11}
+.seg button{height:26px;padding:0 10px;border:0;border-radius:5px;background:transparent;color:#A1A1AA;font:inherit;font-size:12px;display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.seg button.on{background:#232328;color:#FAFAFA}
+.seg .seglink{height:26px;padding:0 10px;border-radius:5px;color:#A1A1AA;font-size:12px;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+.seg .seglink:hover{color:#FAFAFA}
+.btn{height:30px;padding:0 10px;border-radius:6px;border:1px solid #27272A;background:#111113;color:#D4D4D8;font:inherit;font-size:12px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:#3F3F46;color:#FAFAFA}
+.btn.primary{background:#FAFAFA;color:#09090B;border-color:#FAFAFA;font-weight:500}
+.search{display:flex;align-items:center;gap:8px;height:30px;padding:0 8px 0 10px;border:1px solid #27272A;border-radius:6px;background:#0F0F11;color:#8B8B94;width:240px}
+.search input{flex:1;min-width:0;border:0;background:transparent;color:#E4E4E7;font:inherit;font-size:12px;outline:none}
+.search input::placeholder{color:#8B8B94}
+kbd{font-family:'JetBrains Mono',monospace;font-size:10px;color:#A1A1AA;border:1px solid #2A2A2F;border-radius:4px;padding:1px 5px;background:#141417}
+.board{flex:1;overflow-x:auto;display:flex;gap:12px;padding:16px 20px 24px;align-items:flex-start}
+.col{flex:0 0 264px;display:flex;flex-direction:column;gap:8px}
+.colhead{display:flex;align-items:center;gap:8px;height:28px;padding:0 4px;font-size:12px;font-weight:500;color:#D4D4D8}
+.dot{width:8px;height:8px;border-radius:50%;flex:0 0 8px}
+.count{color:#8B8B94;font-weight:400}
+.colbody{display:flex;flex-direction:column;gap:8px;background:#0E0E10;border:1px solid #17171A;border-radius:10px;padding:8px}
+.addcard{height:32px;border:0;border-radius:6px;background:transparent;color:#8B8B94;font:inherit;font-size:12px;display:flex;align-items:center;gap:6px;padding:0 8px;cursor:pointer}
+.addcard:hover{background:#141417;color:#E4E4E7}
+.collapsed{flex:0 0 40px;min-height:420px;border:1px solid #17171A;border-radius:10px;background:#0E0E10;display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px 0;color:#A1A1AA;font:inherit;font-size:12px;cursor:pointer}
+.collapsed:hover{border-color:#2A2A30;color:#FAFAFA}
+.vt{writing-mode:vertical-rl;transform:rotate(180deg);font-weight:500}
+.card{background:#16161A;border:1px solid #26262B;border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;cursor:grab}
+.card:hover{border-color:#3A3A42}
+.card.needs{border-color:#8A2E5C;box-shadow:0 0 0 1px rgba(236,72,153,.28)}
+.card.working{border-color:#3E3F8F}
+.card .row{display:flex;align-items:center;gap:8px}
+.card .id{font-size:11px;color:#8B8B94}
+.card .title{font-size:13px;line-height:1.4;color:#F4F4F5}
+.note{font-size:12px;color:#FCA5A5;background:#2A1215;border-radius:5px;padding:5px 8px}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 7px;border:1px solid #2A2A30;border-radius:999px;font-size:11px;color:#B4B4BC}
+.chip .dot{width:6px;height:6px;flex-basis:6px}
+.meta{display:flex;align-items:center;gap:10px;font-size:11px;color:#8B8B94}
+.meta > span{display:inline-flex;align-items:center;gap:4px}
+.over{color:#F87171}
+.agent{color:#A5B4FC}
+.prio{display:inline-flex;align-items:flex-end;gap:2px;height:10px}
+.prio span{width:3px;border-radius:1px}
+.urg{width:16px;height:16px;border-radius:4px;background:#7C2D12;color:#FDBA74;display:grid;place-items:center;font-size:11px;font-weight:700}
+.pulse{width:7px;height:7px;border-radius:50%;background:#818CF8;animation:pulse 1.6s ease-out infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(129,140,248,.55)}100%{box-shadow:0 0 0 7px rgba(129,140,248,0)}}
+</style>
+</helmet>
+<div class="app">
+<nav class="side" aria-label="Main">
+<div class="brand"><span class="logo">R</span><span>Relay</span></div>
+<div class="navgroup">
+<a class="navitem" href="Attention.dc.html"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>Attention<span class="badge pink">8</span></a>
+</div>
+<div class="navgroup">
+<div class="sect">Plane projects</div>
+<a class="navitem on" href="Main.dc.html"><span class="glyph gw">W</span>Work<span class="badge">25</span></a>
+<a class="navitem" href="Detail.dc.html"><span class="glyph gl">L</span>Lab<span class="badge">13</span></a>
+<a class="navitem" href="#"><span class="glyph gh">T</span>Teaching<span class="badge" title="Private: kept in memory only"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Private"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></span></a>
+</div>
+<div class="navgroup">
+<div class="sect">Write</div>
+<a class="navitem" href="#"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>Dev.to editor</a>
+</div>
+<div style="flex: 1"></div>
+<div class="sync"><span class="dot" style="background: #46A758"></span>Synced 14s ago<button class="iconbtn" aria-label="Sync now"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"></path><path d="M21 3v5h-5"></path></svg></button></div>
+<a class="navitem" href="#"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"></path></svg>Settings</a>
+</nav>
+<main class="main">
+<header class="top">
+<div class="crumb"><span class="glyph gw">W</span><h1>Work</h1><span class="mono dim">WORK</span></div>
+<div class="seg" role="group" aria-label="View">
+<button class="on" aria-pressed="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="5" height="16" rx="1"></rect><rect x="10" y="4" width="5" height="10" rx="1"></rect><rect x="17" y="4" width="4" height="13" rx="1"></rect></svg>Board</button>
+<a class="seglink" href="Lanes.dc.html"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"></path></svg>Lanes</a>
+</div>
+<button class="btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 5h18M6 12h12M10 19h4"></path></svg>Filter</button>
+<button class="btn">Module<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+<button class="btn">Label<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+<button class="btn">Priority<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+<button class="btn">Cycle<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+<span style="flex: 1"></span>
+<label class="search"><span class="sr">Search work items</span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><input type="search" placeholder="Search WORK…"><kbd>⌘F</kbd></label>
+<button class="btn primary"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>New item</button>
+</header>
+<div class="board">
+<sc-for list="{{cols}}" as="col" hint-placeholder-count="7">
+<sc-if value="{{col.collapsed}}" hint-placeholder-val="{{false}}">
+<button class="collapsed" aria-label="Expand {{col.name}}, {{col.count}} items"><span class="dot" style="background: {{col.color}}"></span><span class="count">{{col.count}}</span><span class="vt">{{col.name}}</span></button>
+</sc-if>
+<sc-if value="{{col.open}}" hint-placeholder-val="{{true}}">
+<section class="col" aria-label="{{col.name}}">
+<div class="colhead"><span class="dot" style="background: {{col.color}}"></span><span>{{col.name}}</span><span class="count">{{col.count}}</span><button class="iconbtn" aria-label="Add to {{col.name}}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button></div>
+<div class="colbody">
+<sc-for list="{{col.items}}" as="c" hint-placeholder-count="2">
+<article class="card {{c.cls}}">
+<div class="row"><span class="mono id">{{c.id}}</span><span style="flex: 1"></span>
+<sc-if value="{{c.urgent}}" hint-placeholder-val="{{false}}"><span class="urg" role="img" aria-label="Urgent priority">!</span></sc-if>
+<sc-if value="{{c.bars}}" hint-placeholder-val="{{true}}"><span class="prio" role="img" aria-label="{{c.prioLabel}} priority"><span style="height: 4px; background: {{c.p1}}"></span><span style="height: 7px; background: {{c.p2}}"></span><span style="height: 10px; background: {{c.p3}}"></span></span></sc-if>
+</div>
+<div class="title">{{c.title}}</div>
+<sc-if value="{{c.hasNote}}" hint-placeholder-val="{{false}}"><div class="note">{{c.note}}</div></sc-if>
+<sc-if value="{{c.hasLabels}}" hint-placeholder-val="{{true}}"><div class="chips"><sc-for list="{{c.labels}}" as="l" hint-placeholder-count="1"><span class="chip"><span class="dot" style="background: {{l.color}}"></span>{{l.name}}</span></sc-for></div></sc-if>
+<div class="meta">
+<sc-if value="{{c.hasModule}}" hint-placeholder-val="{{true}}"><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>{{c.module}}</span></sc-if>
+<sc-if value="{{c.hasDue}}" hint-placeholder-val="{{false}}"><span class="{{c.dueCls}}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 11h18"></path></svg>{{c.due}}</span></sc-if>
+<span style="flex: 1"></span>
+<sc-if value="{{c.hasComments}}" hint-placeholder-val="{{false}}"><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L3 21l1.9-6.4A8 8 0 1 1 21 12Z"></path></svg>{{c.comments}}</span></sc-if>
+<sc-if value="{{c.isAgent}}" hint-placeholder-val="{{false}}"><span class="agent"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"></rect><path d="M12 4v4M9 14h.01M15 14h.01"></path></svg>agent</span></sc-if>
+<sc-if value="{{c.isWorking}}" hint-placeholder-val="{{false}}"><span class="agent"><span class="pulse"></span>{{c.working}}</span></sc-if>
+</div>
+</article>
+</sc-for>
+<button class="addcard"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Add item</button>
+</div>
+</section>
+</sc-if>
+</sc-for>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const L = {
+      research: { name: 'research', color: '#A855F7' },
+      parser: { name: 'parser', color: '#3B82F6' },
+      action: { name: 'action-item', color: '#F59E0B' },
+      spec: { name: 'spec', color: '#14B8A6' },
+      infra: { name: 'infra', color: '#94A3B8' }
+    };
+    const on = '#D4D4D8', off = '#3F3F46';
+    const card = (o) => {
+      const p = o.p || 'none';
+      const n = { low: 1, medium: 2, high: 3 }[p] || 0;
+      const labels = (o.labels || []).map((k) => L[k]);
+      return Object.assign({ cls: '', module: '', due: '', note: '', comments: 0, working: '' }, o, {
+        urgent: p === 'urgent', bars: n > 0, prioLabel: p,
+        p1: n >= 1 ? on : off, p2: n >= 2 ? on : off, p3: n >= 3 ? on : off,
+        labels, hasLabels: labels.length > 0, hasNote: !!o.note, hasModule: !!o.module,
+        hasDue: !!o.due, dueCls: o.overdue ? 'over' : '', hasComments: !!o.comments,
+        isAgent: !!o.agent, isWorking: !!o.working
+      });
+    };
+    const col = (name, color, items, collapsed, count) => ({
+      name, color, items: (items || []).map(card),
+      count: count != null ? count : (items || []).length,
+      collapsed: !!collapsed, open: !collapsed
+    });
+    return {
+      cols: [
+        col('Backlog', '#60646C', [], true, 14),
+        col('Todo', '#60646C', [
+          { id: 'WORK-18', title: 'Parser for FortiGate syslog (key=value)', p: 'high', labels: ['parser'], module: 'Log Parser', due: 'Nov 3' },
+          { id: 'WORK-27', title: 'Prep notes for Thursday R&D sync', p: 'medium', labels: ['action'], due: 'Oct 30' },
+          { id: 'WORK-25', title: 'On-prem upgrade checklist for SIEM engineers', p: 'low', labels: ['action'] }
+        ]),
+        col('Ready for Agent', '#3B82F6', [
+          { id: 'WORK-19', title: 'Draft Sigma → LogQL translation spec', p: 'medium', labels: ['spec'], module: 'Sigma Rule Gen' },
+          { id: 'WORK-22', title: 'Fuzz CEF parser with malformed headers', p: 'low', labels: ['parser'], module: 'Log Parser' }
+        ]),
+        col('Agent Working', '#6366F1', [
+          { id: 'WORK-15', title: 'Prototype Windows EVTX normalizer in Go', p: 'high', module: 'Log Parser', working: 'working · 12m', cls: 'working' }
+        ]),
+        col('In Progress', '#F59E0B', [
+          { id: 'WORK-12', title: 'ECS field mapping for firewall logs', p: 'urgent', module: 'Detection Pipeline', due: 'Oct 26', overdue: true, comments: 2 },
+          { id: 'WORK-20', title: 'Retention policy for hot / warm tiers', p: 'medium', labels: ['research'], module: 'Detection Pipeline' }
+        ]),
+        col('Blocked', '#EF4444', [
+          { id: 'WORK-16', title: 'Load-test ingest on staging cluster', p: 'high', labels: ['infra'], module: 'Detection Pipeline', note: 'Waiting on staging access', comments: 1 }
+        ]),
+        col('Needs Review', '#EC4899', [
+          { id: 'WORK-14', title: 'Research: eBPF-based process telemetry', p: 'medium', labels: ['research'], comments: 3, agent: true, cls: 'needs' },
+          { id: 'WORK-17', title: 'Sigma rule test harness — PR #42', p: 'high', module: 'Sigma Rule Gen', comments: 1, agent: true, cls: 'needs' }
+        ]),
+        col('Done', '#46A758', [], true, 9),
+        col('Cancelled', '#9AA4BC', [], true, 2)
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

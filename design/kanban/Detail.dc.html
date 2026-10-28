@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lab board — item drawer</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#09090B}
+a{color:#A1A1AA}a:hover{color:#FAFAFA}
+.app *{box-sizing:border-box}
+.app{position:relative;font-family:Inter,system-ui,sans-serif;font-size:13px;color:#E4E4E7;background:#09090B;display:flex;flex-wrap:wrap;width:100%;min-height:900px;overflow:hidden}
+.app ::-webkit-scrollbar{width:6px;height:6px}.app ::-webkit-scrollbar-thumb{background:#2A2A2F;border-radius:3px}.app ::-webkit-scrollbar-track{background:transparent}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.side{flex:0 0 220px;background:#0C0C0E;border-right:1px solid #1F1F23;padding:14px 10px;display:flex;flex-direction:column;gap:20px}
+.brand{display:flex;align-items:center;gap:10px;padding:2px 8px;font-weight:600;font-size:14px;color:#FAFAFA}
+.logo{width:24px;height:24px;border-radius:6px;background:#FAFAFA;color:#09090B;display:grid;place-items:center;font-size:12px;font-weight:700}
+.navgroup{display:flex;flex-direction:column;gap:2px}
+.sect{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:#8B8B94;padding:0 10px 6px}
+.navitem{display:flex;align-items:center;gap:10px;min-height:34px;padding:0 10px;border-radius:6px;color:#A1A1AA;text-decoration:none}
+.navitem.on{background:#1A1A1E;color:#FAFAFA}
+.badge{margin-left:auto;font-size:11px;color:#8B8B94}
+.badge.pink{color:#FBCFE8;background:#4A1D35;padding:1px 7px;border-radius:999px}
+.glyph{width:20px;height:20px;border-radius:5px;display:grid;place-items:center;font-size:11px;font-weight:600;flex:0 0 20px}
+.gw{background:#1E293B;color:#93C5FD}.gl{background:#2E1A47;color:#D8B4FE}.gh{background:#123534;color:#5EEAD4}
+.sync{display:flex;align-items:center;gap:8px;padding:0 10px;font-size:12px;color:#8B8B94}
+.iconbtn{margin-left:auto;width:30px;height:30px;border-radius:6px;border:0;background:transparent;color:#A1A1AA;display:grid;place-items:center;cursor:pointer}
+.iconbtn:hover{background:#1C1C20;color:#FAFAFA}
+.main{flex:999 1 560px;min-width:0;display:flex;flex-direction:column}
+.top{min-height:56px;border-bottom:1px solid #1F1F23;display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:10px 20px}
+.crumb{display:flex;align-items:center;gap:10px}
+.crumb h1{margin:0;font-size:15px;font-weight:600;color:#FAFAFA}
+.dim{color:#8B8B94;font-size:11px}
+.btn{height:30px;padding:0 10px;border-radius:6px;border:1px solid #27272A;background:#111113;color:#D4D4D8;font:inherit;font-size:12px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:#3F3F46;color:#FAFAFA}
+.btn.primary{background:#FAFAFA;color:#09090B;border-color:#FAFAFA;font-weight:500}
+.btn.teal{border-color:#1D5C55;color:#5EEAD4;background:#0D1F1D}
+.board{flex:1;overflow-x:auto;display:flex;gap:12px;padding:16px 20px 24px;align-items:flex-start}
+.col{flex:0 0 250px;display:flex;flex-direction:column;gap:8px}
+.colhead{display:flex;align-items:center;gap:8px;height:28px;padding:0 4px;font-size:12px;font-weight:500;color:#D4D4D8}
+.dot{width:8px;height:8px;border-radius:50%;flex:0 0 8px}
+.count{color:#8B8B94;font-weight:400}
+.colbody{display:flex;flex-direction:column;gap:8px;background:#0E0E10;border:1px solid #17171A;border-radius:10px;padding:8px}
+.card{background:#16161A;border:1px solid #26262B;border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.card.needs{border-color:#8A2E5C;box-shadow:0 0 0 1px rgba(236,72,153,.28)}
+.card.sel{border-color:#F4F4F5;box-shadow:0 0 0 1px #F4F4F5}
+.card.working{border-color:#3E3F8F}
+.card .row{display:flex;align-items:center;gap:8px}
+.card .id{font-size:11px;color:#8B8B94}
+.card .title{font-size:13px;line-height:1.4;color:#F4F4F5}
+.meta{display:flex;align-items:center;gap:10px;font-size:11px;color:#8B8B94}
+.meta > span{display:inline-flex;align-items:center;gap:4px}
+.agent{color:#A5B4FC}
+.prio{display:inline-flex;align-items:flex-end;gap:2px;height:10px}
+.prio span{width:3px;border-radius:1px}
+.pulse{width:7px;height:7px;border-radius:50%;background:#818CF8;animation:pulse 1.6s ease-out infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(129,140,248,.55)}100%{box-shadow:0 0 0 7px rgba(129,140,248,0)}}
+.scrim{position:absolute;inset:0;background:rgba(4,4,6,.5)}
+.drawer{position:absolute;top:0;right:0;bottom:0;width:min(580px,100%);background:#0F0F12;border-left:1px solid #26262B;box-shadow:-24px 0 60px rgba(0,0,0,.45);display:flex;flex-direction:column}
+.dhead{display:flex;align-items:center;gap:8px;height:52px;padding:0 12px 0 20px;border-bottom:1px solid #1F1F23}
+.dhead .iconbtn{margin-left:0}
+.dbody{flex:1;overflow-y:auto;padding:20px 24px 16px;display:flex;flex-direction:column;gap:20px}
+.dbody h2{margin:0;font-size:20px;line-height:1.3;font-weight:600;color:#FAFAFA;letter-spacing:-.01em}
+.props{display:grid;grid-template-columns:110px minmax(0,1fr);row-gap:10px;column-gap:12px;margin:0;font-size:12px}
+.props dt{color:#8B8B94;display:flex;align-items:center;min-height:26px}
+.props dd{margin:0;display:flex;align-items:center;flex-wrap:wrap;gap:6px;min-height:26px;color:#E4E4E7}
+.pick{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 9px;border:1px solid #2A2A30;border-radius:6px;background:#141417;color:#F4F4F5;font:inherit;font-size:12px;cursor:pointer}
+.pick:hover{border-color:#3F3F46}
+.chip{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border:1px solid #2A2A30;border-radius:999px;font-size:11px;color:#B4B4BC}
+.chip .dot{width:6px;height:6px;flex-basis:6px}
+.lbl{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:#8B8B94;margin:0 0 8px}
+.desc{margin:0;font-size:13.5px;line-height:1.6;color:#D4D4D8}
+.tabs{display:flex;gap:18px;border-bottom:1px solid #1F1F23}
+.tabs button{height:34px;padding:0;border:0;background:transparent;color:#8B8B94;font:inherit;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button.on{color:#FAFAFA;border-bottom-color:#FAFAFA}
+.thread{display:flex;flex-direction:column;gap:18px}
+.cm{display:flex;gap:12px}
+.av{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;flex:0 0 28px;font-size:12px;font-weight:600}
+.av.bot{background:#1E1B4B;color:#A5B4FC}
+.av.me{background:#27272A;color:#F4F4F5}
+.cbody{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px}
+.who{display:flex;align-items:center;gap:8px;font-size:12px}
+.who b{font-weight:600;color:#F4F4F5}
+.who .tag{font-size:10px;color:#A5B4FC;border:1px solid #312E81;border-radius:4px;padding:0 5px;height:16px;display:inline-flex;align-items:center}
+.who .when{color:#8B8B94}
+.bubble{background:#141417;border:1px solid #222227;border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.55;color:#D4D4D8;display:flex;flex-direction:column;gap:10px}
+.bubble h4{margin:0 0 2px;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#A1A1AA}
+.bubble p{margin:0}
+.bubble ol{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+.verdict{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;background:#0D2A27;color:#5EEAD4;font-size:12px;font-weight:500;align-self:flex-start}
+.composer{border-top:1px solid #1F1F23;padding:14px 20px 16px;display:flex;flex-direction:column;gap:10px;background:#0C0C0F}
+.composer textarea{width:100%;min-height:76px;resize:none;border:1px solid #2A2A30;border-radius:8px;background:#121215;color:#E4E4E7;font:inherit;font-size:13px;line-height:1.5;padding:10px 12px;outline:none}
+.composer textarea:focus{border-color:#52525B}
+.composer textarea::placeholder{color:#8B8B94}
+.crow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.crow .hint{font-size:11px;color:#8B8B94;margin-right:auto}
+</style>
+</helmet>
+<div class="app">
+<nav class="side" aria-label="Main">
+<div class="brand"><span class="logo">R</span><span>Relay</span></div>
+<div class="navgroup">
+<a class="navitem" href="Attention.dc.html"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>Attention<span class="badge pink">8</span></a>
+</div>
+<div class="navgroup">
+<div class="sect">Plane projects</div>
+<a class="navitem" href="Main.dc.html"><span class="glyph gw">W</span>Work<span class="badge">25</span></a>
+<a class="navitem on" href="Detail.dc.html"><span class="glyph gl">L</span>Lab<span class="badge">13</span></a>
+<a class="navitem" href="#"><span class="glyph gh">T</span>Teaching<span class="badge" title="Private: kept in memory only"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Private"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></span></a>
+</div>
+<div class="navgroup">
+<div class="sect">Write</div>
+<a class="navitem" href="#"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>Dev.to editor</a>
+</div>
+<div style="flex: 1"></div>
+<div class="sync"><span class="dot" style="background: #46A758"></span>Synced 14s ago</div>
+</nav>
+<main class="main">
+<header class="top">
+<div class="crumb"><span class="glyph gl">L</span><h1>Lab</h1><span class="mono dim">LAB</span></div>
+<span style="flex: 1"></span>
+<button class="btn primary"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>New idea</button>
+</header>
+<div class="board">
+<sc-for list="{{cols}}" as="col" hint-placeholder-count="5">
+<section class="col" aria-label="{{col.name}}">
+<div class="colhead"><span class="dot" style="background: {{col.color}}"></span><span>{{col.name}}</span><span class="count">{{col.count}}</span></div>
+<div class="colbody">
+<sc-for list="{{col.items}}" as="c" hint-placeholder-count="2">
+<article class="card {{c.cls}}">
+<div class="row"><span class="mono id">{{c.id}}</span><span style="flex: 1"></span>
+<sc-if value="{{c.bars}}" hint-placeholder-val="{{true}}"><span class="prio" role="img" aria-label="{{c.prioLabel}} priority"><span style="height: 4px; background: {{c.p1}}"></span><span style="height: 7px; background: {{c.p2}}"></span><span style="height: 10px; background: {{c.p3}}"></span></span></sc-if>
+</div>
+<div class="title">{{c.title}}</div>
+<div class="meta">
+<sc-if value="{{c.hasComments}}" hint-placeholder-val="{{false}}"><span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L3 21l1.9-6.4A8 8 0 1 1 21 12Z"></path></svg>{{c.comments}}</span></sc-if>
+<sc-if value="{{c.isWorking}}" hint-placeholder-val="{{false}}"><span class="agent"><span class="pulse"></span>working · 5m</span></sc-if>
+<sc-if value="{{c.isTurn}}" hint-placeholder-val="{{false}}"><span style="color: #F9A8D4">your turn</span></sc-if>
+</div>
+</article>
+</sc-for>
+</div>
+</section>
+</sc-for>
+</div>
+</main>
+<div class="scrim" aria-hidden="true"></div>
+<aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="dtitle">
+<div class="dhead">
+<span class="glyph gl">L</span><span class="mono" style="font-size: 12px; color: #A1A1AA">LAB-6</span>
+<span style="flex: 1"></span>
+<button class="iconbtn" aria-label="Previous item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m18 15-6-6-6 6"></path></svg></button>
+<button class="iconbtn" aria-label="Next item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+<a class="iconbtn" href="#" aria-label="Open in Plane"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3h7v7M21 3l-9 9"></path><path d="M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"></path></svg></a>
+<button class="iconbtn" aria-label="Close"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg></button>
+</div>
+<div class="dbody">
+<h2 id="dtitle">Plane → Grafana annotations bridge</h2>
+<dl class="props">
+<dt>State</dt><dd><button class="pick"><span class="dot" style="background: #EC4899; width: 7px; height: 7px; flex-basis: 7px"></span>In Debate<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></dd>
+<dt>Priority</dt><dd><button class="pick"><span class="prio" aria-hidden="true"><span style="height: 4px; background: #D4D4D8"></span><span style="height: 7px; background: #D4D4D8"></span><span style="height: 10px; background: #3F3F46"></span></span>Medium</button></dd>
+<dt>Labels</dt><dd><span class="chip"><span class="dot" style="background: #F59E0B"></span>observability</span><span class="chip"><span class="dot" style="background: #3B82F6"></span>go</span><button class="pick" aria-label="Add label">+</button></dd>
+<dt>Created</dt><dd>Oct 24 · Ashwin</dd>
+<dt>Picked up by</dt><dd><span class="agent" style="display: inline-flex; align-items: center; gap: 6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="8" width="16" height="12" rx="3"></rect><path d="M12 4v4M9 14h.01M15 14h.01"></path></svg>Claude Code</span></dd>
+</dl>
+<div>
+<p class="lbl">Description</p>
+<p class="desc">When a WORK item moves to In Progress or Done, drop an annotation on the ingest dashboards so parser changes line up with log-volume shifts.</p>
+</div>
+<div class="tabs" role="tablist"><button class="on" role="tab" aria-selected="true">Comments 3</button><button role="tab" aria-selected="false">Activity</button></div>
+<div class="thread">
+<div class="cm">
+<span class="av bot" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="8" width="16" height="12" rx="3"></rect><path d="M12 4v4M9 14h.01M15 14h.01"></path></svg></span>
+<div class="cbody">
+<div class="who"><b>Claude Code</b><span class="tag">agent</span><span class="when">2h ago</span></div>
+<div class="bubble">
+<div><h4>Expansion</h4><p>A small Go service: poll Plane for WORK state changes, post them to Grafana's annotations API, tag each by module.</p></div>
+<div><h4>Case for</h4><p>Sits on the Grafana/Alloy stack you already run; parser changes become visible next to EPS graphs.</p></div>
+<div><h4>Case against</h4><p>Polling Plane Cloud is wasteful and webhooks need a public endpoint. Annotations get noisy fast.</p></div>
+<span class="verdict">Verdict · Prototype first</span>
+<div><h4>First 3 steps</h4><ol><li>Pick the 2–3 state transitions worth annotating.</li><li>Spike: poll updated items, post annotations.</li><li>Run it a week on one dashboard, then decide.</li></ol></div>
+</div>
+</div>
+</div>
+<div class="cm">
+<span class="av me" aria-hidden="true">A</span>
+<div class="cbody">
+<div class="who"><b>Ashwin</b><span class="when">1h ago</span></div>
+<div class="bubble"><p>Polling is fine until Plane is self-hosted, then webhooks. Scope it to WORK only.</p></div>
+</div>
+</div>
+<div class="cm">
+<span class="av bot" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="8" width="16" height="12" rx="3"></rect><path d="M12 4v4M9 14h.01M15 14h.01"></path></svg></span>
+<div class="cbody">
+<div class="who"><b>Claude Code</b><span class="tag">agent</span><span class="when">40m ago</span></div>
+<div class="bubble"><p>Agreed — scoped to WORK, 60s poll with a since-cursor. Webhook swap noted for after self-hosting.</p></div>
+</div>
+</div>
+</div>
+</div>
+<div class="composer">
+<label class="sr" for="reply">Reply</label>
+<textarea id="reply" placeholder="Reply to the debate…  (markdown)"></textarea>
+<div class="crow"><span class="hint"><kbd style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #A1A1AA; border: 1px solid #2A2A2F; border-radius: 4px; padding: 1px 5px">⌘↵</kbd> to send</span>
+<button class="btn">Shelve</button>
+<button class="btn teal">Approve</button>
+<button class="btn primary">Comment</button>
+</div>
+</div>
+</aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const on = '#D4D4D8', off = '#3F3F46';
+    const c = (id, title, p, x) => {
+      const n = { low: 1, medium: 2, high: 3 }[p] || 0;
+      x = x || {};
+      return { id, title, prioLabel: p || 'none', bars: n > 0,
+        p1: n >= 1 ? on : off, p2: n >= 2 ? on : off, p3: n >= 3 ? on : off,
+        cls: x.cls || '', comments: x.comments || 0, hasComments: !!x.comments,
+        isWorking: !!x.working, isTurn: !!x.turn };
+    };
+    const col = (name, color, items) => ({ name, color, items, count: items.length });
+    return { cols: [
+      col('Idea', '#A855F7', [
+        c('LAB-14', 'Grafana panel for Plane cycle burndown'),
+        c('LAB-12', 'Offline LLM box on Proxmox for private data', 'medium'),
+        c('LAB-11', 'Proxmox snapshot diff viewer'),
+        c('LAB-15', 'Bash dotfiles linter', 'low')
+      ]),
+      col('Ready for Agent', '#3B82F6', [c('LAB-10', 'Self-host Plane on k0s', 'medium')]),
+      col('Agent Working', '#6366F1', [c('LAB-13', 'Sigma rules as Go test fixtures', 'low', { cls: 'working', working: true })]),
+      col('In Debate', '#EC4899', [
+        c('LAB-6', 'Plane → Grafana annotations bridge', 'medium', { cls: 'sel', comments: 3, turn: true }),
+        c('LAB-9', 'Rust TUI for k0s node health', 'low', { cls: 'needs', comments: 2, turn: true })
+      ]),
+      col('Approved', '#14B8A6', [
+        c('LAB-4', 'Homelab status page from Prometheus', 'medium'),
+        c('LAB-5', 'eBPF syscall heatmap TUI', 'low')
+      ]),
+      col('Building', '#F59E0B', [c('LAB-8', 'Relay — Plane + Dev.to desktop app', 'high')])
+    ]};
+  }
+}
+</script>
+</body>
+</html>
