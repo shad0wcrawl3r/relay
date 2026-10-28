@@ -25,7 +25,7 @@ func init() {
 	v.SetConfigType("toml")
 	v.SetDefault("plane.BASE_URL", "https://api.plane.so")
 	v.SetDefault("plane.REDIRECT_PORT", 47821)
-	v.SetDefault("plane.SCOPE", "read write")
+	v.SetDefault("plane.SCOPE", DefaultPlaneScope)
 	v.SetDefault("sync.INTERVAL_SECONDS", 120)
 	v.SetDefault("agent.NAME", "Claude Code")
 	v.SetDefault("agent.LABEL", "agent")
@@ -41,6 +41,13 @@ func init() {
 	}
 	// Never log cfg itself: it holds secrets.
 }
+
+// DefaultPlaneScope is what Relay reads and writes. Tick the same scopes on
+// the Plane OAuth app.
+const DefaultPlaneScope = "profile:read workspaces.members:read projects:read projects.states:read " +
+	"projects.labels:read projects.modules:read projects.cycles:read projects.work_items:read " +
+	"projects.work_items:write projects.work_items.comments:read projects.work_items.comments:write " +
+	"projects.work_items.activities:read"
 
 // Path is the config file in use: ./config.toml when present (dev), otherwise
 // the OS config dir (e.g. ~/Library/Application Support/relay/config.toml).

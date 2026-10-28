@@ -2,6 +2,7 @@ package main
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/shad0wcrawl3r/relay/internal/config"
 	"github.com/shad0wcrawl3r/relay/internal/plane"
@@ -21,6 +22,8 @@ type Settings struct {
 	PlaneSecretSet    bool   `json:"planeSecretSet"`
 	PlaneWorkspace    string `json:"planeWorkspace"`
 	PlaneRedirectPort int    `json:"planeRedirectPort"`
+	PlaneScope        string `json:"planeScope"`
+	DefaultScope      string `json:"defaultScope"`
 	PlaneConnected    bool   `json:"planeConnected"`
 	ConnectedSlug     string `json:"connectedSlug"`
 	DevtoKeySet       bool   `json:"devtoKeySet"`
@@ -39,6 +42,7 @@ type SettingsInput struct {
 	PlaneSecret       string `json:"planeSecret"`
 	PlaneWorkspace    string `json:"planeWorkspace"`
 	PlaneRedirectPort int    `json:"planeRedirectPort"`
+	PlaneScope        string `json:"planeScope"`
 	DevtoKey          string `json:"devtoKey"`
 	SyncInterval      int    `json:"syncInterval"`
 	AgentName         string `json:"agentName"`
@@ -50,8 +54,9 @@ func (s *SettingsService) Get() Settings {
 	return Settings{
 		PlaneBaseURL: c.Plane.BaseURL, PlaneAppURL: plane.AppURL(), PlaneClientID: c.Plane.ClientID,
 		PlaneSecretSet: c.Plane.ClientSecret != "", PlaneWorkspace: c.Plane.Workspace,
-		PlaneRedirectPort: c.Plane.RedirectPort, PlaneConnected: s.plane.client.Connected(),
-		ConnectedSlug: s.plane.client.Workspace(), DevtoKeySet: c.DevTo.APIKey != "",
+		PlaneRedirectPort: c.Plane.RedirectPort, PlaneScope: c.Plane.Scope, DefaultScope: config.DefaultPlaneScope,
+		PlaneConnected: s.plane.client.Connected(),
+		ConnectedSlug:  s.plane.client.Workspace(), DevtoKeySet: c.DevTo.APIKey != "",
 		SyncInterval: c.Sync.IntervalSeconds, AgentName: c.Agent.Name, AgentLabel: c.Agent.Label,
 		ConfigPath: config.Path(), PostsDir: s.posts.store.Dir,
 		RedirectURI: "http://127.0.0.1:" + strconv.Itoa(c.Plane.RedirectPort) + "/oauth/callback",
@@ -71,6 +76,7 @@ func (s *SettingsService) Save(in SettingsInput) (Settings, error) {
 			c.Plane.ClientSecret = in.PlaneSecret
 		}
 		c.Plane.Workspace = in.PlaneWorkspace
+		c.Plane.Scope = strings.Join(strings.Fields(in.PlaneScope), " ")
 		if in.PlaneRedirectPort > 0 {
 			c.Plane.RedirectPort = in.PlaneRedirectPort
 		}

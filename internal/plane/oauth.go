@@ -3,10 +3,14 @@ package plane
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -102,31 +106,39 @@ func (a *auth) authorize(ctx context.Context, openURL func(string)) (*Token, err
 		return nil, errors.New("set the Plane client ID and secret in Settings first")
 	}
 	state := randomHex(16)
+	// PKCE (S256): Plane is built on django-oauth-toolkit, which can require it.
+	verifier := randomHex(32)
+	sum := sha256.Sum256([]byte(verifier))
+	challenge := base64.RawURLEncoding.EncodeToString(sum[:])
 	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", cfg.Plane.RedirectPort))
 	if err != nil {
 		return nil, fmt.Errorf("could not listen for the OAuth redirect on port %d: %w", cfg.Plane.RedirectPort, err)
 	}
 
 	type result struct {
-		code, installation string
-		err                error
+		code string
+		err  error
 	}
 	done := make(chan result, 1)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/oauth/callback", func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
-		res := result{code: q.Get("code"), installation: q.Get("app_installation_id")}
+		res := result{code: q.Get("code")}
 		switch {
+		case q.Get("error") != "":
+			msg := q.Get("error")
+			if d := q.Get("error_description"); d != "" {
+				msg += ": " + d
+			}
+			res.err = fmt.Errorf("Plane refused the request (%s)", msg)
 		case q.Get("state") != state:
 			res.err = errors.New("OAuth state mismatch")
-		case q.Get("error") != "":
-			res.err = fmt.Errorf("Plane denied access: %s", q.Get("error"))
 		case res.code == "":
 			res.err = errors.New("no authorization code in redirect")
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		if res.err != nil {
-			fmt.Fprint(w, callbackPage("Relay couldn't connect to Plane", "You can close this tab and try again from Relay."))
+			fmt.Fprint(w, callbackPage("Relay couldn't connect to Plane", html.EscapeString(res.err.Error())+"<br>You can close this tab and try again from Relay."))
 		} else {
 			fmt.Fprint(w, callbackPage("Relay is connected to Plane", "You can close this tab and return to Relay."))
 		}
@@ -140,14 +152,18 @@ func (a *auth) authorize(ctx context.Context, openURL func(string)) (*Token, err
 	defer srv.Close()
 
 	q := url.Values{
-		"client_id":     {cfg.Plane.ClientID},
-		"response_type": {"code"},
-		"redirect_uri":  {redirectURI(cfg)},
-		"state":         {state},
+		"client_id":             {cfg.Plane.ClientID},
+		"response_type":         {"code"},
+		"redirect_uri":          {redirectURI(cfg)},
+		"state":                 {state},
+		"code_challenge":        {challenge},
+		"code_challenge_method": {"S256"},
 	}
 	if cfg.Plane.Scope != "" {
 		q.Set("scope", cfg.Plane.Scope)
 	}
+	// Not secret, and the first thing to compare when Plane answers 400.
+	log.Printf("plane: opening consent page; redirect_uri=%s scope=%q", redirectURI(cfg), cfg.Plane.Scope)
 	openURL(baseURL(cfg) + "/auth/o/authorize-app/?" + q.Encode())
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
@@ -168,19 +184,20 @@ func (a *auth) authorize(ctx context.Context, openURL func(string)) (*Token, err
 		"client_id":     {cfg.Plane.ClientID},
 		"client_secret": {cfg.Plane.ClientSecret},
 		"redirect_uri":  {redirectURI(cfg)},
+		"code_verifier": {verifier},
 	})
 	if err != nil {
 		return nil, err
 	}
-	tok.InstallationID = res.installation
+	// The user-token redirect carries only code and state, so the workspace
+	// comes from the installation list the token can see.
 	tok.Workspace = cfg.Plane.Workspace
-	if res.installation != "" {
-		if slug, err := installationWorkspace(ctx, cfg, tok.AccessToken, res.installation); err == nil && slug != "" {
-			tok.Workspace = slug
-		}
-	}
 	if tok.Workspace == "" {
-		return nil, errors.New("connected, but couldn't determine the workspace; set the workspace slug in Settings")
+		slug, id, err := installation(ctx, cfg, tok.AccessToken)
+		if err != nil {
+			return nil, fmt.Errorf("connected, but couldn't determine the workspace (%v); set the workspace slug in Settings", err)
+		}
+		tok.Workspace, tok.InstallationID = slug, id
 	}
 	if err := a.store(tok); err != nil {
 		return nil, fmt.Errorf("could not save token to the keychain: %w", err)
@@ -252,39 +269,42 @@ func exchange(ctx context.Context, cfg *config.Config, form url.Values) (*Token,
 	return t, nil
 }
 
-func installationWorkspace(ctx context.Context, cfg *config.Config, access, id string) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL(cfg)+"/auth/o/app-installation/?id="+url.QueryEscape(id), nil)
+// installation returns the workspace slug and installation id for the app
+// installation visible to the token.
+func installation(ctx context.Context, cfg *config.Config, access string) (slug, id string, err error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL(cfg)+"/auth/o/app-installation/", nil)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	req.Header.Set("Authorization", "Bearer "+access)
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode >= 300 {
-		return "", fmt.Errorf("app-installation: %s", resp.Status)
+		return "", "", fmt.Errorf("app-installation: %s", resp.Status)
 	}
 	var body json.RawMessage
 	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
-		return "", err
+		return "", "", err
 	}
-	// The endpoint has returned both an object and a one-element list.
 	type inst struct {
+		ID              string `json:"id"`
 		WorkspaceDetail struct {
 			Slug string `json:"slug"`
 		} `json:"workspace_detail"`
 	}
+	// Documented as a list; accept a single object too.
+	var many []inst
+	if json.Unmarshal(body, &many) == nil && len(many) > 0 && many[0].WorkspaceDetail.Slug != "" {
+		return many[0].WorkspaceDetail.Slug, many[0].ID, nil
+	}
 	var one inst
 	if json.Unmarshal(body, &one) == nil && one.WorkspaceDetail.Slug != "" {
-		return one.WorkspaceDetail.Slug, nil
+		return one.WorkspaceDetail.Slug, one.ID, nil
 	}
-	var many []inst
-	if json.Unmarshal(body, &many) == nil && len(many) > 0 {
-		return many[0].WorkspaceDetail.Slug, nil
-	}
-	return "", errors.New("app-installation: no workspace in response")
+	return "", "", errors.New("app-installation: no workspace in response")
 }
 
 func randomHex(n int) string {

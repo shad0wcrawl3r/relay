@@ -27,6 +27,7 @@ export function Settings() {
       planeSecret: "",
       planeWorkspace: next.planeWorkspace,
       planeRedirectPort: next.planeRedirectPort,
+      planeScope: next.planeScope,
       devtoKey: "",
       syncInterval: next.syncInterval,
       agentName: next.agentName,
@@ -49,6 +50,7 @@ export function Settings() {
     form.planeClientId !== s.planeClientId ||
     form.planeWorkspace !== s.planeWorkspace ||
     form.planeRedirectPort !== s.planeRedirectPort ||
+    form.planeScope !== s.planeScope ||
     form.syncInterval !== s.syncInterval ||
     form.agentName !== s.agentName ||
     form.agentLabel !== s.agentLabel;
@@ -161,6 +163,27 @@ export function Settings() {
           </Row>
           <Row label="Workspace slug" hint="Normally detected on connect; set it if detection fails.">
             <Input value={form.planeWorkspace} placeholder={s.connectedSlug || "my-workspace"} onChange={(e) => set({ planeWorkspace: e.target.value })} spellCheck={false} />
+          </Row>
+          <Row
+            label="Scopes"
+            hint={
+              <>
+                Space-separated. Tick the same scopes on the Plane app.{" "}
+                {form.planeScope !== s.defaultScope && (
+                  <button className="text-[#93c5fd] hover:underline" onClick={() => set({ planeScope: s.defaultScope })}>
+                    Reset to Relay's defaults
+                  </button>
+                )}
+              </>
+            }
+          >
+            <textarea
+              value={form.planeScope}
+              rows={3}
+              spellCheck={false}
+              onChange={(e) => set({ planeScope: e.target.value })}
+              className="w-full resize-none rounded-md border border-border bg-transparent px-3 py-2 font-mono text-xs leading-relaxed text-strong outline-none focus:border-[#52525b]"
+            />
           </Row>
           <Row label="Redirect port">
             <Input type="number" min={1024} max={65535} value={form.planeRedirectPort} onChange={(e) => set({ planeRedirectPort: Number(e.target.value) })} className="w-32" />
