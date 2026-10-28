@@ -1,0 +1,381 @@
+@import "tailwindcss";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/jetbrains-mono";
+
+@custom-variant dark (&:is(.dark *));
+
+/* shadcn/ui zinc dark, plus Relay's tokens from design/README.md §4. Relay is
+   dark-only, so :root carries the dark palette. */
+:root {
+  --radius: 0.5rem;
+  --background: #09090b;
+  --foreground: #e4e4e7;
+  --card: #16161a;
+  --card-foreground: #f4f4f5;
+  --popover: #111114;
+  --popover-foreground: #e4e4e7;
+  --primary: #fafafa;
+  --primary-foreground: #09090b;
+  --secondary: #18181b;
+  --secondary-foreground: #fafafa;
+  --muted: #18181b;
+  --muted-foreground: #a1a1aa;
+  --accent: #1c1c20;
+  --accent-foreground: #fafafa;
+  --destructive: #ef4444;
+  --border: #27272a;
+  --input: #27272a;
+  --ring: #52525b;
+
+  --sidebar: #0c0c0e;
+  --hairline: #1f1f23;
+  --column: #0e0e10;
+  --column-border: #17171a;
+  --card-border: #26262b;
+  --card-hover: #3a3a42;
+  --border-strong: #3f3f46;
+  --dim: #8b8b94;
+  --dim-2: #71717a;
+  --strong: #fafafa;
+
+  --agent: #a5b4fc;
+  --agent-bg: #1e1b4b;
+  --agent-border: #312e81;
+  --overdue: #f87171;
+  --placeholder-bg: rgba(245, 158, 11, 0.12);
+  --placeholder-border: rgba(245, 158, 11, 0.32);
+  --placeholder-fg: #fbbf24;
+}
+
+@theme inline {
+  --font-sans: "Inter Variable", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 2px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-hairline: var(--hairline);
+  --color-column: var(--column);
+  --color-column-border: var(--column-border);
+  --color-card-border: var(--card-border);
+  --color-card-hover: var(--card-hover);
+  --color-border-strong: var(--border-strong);
+  --color-dim: var(--dim);
+  --color-dim-2: var(--dim-2);
+  --color-strong: var(--strong);
+  --color-agent: var(--agent);
+  --color-agent-bg: var(--agent-bg);
+  --color-agent-border: var(--agent-border);
+  --color-overdue: var(--overdue);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+    user-select: none;
+  }
+  input,
+  textarea,
+  [contenteditable],
+  .selectable {
+    user-select: text;
+  }
+  button {
+    cursor: pointer;
+  }
+}
+
+/* Thin, minimal scrollbars everywhere (editor-canvas variant). */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-button {
+  display: none;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Frameless macOS window: headers drag the window. */
+.drag {
+  --wails-draggable: drag;
+}
+.no-drag {
+  --wails-draggable: no-drag;
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(129, 140, 248, 0.55);
+  }
+  100% {
+    box-shadow: 0 0 0 7px rgba(129, 140, 248, 0);
+  }
+}
+.pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #818cf8;
+  animation: pulse-ring 1.6s ease-out infinite;
+}
+
+.kbd {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: #a1a1aa;
+  border: 1px solid #2a2a2f;
+  border-radius: 4px;
+  padding: 1px 5px;
+  background: #141417;
+  line-height: 1.4;
+}
+
+.vertical-label {
+  writing-mode: vertical-rl;
+}
+
+/* Rendered HTML from Plane (descriptions, comments) and the article preview. */
+.prose-relay {
+  line-height: 1.6;
+  color: #d4d4d8;
+  user-select: text;
+}
+.prose-relay > :first-child {
+  margin-top: 0;
+}
+.prose-relay > :last-child {
+  margin-bottom: 0;
+}
+.prose-relay p,
+.prose-relay ul,
+.prose-relay ol,
+.prose-relay blockquote,
+.prose-relay pre {
+  margin: 0 0 0.75em;
+}
+.prose-relay ul,
+.prose-relay ol {
+  padding-left: 1.3em;
+}
+.prose-relay ul {
+  list-style: disc;
+}
+.prose-relay ol {
+  list-style: decimal;
+}
+.prose-relay li + li {
+  margin-top: 0.2em;
+}
+.prose-relay h1,
+.prose-relay h2,
+.prose-relay h3,
+.prose-relay h4 {
+  color: #fafafa;
+  font-weight: 600;
+  margin: 1.2em 0 0.5em;
+  line-height: 1.3;
+}
+.prose-relay h4,
+.prose-relay h5 {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #a1a1aa;
+  margin: 0.8em 0 0.2em;
+}
+.prose-relay a {
+  color: #93c5fd;
+}
+.prose-relay a:hover {
+  color: #bfdbfe;
+}
+.prose-relay code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 4px;
+  padding: 0 4px;
+}
+.prose-relay pre {
+  background: #0c0c0e;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  padding: 14px 16px;
+  overflow-x: auto;
+}
+.prose-relay pre code {
+  background: none;
+  border: 0;
+  padding: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+.prose-relay blockquote {
+  border-left: 3px solid #3f3f46;
+  padding-left: 14px;
+  color: #a1a1aa;
+}
+.prose-relay img {
+  max-width: 100%;
+  border-radius: 6px;
+}
+.prose-relay hr {
+  border: 0;
+  border-top: 1px solid #27272a;
+  margin: 1.5em 0;
+}
+.prose-relay table {
+  border-collapse: collapse;
+  margin-bottom: 0.75em;
+}
+.prose-relay th,
+.prose-relay td {
+  border: 1px solid #27272a;
+  padding: 4px 10px;
+}
+
+.prose-article {
+  font-size: 17px;
+  line-height: 1.75;
+}
+.prose-article h2 {
+  font-size: 26px;
+}
+.prose-article h3 {
+  font-size: 21px;
+}
+.img-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 160px;
+  margin: 1.2em 0;
+  border: 1px dashed var(--placeholder-border);
+  border-radius: 10px;
+  background: var(--placeholder-bg);
+  color: var(--placeholder-fg);
+  font-size: 14px;
+}
+.img-placeholder figcaption {
+  font-size: 13px;
+  color: #d4a74a;
+}
+
+/* Editor: highlight layer and the transparent textarea above it must wrap
+   identically. */
+.md-line,
+.md-input {
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: normal;
+  tab-size: 4;
+  font-variant-ligatures: none;
+}
+.md-input::selection {
+  background: rgba(147, 197, 253, 0.25);
+}
+.md-punct {
+  color: #52525b;
+}
+.md-strong {
+  color: #fafafa;
+}
+.md-em {
+  color: #e4e4e7;
+  font-style: italic;
+}
+.md-fence {
+  color: #71717a;
+}
+.md-code {
+  color: #e4e4e7;
+}
+.md-kw {
+  color: #c4b5fd;
+}
+.md-fn,
+.md-link {
+  color: #93c5fd;
+}
+.md-quote {
+  color: #a1a1aa;
+}
+.md-ph {
+  border-radius: 4px;
+  background: var(--placeholder-bg);
+  box-shadow: 0 0 0 1px var(--placeholder-border);
+  color: var(--placeholder-fg);
+}
+
+.prose-relay .verdict {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #0d2a27;
+  color: #5eead4;
+  font-size: 12px;
+  font-weight: 500;
+}
+.comment-bubble h1,
+.comment-bubble h2,
+.comment-bubble h3,
+.comment-bubble h4 {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #a1a1aa;
+  margin: 0.9em 0 0.15em;
+}
