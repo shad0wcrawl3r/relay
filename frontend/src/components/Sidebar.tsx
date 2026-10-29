@@ -89,7 +89,7 @@ export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => v
       )}
     >
       <div className={cn("flex items-center gap-2.5 text-sm font-semibold text-strong", rail ? "justify-center" : "px-2")}>
-        <span className="grid size-6 place-items-center rounded-md bg-strong text-xs font-bold text-background">R</span>
+        <img src="/relay.svg" alt="" className="size-7 shrink-0" draggable={false} />
         {!rail && <span>Relay</span>}
       </div>
 
