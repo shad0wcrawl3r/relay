@@ -32,6 +32,7 @@ type Settings struct {
 	ConfigPath        string `json:"configPath"`
 	PostsDir          string `json:"postsDir"`
 	RedirectURI       string `json:"redirectUri"`
+	TerminalTmuxKeys  bool   `json:"terminalTmuxKeys"`
 }
 
 type SettingsInput struct {
@@ -46,6 +47,7 @@ type SettingsInput struct {
 	SyncInterval      int    `json:"syncInterval"`
 	AgentName         string `json:"agentName"`
 	AgentLabel        string `json:"agentLabel"`
+	TerminalTmuxKeys  bool   `json:"terminalTmuxKeys"`
 }
 
 func (s *SettingsService) Get() Settings {
@@ -58,7 +60,8 @@ func (s *SettingsService) Get() Settings {
 		ConnectedSlug:  s.plane.client.Workspace(), DevtoKeySet: c.DevTo.APIKey != "",
 		SyncInterval: c.Sync.IntervalSeconds, AgentName: c.Agent.Name, AgentLabel: c.Agent.Label,
 		ConfigPath: config.Path(), PostsDir: s.posts.store.Dir,
-		RedirectURI: "http://127.0.0.1:" + strconv.Itoa(c.Plane.RedirectPort) + "/oauth/callback",
+		RedirectURI:      "http://127.0.0.1:" + strconv.Itoa(c.Plane.RedirectPort) + "/oauth/callback",
+		TerminalTmuxKeys: c.Terminal.TmuxKeys,
 	}
 }
 
@@ -88,6 +91,7 @@ func (s *SettingsService) Save(in SettingsInput) (Settings, error) {
 		}
 		c.Agent.Name = in.AgentName
 		c.Agent.Label = in.AgentLabel
+		c.Terminal.TmuxKeys = in.TerminalTmuxKeys
 	})
 	if err != nil {
 		return Settings{}, err

@@ -122,3 +122,24 @@ func (s *TerminalService) SaveLayout(layout string) error {
 	}
 	return os.Rename(tmp, layoutPath())
 }
+
+// Keymap is the terminal view's prefix and bindings: tmux's defaults, with
+// the user's tmux config applied on top when that setting is on.
+func (s *TerminalService) Keymap() term.Keymap {
+	if !config.GetConfig().Terminal.TmuxKeys {
+		return term.DefaultKeymap()
+	}
+	home, _ := os.UserHomeDir()
+	return term.LoadTmuxKeymap(home)
+}
+
+// TmuxConfig names the tmux config Relay would read, or "" if none exists.
+func (s *TerminalService) TmuxConfig() string {
+	home, _ := os.UserHomeDir()
+	for _, p := range term.TmuxConfPaths(home) {
+		if _, err := os.Stat(p); err == nil {
+			return p
+		}
+	}
+	return ""
+}

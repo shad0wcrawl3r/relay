@@ -54,6 +54,7 @@ export interface Settings {
     "configPath": string;
     "postsDir": string;
     "redirectUri": string;
+    "terminalTmuxKeys": boolean;
 }
 
 export interface SettingsInput {
@@ -68,4 +69,5 @@ export interface SettingsInput {
     "syncInterval": number;
     "agentName": string;
     "agentLabel": string;
+    "terminalTmuxKeys": boolean;
 }

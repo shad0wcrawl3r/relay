@@ -2,13 +2,30 @@ import { Fragment, useEffect, useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { Columns2, Info, Maximize2, PanelLeftClose, PanelLeftOpen, Plus, Rows2, SquareTerminal } from "lucide-react";
 import { useTerminal } from "@/lib/terminal";
-import type { TermInfo } from "@/lib/api";
+import type { TermBinding, TermInfo, TermKeymap } from "@/lib/api";
+import { keyName, showKey } from "@/lib/keys";
 import * as L from "@/lib/layout";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "@/components/ui/tooltip";
 import { Pane } from "./Pane";
 
 const kbd = "font-mono text-[11px] text-[#e4e4e7]";
+
+/** Bytes a key sends to the shell, for send-prefix ("C-a" → \x01). */
+function keyBytes(k: string): string {
+  const ctrl = /^C-(.)$/.exec(k);
+  if (ctrl) return String.fromCharCode(ctrl[1].toLowerCase().charCodeAt(0) & 0x1f);
+  const meta = /^M-(.)$/.exec(k);
+  if (meta) return "\x1b" + meta[1];
+  return k.length === 1 ? k : "";
+}
+
+/** How to trigger an action, e.g. "⌃B %"; empty if nothing is bound. */
+export function hint(km: TermKeymap | null, action: string): string {
+  const b = km?.bindings.find((x) => x.action === action && !x.root) ?? km?.bindings.find((x) => x.action === action);
+  if (!km || !b) return "";
+  return b.root ? showKey(b.key) : `${showKey(km.prefix)} ${showKey(b.key)}`;
+}
 
 function elapsed(since: string, now: number) {
   const s = Math.max(0, Math.floor((now - new Date(since).getTime()) / 1000));
@@ -42,42 +59,66 @@ export function Terminal() {
 
   useEffect(() => start(), [start]);
 
-  // Prefix keys (⌃B, then a command key). Captured on window before xterm
-  // sees them, and only while this view is mounted.
+  // Prefix keys (⌃B or the tmux config's prefix, then a command key), plus
+  // tmux "bind -n" keys. Captured on window before xterm sees them, and only
+  // while this view is mounted.
   useEffect(() => {
+    const km = t.keymap;
+    if (!km) return;
     const stop = (e: KeyboardEvent) => {
       e.preventDefault();
       e.stopPropagation();
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.isComposing) return;
-      const isPrefix = e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === "b";
+      const k = keyName(e);
+      if (!k) return;
       if (!prefix) {
-        if (isPrefix) {
+        if (k === km.prefix || (km.prefix2 && k === km.prefix2)) {
           stop(e);
           setPrefix(true);
+          return;
+        }
+        const root = km.bindings.find((b) => b.root && b.key === k);
+        if (root) {
+          stop(e);
+          run(root);
         }
         return;
       }
-      if (["Shift", "Control", "Alt", "Meta"].includes(e.key)) return;
       stop(e);
       setPrefix(false);
-      if (isPrefix) return t.sendToFocused("\x02"); // ⌃B ⌃B: a literal ⌃B
-      const moves: Record<string, L.Move> = { ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up", ArrowDown: "down" };
-      if (moves[e.key]) return t.move(moves[e.key]);
-      switch (e.key) {
-        case "%":
+      const b = km.bindings.find((x) => !x.root && x.key === k);
+      if (b) run(b);
+    };
+    const run = (b: TermBinding) => {
+      const moves: Record<string, L.Move> = { "focus-left": "left", "focus-right": "right", "focus-up": "up", "focus-down": "down" };
+      if (moves[b.action]) return t.move(moves[b.action]);
+      switch (b.action) {
+        case "split-right":
           return void t.split("h");
-        case '"':
+        case "split-down":
           return void t.split("v");
-        case "z":
+        case "zoom":
           return t.toggleZoom();
-        case "d":
-          return t.detachPane();
-        case "c":
+        case "new-tab":
           return void t.newTab();
-        case "x":
+        case "close-pane":
           return t.closePane();
+        case "close-tab":
+          return t.closeTab();
+        case "next-tab":
+          return t.cycleTab(1);
+        case "prev-tab":
+          return t.cycleTab(-1);
+        case "select-tab":
+          return t.selectTabIndex(Number(b.arg) - km.baseIndex);
+        case "background":
+          return t.detachPane();
+        case "break-pane":
+          return t.breakPane();
+        case "send-prefix":
+          return t.sendToFocused(keyBytes(km.prefix));
       }
     };
     window.addEventListener("keydown", onKey, true);
@@ -136,7 +177,26 @@ function Tree({ node, focus }: { node: L.LayoutNode; focus: string }) {
 }
 
 function Header({ paneCount }: { paneCount: number }) {
-  const { tabs, active, selectTab, newTab, renameTab, split, toggleZoom, session } = useTerminal();
+  const { tabs, active, selectTab, newTab, renameTab, split, toggleZoom, session, keymap, dragging, movePaneToTab, breakPane, setDragging } = useTerminal();
+  const [dropTab, setDropTab] = useState("");
+  // Panes dragged onto a tab move there; onto + they get a tab of their own.
+  const dropProps = (id: string, onDrop: (pane: string) => void) =>
+    dragging
+      ? {
+          onDragOver: (e: React.DragEvent) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+            setDropTab(id);
+          },
+          onDragLeave: () => setDropTab(""),
+          onDrop: (e: React.DragEvent) => {
+            e.preventDefault();
+            setDropTab("");
+            setDragging(null);
+            onDrop(dragging);
+          },
+        }
+      : {};
   const [editing, setEditing] = useState("");
   const iconBtn = "no-drag grid size-10 place-items-center rounded-md text-muted-foreground hover:bg-[#141417] hover:text-strong disabled:opacity-40";
 
@@ -153,9 +213,11 @@ function Header({ paneCount }: { paneCount: number }) {
               aria-selected={on}
               onClick={() => selectTab(tab.id)}
               onDoubleClick={() => setEditing(tab.id)}
+              {...dropProps(tab.id, (p) => !on && movePaneToTab(p, tab.id))}
               className={cn(
                 "no-drag inline-flex h-12 shrink-0 items-center gap-2 border-b-2 px-3.5 text-[13px] font-medium",
                 on ? "border-strong text-strong" : "border-transparent text-muted-foreground hover:text-strong",
+                dropTab === tab.id && !on && "bg-[rgba(96,165,250,0.12)] text-strong",
               )}
             >
               {editing === tab.id ? (
@@ -185,8 +247,13 @@ function Header({ paneCount }: { paneCount: number }) {
             </button>
           );
         })}
-        <Tooltip label="New tab  ⌃B c">
-          <button aria-label="New tab" className={cn(iconBtn, "self-center")} onClick={() => newTab()}>
+        <Tooltip label={`New tab  ${hint(keymap, "new-tab")}`}>
+          <button
+            aria-label="New tab"
+            className={cn(iconBtn, "self-center", dropTab === "+" && "bg-[rgba(96,165,250,0.12)] text-strong")}
+            onClick={() => newTab()}
+            {...dropProps("+", (p) => breakPane(p))}
+          >
             <Plus className="size-4" strokeWidth={1.9} />
           </button>
         </Tooltip>
@@ -197,21 +264,21 @@ function Header({ paneCount }: { paneCount: number }) {
             className="no-drag inline-flex h-8 items-center gap-2 rounded-md border border-border-strong px-2.5 text-xs text-[#e4e4e7] hover:text-strong"
             onClick={toggleZoom}
           >
-            Restore splits<kbd className="font-mono text-[11px] text-muted-foreground">⌃B z</kbd>
+            Restore splits<kbd className="font-mono text-[11px] text-muted-foreground">{hint(keymap, "zoom")}</kbd>
           </button>
         ) : (
           <>
-            <Tooltip label={'Split right  ⌃B %'}>
+            <Tooltip label={`Split right  ${hint(keymap, "split-right")}`}>
               <button aria-label="Split right" className={iconBtn} disabled={!active} onClick={() => split("h")}>
                 <Columns2 className="size-[17px]" strokeWidth={1.8} />
               </button>
             </Tooltip>
-            <Tooltip label={'Split down  ⌃B "'}>
+            <Tooltip label={`Split down  ${hint(keymap, "split-down")}`}>
               <button aria-label="Split down" className={iconBtn} disabled={!active} onClick={() => split("v")}>
                 <Rows2 className="size-[17px]" strokeWidth={1.8} />
               </button>
             </Tooltip>
-            <Tooltip label="Zoom pane  ⌃B z">
+            <Tooltip label={`Zoom pane  ${hint(keymap, "zoom")}`}>
               <button aria-label="Zoom pane" className={iconBtn} disabled={!active || paneCount < 2} onClick={toggleZoom}>
                 <Maximize2 className="size-4" strokeWidth={1.8} />
               </button>
@@ -320,15 +387,21 @@ function SessionsSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle
 }
 
 function StatusBar() {
-  const { sessions, active, session } = useTerminal();
+  const { sessions, active, session, keymap } = useTerminal();
   const running = sessions.filter((s) => s.status === "running").length;
   const focused = active && L.findPane(active.root, active.focus);
   const name = focused && session(focused.sessionId)?.name;
   return (
     <footer className="flex min-h-8 flex-wrap items-center gap-x-5 gap-y-1.5 border-t border-border px-4 py-1.5 text-xs text-muted-foreground">
       <span className="inline-flex items-center gap-2">
-        <kbd className="rounded border border-border-strong px-1.5 py-px font-mono text-[#e4e4e7]">⌃B</kbd>prefix
+        <kbd className="rounded border border-border-strong px-1.5 py-px font-mono text-[#e4e4e7]">{showKey(keymap?.prefix ?? "C-b")}</kbd>prefix
       </span>
+      {keymap?.source && (
+        <span title={keymap.skipped.length ? `Not supported:\n${keymap.skipped.join("\n")}` : undefined}>
+          keys from {keymap.source.replace(/^.*\/(\.config\/tmux\/)?/, "")}
+          {keymap.skipped.length > 0 && ` · ${keymap.skipped.length} skipped`}
+        </span>
+      )}
       <span className="flex-1" />
       <span>
         {sessions.length} {sessions.length === 1 ? "session" : "sessions"} · {running} running
@@ -338,17 +411,25 @@ function StatusBar() {
   );
 }
 
+const stripActions: [string, string][] = [
+  ["split-right", "split right"],
+  ["split-down", "split down"],
+  ["focus", "focus"],
+  ["zoom", "zoom"],
+  ["background", "send to background"],
+  ["new-tab", "new tab"],
+  ["next-tab", "next tab"],
+  ["break-pane", "own tab"],
+  ["close-pane", "close pane"],
+  ["send-prefix", "send prefix"],
+];
+
 function PrefixStrip({ onCancel }: { onCancel: () => void }) {
-  const keys: [string, string][] = [
-    ["%", "split right"],
-    ['"', "split down"],
-    ["←↑→↓", "focus"],
-    ["z", "zoom"],
-    ["d", "send to background"],
-    ["c", "new tab"],
-    ["x", "close pane"],
-    ["⌃B", "send ⌃B"],
-  ];
+  const { keymap } = useTerminal();
+  const keysFor = (action: string) => {
+    const bs = keymap?.bindings.filter((b) => !b.root && (action === "focus" ? b.action.startsWith("focus-") : b.action === action)) ?? [];
+    return bs.map((b) => showKey(b.key)).join(action === "focus" ? "" : " ");
+  };
   return (
     <>
       <div
@@ -357,14 +438,19 @@ function PrefixStrip({ onCancel }: { onCancel: () => void }) {
         className="absolute bottom-6 left-1/2 z-20 flex w-[min(1040px,calc(100%-32px))] -translate-x-1/2 flex-wrap items-center gap-x-1.5 gap-y-2 rounded-[10px] border border-border-strong bg-[#111113] px-3 py-2.5 text-xs shadow-[0_12px_32px_rgba(0,0,0,0.5)]"
       >
         <span className="mr-1 inline-flex items-center gap-2 font-medium text-strong">
-          <kbd className="rounded border border-border-strong px-1.5 py-px font-mono">⌃B</kbd>
+          <kbd className="rounded border border-border-strong px-1.5 py-px font-mono">{showKey(keymap?.prefix ?? "C-b")}</kbd>
         </span>
-        {keys.map(([k, label]) => (
-          <span key={k} className="inline-flex h-[26px] items-center gap-1.5 rounded-md px-2 text-muted-foreground">
-            <kbd className={cn(kbd, "text-strong")}>{k}</kbd>
-            {label}
-          </span>
-        ))}
+        {stripActions.map(([action, label]) => {
+          const k = keysFor(action);
+          return (
+            k && (
+              <span key={action} className="inline-flex h-[26px] items-center gap-1.5 rounded-md px-2 text-muted-foreground">
+                <kbd className={cn(kbd, "text-strong")}>{k}</kbd>
+                {label}
+              </span>
+            )
+          );
+        })}
         <span className="flex-1" />
         <button className="inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs text-muted-foreground hover:text-strong" onClick={onCancel}>
           <kbd className={kbd}>esc</kbd>cancel

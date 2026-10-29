@@ -41,11 +41,11 @@ export function findPane(n: LayoutNode, id: string): PaneNode | undefined {
 
 const even = (n: number) => Array.from({ length: n }, () => 100 / n);
 
-/** Splits pane `id`, putting `added` after it along `dir`. */
-export function split(root: LayoutNode, id: string, dir: Dir, added: PaneNode): LayoutNode {
+/** Splits pane `id`, putting `added` after it (or before) along `dir`. */
+export function split(root: LayoutNode, id: string, dir: Dir, added: PaneNode, before = false): LayoutNode {
   const walk = (n: LayoutNode): LayoutNode => {
     if (n.kind === "pane") {
-      return n.id === id ? { kind: "split", id: uid(), dir, sizes: [50, 50], children: [n, added] } : n;
+      return n.id === id ? { kind: "split", id: uid(), dir, sizes: [50, 50], children: before ? [added, n] : [n, added] } : n;
     }
     const i = n.children.findIndex((c) => c.kind === "pane" && c.id === id);
     if (i >= 0 && n.dir === dir) {
@@ -54,7 +54,7 @@ export function split(root: LayoutNode, id: string, dir: Dir, added: PaneNode): 
       const half = sizes[i] / 2;
       sizes.splice(i, 1, half, half);
       const children = [...n.children];
-      children.splice(i + 1, 0, added);
+      children.splice(before ? i : i + 1, 0, added);
       return { ...n, sizes, children };
     }
     return { ...n, children: n.children.map(walk) };
@@ -142,4 +142,21 @@ export function neighbor(root: LayoutNode, id: string, move: Move): string | und
     }
   }
   return best?.id;
+}
+
+export type Edge = "left" | "right" | "top" | "bottom" | "center";
+
+/**
+ * Moves pane `src` next to pane `target` (drag and drop). "center" swaps the
+ * two panes' sessions and leaves the layout alone.
+ */
+export function movePane(root: LayoutNode, src: string, target: string, edge: Edge): LayoutNode {
+  const a = findPane(root, src);
+  const b = findPane(root, target);
+  if (!a || !b || src === target) return root;
+  if (edge === "center") return setSession(setSession(root, src, b.sessionId), target, a.sessionId);
+  const without = remove(root, src);
+  if (!without) return root;
+  const dir: Dir = edge === "left" || edge === "right" ? "h" : "v";
+  return split(without, target, dir, a, edge === "left" || edge === "top");
 }

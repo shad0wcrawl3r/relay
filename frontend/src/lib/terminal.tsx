@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Events } from "@wailsio/runtime";
-import { normaliseSessions, TerminalService, type TermEndpoint, type TermInfo } from "./api";
+import { normaliseSessions, TerminalService, type TermEndpoint, type TermInfo, type TermKeymap } from "./api";
 import { errorMessage } from "./utils";
 import { useToast } from "@/components/Toaster";
 import * as L from "./layout";
@@ -43,6 +43,16 @@ interface TerminalStore {
   setSizes: (splitId: string, sizes: number[]) => void;
   register: (paneId: string, h: PaneHandle | null) => void;
   sendToFocused: (data: string) => void;
+  keymap: TermKeymap | null;
+  reloadKeymap: () => void;
+  closeTab: (id?: string) => void;
+  cycleTab: (step: 1 | -1) => void;
+  selectTabIndex: (i: number) => void;
+  breakPane: (paneId?: string) => void;
+  movePane: (src: string, target: string, edge: L.Edge) => void;
+  movePaneToTab: (src: string, tabId: string) => void;
+  dragging: string | null;
+  setDragging: (paneId: string | null) => void;
 }
 
 const Ctx = createContext<TerminalStore | null>(null);
@@ -62,6 +72,8 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
   const [tabs, setTabs] = useState<L.Tab[]>([]);
   const [activeId, setActiveId] = useState("");
   const [ready, setReady] = useState(false);
+  const [keymap, setKeymap] = useState<TermKeymap | null>(null);
+  const [dragging, setDragging] = useState<string | null>(null);
   const started = useRef(false);
   const handles = useRef(new Map<string, PaneHandle>());
   // Latest values for callbacks that must not go stale.
@@ -74,6 +86,16 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
     TerminalService.Endpoint().then(setEndpoint).catch(() => {});
     return () => off();
   }, []);
+
+  const reloadKeymap = useCallback(() => {
+    TerminalService.Keymap()
+      .then((k) => {
+        setKeymap(k);
+        if (k.error) toast({ tone: "error", title: "Couldn't read your tmux config", body: k.error });
+      })
+      .catch(() => {});
+  }, [toast]);
+  useEffect(() => reloadKeymap(), [reloadKeymap]);
 
   const fail = useCallback((title: string, err: unknown) => toast({ tone: "error", title, body: errorMessage(err) }), [toast]);
 
@@ -338,6 +360,96 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
     if (active) handles.current.get(active.focus)?.focus();
   }, [active?.id, active?.focus, active?.zoom]);
 
+  // A shell that exits closes its pane, unless it's the tab's last pane:
+  // that one stays, showing the exit, so the tab doesn't vanish.
+  useEffect(() => {
+    const exited = new Set(sessions.filter((s) => s.status === "exited").map((s) => s.id));
+    if (!exited.size) return;
+    const dead: string[] = [];
+    const next = tabs.map((t) => {
+      let root: L.LayoutNode = t.root;
+      for (const p of L.panes(t.root)) {
+        if (!exited.has(p.sessionId) || L.panes(root).length < 2) continue;
+        root = L.remove(root, p.id) ?? root;
+        dead.push(p.sessionId);
+      }
+      if (root === t.root) return t;
+      const left = L.panes(root);
+      return { ...t, root, focus: left.some((p) => p.id === t.focus) ? t.focus : left[left.length - 1].id, zoom: undefined };
+    });
+    if (!dead.length) return;
+    setTabs(next);
+    for (const id of dead) TerminalService.Kill(id).catch(() => {});
+  }, [sessions, tabs]);
+
+  const closeTab = useCallback((id?: string) => {
+    const { tabs, activeId } = live.current;
+    const tab = tabs.find((t) => t.id === (id ?? activeId));
+    if (!tab) return;
+    for (const p of L.panes(tab.root)) TerminalService.Kill(p.sessionId).catch(() => {});
+    setTabs((all) => all.filter((t) => t.id !== tab.id));
+  }, []);
+
+  const cycleTab = useCallback((step: 1 | -1) => {
+    const { tabs, activeId } = live.current;
+    if (tabs.length < 2) return;
+    const i = tabs.findIndex((t) => t.id === activeId);
+    setActiveId(tabs[(i + step + tabs.length) % tabs.length].id);
+  }, []);
+
+  const selectTabIndex = useCallback((i: number) => {
+    const t = live.current.tabs[i];
+    if (t) setActiveId(t.id);
+  }, []);
+
+  // tmux break-pane: the pane leaves its tab for a new one of its own.
+  const breakPane = useCallback(
+    (paneId?: string) => {
+      const found = paneOrFocus(paneId);
+      if (!found?.pane || L.panes(found.tab.root).length < 2) return;
+      const p = found.pane;
+      dropPane(p.id);
+      const s = live.current.sessions.find((x) => x.id === p.sessionId);
+      const tab: L.Tab = { id: L.uid(), name: s?.name || "shell", root: p, focus: p.id };
+      setTabs((all) => [...all, tab]);
+      setActiveId(tab.id);
+    },
+    [dropPane],
+  );
+
+  const movePane = useCallback(
+    (src: string, target: string, edge: L.Edge) =>
+      updateActive((t) => {
+        const root = L.movePane(t.root, src, target, edge);
+        return root === t.root ? t : { ...t, root, focus: src, zoom: undefined };
+      }),
+    [updateActive],
+  );
+
+  const movePaneToTab = useCallback(
+    (src: string, tabId: string) => {
+      const { tabs, activeId } = live.current;
+      const from = tabs.find((t) => t.id === activeId);
+      const to = tabs.find((t) => t.id === tabId);
+      const p = from && L.findPane(from.root, src);
+      if (!from || !to || !p || from.id === to.id) return;
+      setTabs((all) =>
+        all.flatMap((t) => {
+          if (t.id === from.id) {
+            const root = L.remove(t.root, src);
+            if (!root) return [];
+            const left = L.panes(root);
+            return [{ ...t, root, focus: left.some((x) => x.id === t.focus) ? t.focus : left[0].id, zoom: undefined }];
+          }
+          if (t.id === to.id) return [{ ...t, root: L.split(t.root, t.focus, "h", p), focus: p.id, zoom: undefined }];
+          return [t];
+        }),
+      );
+      setActiveId(to.id);
+    },
+    [],
+  );
+
   const session = useCallback((id: string) => sessions.find((s) => s.id === id), [sessions]);
 
   const value = useMemo<TerminalStore>(
@@ -364,8 +476,49 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
       setSizes,
       register,
       sendToFocused,
+      keymap,
+      reloadKeymap,
+      closeTab,
+      cycleTab,
+      selectTabIndex,
+      breakPane,
+      movePane,
+      movePaneToTab,
+      dragging,
+      setDragging,
     }),
-    [endpoint, sessions, session, tabs, active, ready, start, newTab, renameTab, split, focusPane, move, toggleZoom, closePane, detachPane, attach, restart, newSession, setSizes, register, sendToFocused],
+    [
+      endpoint,
+      sessions,
+      session,
+      tabs,
+      active,
+      ready,
+      start,
+      newTab,
+      renameTab,
+      split,
+      focusPane,
+      move,
+      toggleZoom,
+      closePane,
+      detachPane,
+      attach,
+      restart,
+      newSession,
+      setSizes,
+      register,
+      sendToFocused,
+      keymap,
+      reloadKeymap,
+      closeTab,
+      cycleTab,
+      selectTabIndex,
+      breakPane,
+      movePane,
+      movePaneToTab,
+      dragging,
+    ],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

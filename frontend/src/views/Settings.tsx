@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { Browser, Clipboard } from "@wailsio/runtime";
 import { Check, Copy, Loader2 } from "lucide-react";
-import { PlaneService, SettingsService, type Settings as SettingsT, type SettingsInput } from "@/lib/api";
+import { PlaneService, SettingsService, TerminalService, type Settings as SettingsT, type SettingsInput } from "@/lib/api";
+import { useTerminal } from "@/lib/terminal";
+import { showKey } from "@/lib/keys";
+import { Switch } from "@/components/ui/switch";
 import { usePlane } from "@/lib/store";
 import { errorMessage } from "@/lib/utils";
 import { useToast } from "@/components/Toaster";
@@ -18,6 +21,8 @@ export function Settings() {
   const [saving, setSaving] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [tmuxConf, setTmuxConf] = useState("");
+  const { keymap, reloadKeymap } = useTerminal();
 
   const load = (next: SettingsT) => {
     setS(next);
@@ -33,11 +38,13 @@ export function Settings() {
       syncInterval: next.syncInterval,
       agentName: next.agentName,
       agentLabel: next.agentLabel,
+      terminalTmuxKeys: next.terminalTmuxKeys,
     });
   };
 
   useEffect(() => {
     SettingsService.Get().then(load).catch(() => {});
+    TerminalService.TmuxConfig().then(setTmuxConf).catch(() => {});
   }, []);
 
   if (!s || !form) return <main className="flex-1" />;
@@ -54,12 +61,14 @@ export function Settings() {
     form.planeScope !== s.planeScope ||
     form.syncInterval !== s.syncInterval ||
     form.agentName !== s.agentName ||
-    form.agentLabel !== s.agentLabel;
+    form.agentLabel !== s.agentLabel ||
+    form.terminalTmuxKeys !== s.terminalTmuxKeys;
 
   const save = async () => {
     setSaving(true);
     try {
       load(await SettingsService.Save(form));
+      reloadKeymap();
       toast({ tone: "success", title: "Settings saved", body: s.configPath });
       return true;
     } catch (err) {
@@ -233,6 +242,46 @@ export function Settings() {
                 </Button>
               )}
             </div>
+          </Row>
+        </Section>
+
+        <Section title="Terminal" description="Sessions run in Relay itself; tmux isn't needed.">
+          <Row
+            label="tmux keybindings"
+            hint={
+              tmuxConf ? (
+                <>
+                  Reads the prefix and bindings from <span className="font-mono">{tmuxConf}</span> on top of tmux's defaults. Splits, pane focus, zoom,
+                  windows (as tabs), detach and break-pane are supported; other commands are skipped.
+                </>
+              ) : (
+                "No tmux config found (~/.tmux.conf or ~/.config/tmux/tmux.conf). Relay uses tmux's default keys."
+              )
+            }
+          >
+            <label className="flex h-9 items-center gap-2.5 text-[13px] text-foreground">
+              <Switch checked={form.terminalTmuxKeys} disabled={!tmuxConf} onCheckedChange={(v) => set({ terminalTmuxKeys: v })} />
+              Use my tmux config
+            </label>
+            {s.terminalTmuxKeys && keymap?.source && (
+              <span className="text-xs text-dim">
+                Prefix <kbd className="font-mono text-foreground">{showKey(keymap.prefix)}</kbd>
+                {keymap.prefix2 && (
+                  <>
+                    {" "}
+                    or <kbd className="font-mono text-foreground">{showKey(keymap.prefix2)}</kbd>
+                  </>
+                )}{" "}
+                · {keymap.bindings.length} bindings
+                {keymap.skipped.length > 0 && (
+                  <>
+                    {" "}
+                    · skipped:
+                    <span className="mt-1 block whitespace-pre-wrap font-mono">{keymap.skipped.join("\n")}</span>
+                  </>
+                )}
+              </span>
+            )}
           </Row>
         </Section>
 

@@ -6,6 +6,8 @@ export {
 } from "./models.js";
 
 export type {
+    Binding,
     Info,
+    Keymap,
     Options
 } from "./models.js";

@@ -37,6 +37,7 @@ func init() {
 	// Empty shell: $SHELL.
 	v.SetDefault("terminal.SHELL", "")
 	v.SetDefault("terminal.SCROLLBACK", 10000)
+	v.SetDefault("terminal.TMUX_KEYS", false)
 	if err := v.ReadInConfig(); err != nil {
 		// A missing file is fine: the user fills it in from Settings.
 		var notFound viper.ConfigFileNotFoundError
@@ -101,6 +102,7 @@ func Update(fn func(c *Config)) error {
 	v.Set("agent.LABEL", next.Agent.Label)
 	v.Set("terminal.SHELL", next.Terminal.Shell)
 	v.Set("terminal.SCROLLBACK", next.Terminal.Scrollback)
+	v.Set("terminal.TMUX_KEYS", next.Terminal.TmuxKeys)
 	path := Path()
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return err
@@ -145,5 +147,7 @@ type Config struct {
 		// Shell for new sessions; empty uses $SHELL.
 		Shell      string `mapstructure:"SHELL"`
 		Scrollback int    `mapstructure:"SCROLLBACK"`
+		// TmuxKeys reads prefix and bindings from the user's tmux config.
+		TmuxKeys bool `mapstructure:"TMUX_KEYS"`
 	}
 }

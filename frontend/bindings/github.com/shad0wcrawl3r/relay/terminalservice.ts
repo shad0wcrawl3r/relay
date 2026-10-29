@@ -28,6 +28,14 @@ export function Endpoint(): $CancellablePromise<$models.Endpoint> {
     return $Call.ByID(3604127172);
 }
 
+/**
+ * Keymap is the terminal view's prefix and bindings: tmux's defaults, with
+ * the user's tmux config applied on top when that setting is on.
+ */
+export function Keymap(): $CancellablePromise<term$0.Keymap> {
+    return $Call.ByID(2756653930);
+}
+
 export function Kill(id: string): $CancellablePromise<void> {
     return $Call.ByID(2346399937, id);
 }
@@ -54,4 +62,11 @@ export function Resize(id: string, cols: number, rows: number): $CancellableProm
 
 export function SaveLayout(layout: string): $CancellablePromise<void> {
     return $Call.ByID(1226220918, layout);
+}
+
+/**
+ * TmuxConfig names the tmux config Relay would read, or "" if none exists.
+ */
+export function TmuxConfig(): $CancellablePromise<string> {
+    return $Call.ByID(3474183733);
 }

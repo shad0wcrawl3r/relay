@@ -7,7 +7,7 @@ import { X } from "lucide-react";
 import "@xterm/xterm/css/xterm.css";
 import { TerminalService } from "@/lib/api";
 import { useTerminal } from "@/lib/terminal";
-import type { PaneNode } from "@/lib/layout";
+import type { Edge, PaneNode } from "@/lib/layout";
 import { cn } from "@/lib/utils";
 
 // design/README.md §4 "Terminal" tokens; ANSI colours from the same palette.
@@ -35,13 +35,16 @@ const theme: ITheme = {
   brightWhite: "#fafafa",
 };
 
-const FONT = '"JetBrains Mono Variable", ui-monospace, monospace';
+// Nerd Font symbols (bundled, see index.css) fill in prompt icons the text
+// font lacks.
+const FONT = '"JetBrains Mono Variable", "Symbols Nerd Font Mono", ui-monospace, monospace';
 const enc = new TextEncoder();
 
 type Ended = { code: number } | "gone" | null;
 
 export function Pane({ node, focused, zoomed }: { node: PaneNode; focused: boolean; zoomed: boolean }) {
-  const { endpoint, session, focusPane, closePane, restart, register } = useTerminal();
+  const { endpoint, session, focusPane, closePane, restart, register, dragging, setDragging, movePane } = useTerminal();
+  const [edge, setEdge] = useState<Edge | null>(null);
   const info = session(node.sessionId);
   const host = useRef<HTMLDivElement>(null);
   const [ended, setEnded] = useState<Ended>(null);
@@ -127,7 +130,7 @@ export function Pane({ node, focused, zoomed }: { node: PaneNode; focused: boole
 
     const ro = new ResizeObserver(() => requestAnimationFrame(sync));
     // Measure with the real font, or cell size (and so cols/rows) is wrong.
-    document.fonts.load(`13px ${FONT}`).finally(() => {
+    Promise.allSettled([document.fonts.load(`13px "JetBrains Mono Variable"`), document.fonts.load(`13px "Symbols Nerd Font Mono"`, "\ue0b0")]).finally(() => {
       if (disposed) return;
       term.open(el);
       term.textarea?.addEventListener("focus", () => latest.current.focusPane(latest.current.paneId));
@@ -158,8 +161,17 @@ export function Pane({ node, focused, zoomed }: { node: PaneNode; focused: boole
       onMouseDown={() => focusPane(node.id)}
     >
       <div
+        draggable={!renaming && !zoomed}
+        title={zoomed ? undefined : "Drag to move this pane"}
+        onDragStart={(e) => {
+          e.dataTransfer.setData("application/x-relay-pane", node.id);
+          e.dataTransfer.effectAllowed = "move";
+          // Let the drag image render before panes grow drop overlays.
+          setTimeout(() => setDragging(node.id));
+        }}
+        onDragEnd={() => setDragging(null)}
         className={cn(
-          "flex h-9 shrink-0 items-center border-b border-hairline pr-0.5",
+          "flex h-9 shrink-0 cursor-grab items-center border-b border-hairline pr-0.5 active:cursor-grabbing",
           focused ? "bg-[#18181b] text-strong" : "bg-[#0c0c0e] text-muted-foreground",
         )}
       >
@@ -201,6 +213,26 @@ export function Pane({ node, focused, zoomed }: { node: PaneNode; focused: boole
       </div>
       <div className="relative min-h-0 flex-1 py-1.5 pl-3 pr-1">
         <div ref={host} className="size-full" />
+        {dragging && dragging !== node.id && (
+          <div
+            className="absolute inset-0 z-10"
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+              setEdge(edgeAt(e));
+            }}
+            onDragLeave={() => setEdge(null)}
+            onDrop={(e) => {
+              e.preventDefault();
+              const at = edgeAt(e);
+              setEdge(null);
+              setDragging(null);
+              movePane(dragging, node.id, at);
+            }}
+          >
+            {edge && <div className="pointer-events-none absolute rounded-md border border-[#60a5fa] bg-[rgba(96,165,250,0.12)]" style={zoneStyle[edge]} />}
+          </div>
+        )}
         {ended === "gone" && (
           <div className="absolute inset-0 grid place-items-center bg-[#0c0c0e]/90 text-xs text-muted-foreground">
             <div className="flex flex-col items-center gap-3">
@@ -220,3 +252,22 @@ export function Pane({ node, focused, zoomed }: { node: PaneNode; focused: boole
     </section>
   );
 }
+
+/** Which part of the pane the pointer is over: outer quarters split, the
+ *  middle swaps. */
+function edgeAt(e: React.DragEvent): Edge {
+  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+  const x = (e.clientX - r.left) / r.width;
+  const y = (e.clientY - r.top) / r.height;
+  const d = { left: x, right: 1 - x, top: y, bottom: 1 - y };
+  const [side, dist] = Object.entries(d).sort((a, b) => a[1] - b[1])[0] as [Edge, number];
+  return dist < 0.25 ? side : "center";
+}
+
+const zoneStyle: Record<Edge, React.CSSProperties> = {
+  left: { inset: "4px 50% 4px 4px" },
+  right: { inset: "4px 4px 4px 50%" },
+  top: { inset: "4px 4px 50% 4px" },
+  bottom: { inset: "50% 4px 4px 4px" },
+  center: { inset: "4px" },
+};

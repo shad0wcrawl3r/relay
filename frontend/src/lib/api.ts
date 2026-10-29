@@ -35,6 +35,8 @@ export type Post = Clean<PostM.Post>;
 export type TermInfo = Clean<TermM.Info>;
 export type TermOptions = Clean<TermM.Options>;
 export type TermEndpoint = Clean<M.Endpoint>;
+export type TermKeymap = Clean<TermM.Keymap>;
+export type TermBinding = Clean<TermM.Binding>;
 
 const arr = <T,>(v: T[] | null | undefined): T[] => v ?? [];
 
@@ -100,4 +102,9 @@ export const TerminalService = {
   Rename: (id: string, name: string) => TerminalBindings.Rename(id, name),
   LoadLayout: () => TerminalBindings.LoadLayout(),
   SaveLayout: (layout: string) => TerminalBindings.SaveLayout(layout),
+  Keymap: async (): Promise<TermKeymap> => {
+    const k = await TerminalBindings.Keymap();
+    return { ...k, bindings: arr(k.bindings), skipped: arr(k.skipped) };
+  },
+  TmuxConfig: () => TerminalBindings.TmuxConfig(),
 };

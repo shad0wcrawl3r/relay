@@ -4,6 +4,15 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Nerd Font icons (powerline, git, OS glyphs) for terminal prompts. Used only
+   as a fallback after the text font, so it never changes ordinary text.
+   Symbols-only build from ryanoasis/nerd-fonts v3.5.1 (MIT, see LICENSE). */
+@font-face {
+  font-family: "Symbols Nerd Font Mono";
+  src: url("./assets/fonts/SymbolsNerdFontMono-Regular.ttf") format("truetype");
+  font-display: block;
+}
+
 /* shadcn/ui zinc dark, plus Relay's tokens from design/README.md §4. Relay is
    dark-only, so :root carries the dark palette. */
 :root {
