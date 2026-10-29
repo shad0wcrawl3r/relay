@@ -55,16 +55,19 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev
+          sudo apt-get install -y build-essential pkg-config libgtk-4-dev libwebkitgtk-6.0-dev
 
       - name: Install wails3
         run: go install github.com/wailsapp/wails/v3/cmd/wails3@${WAILS_VERSION}
 
-      - name: Test
-        run: go test ./...
-
       - name: Build
         run: wails3 task ${{ matrix.task }}
+
+      # After the build, which produces frontend/dist for the go:embed in main.go.
+      # Skipped on Windows: the term and vault tests assume a Unix shell and file modes.
+      - name: Test
+        if: runner.os != 'Windows'
+        run: go test ./...
 
       - name: Package (Linux .deb)
         if: runner.os == 'Linux'
