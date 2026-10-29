@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"sort"
@@ -35,6 +36,9 @@ type Snapshot struct {
 	Projects  []Project `json:"projects"`
 	SyncedAt  time.Time `json:"syncedAt"`
 	Error     string    `json:"error"`
+	// Cached is set while showing the on-disk display cache, before the first
+	// live sync of this run. The UI must not write to Plane from it.
+	Cached bool `json:"cached"`
 }
 
 type Member struct {
@@ -221,6 +225,7 @@ func (c *Client) Disconnect() error {
 	c.members = map[string]Member{}
 	c.last = Snapshot{}
 	c.mu.Unlock()
+	_ = clearCache()
 	return c.auth.clear()
 }
 
@@ -294,6 +299,9 @@ func (c *Client) Sync(ctx context.Context, force bool) (Snapshot, error) {
 	c.mu.Lock()
 	c.last = snap
 	c.mu.Unlock()
+	if err := saveCache(snap); err != nil {
+		log.Printf("plane: could not write display cache: %v", err)
+	}
 	return snap, nil
 }
 
@@ -613,7 +621,20 @@ func (c *Client) projectFor(ctx context.Context, pid string) (rawProject, *meta,
 	return rawProject{ID: pid}, m, nil
 }
 
+// ErrStale refuses writes while the UI shows the display cache: it may be
+// out of date, so a change made from it could undo someone else's.
+var ErrStale = errors.New("Plane is still syncing; try again once it finishes")
+
+func (c *Client) stale() bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.last.Cached
+}
+
 func (c *Client) Update(ctx context.Context, pid, id string, p ItemPatch) error {
+	if c.stale() {
+		return ErrStale
+	}
 	body := map[string]any{}
 	if p.Name != nil {
 		body["name"] = *p.Name
@@ -638,6 +659,9 @@ func (c *Client) Update(ctx context.Context, pid, id string, p ItemPatch) error 
 }
 
 func (c *Client) Create(ctx context.Context, n NewItem) (Item, error) {
+	if c.stale() {
+		return Item{}, ErrStale
+	}
 	body := map[string]any{"name": n.Name}
 	if n.StateID != "" {
 		body["state"] = n.StateID
@@ -660,6 +684,9 @@ func (c *Client) Create(ctx context.Context, n NewItem) (Item, error) {
 }
 
 func (c *Client) Comment(ctx context.Context, pid, id, html string) error {
+	if c.stale() {
+		return ErrStale
+	}
 	c.mu.Lock()
 	delete(c.threads, id)
 	c.mu.Unlock()

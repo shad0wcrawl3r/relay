@@ -19,7 +19,9 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
 - Build/run: `wails3 dev`, `wails3 build` (Taskfile).
 
 ## Rules
-- Plane is the source of truth; Relay writes changes back, keeps no own copy of Plane state.
+- Plane is the source of truth; Relay writes changes back. Its only copy is a display cache
+  (`plane-cache.json` in the app dir, last good sync, non-private projects) shown at launch;
+  writes are refused (UI and Go) until the first live sync replaces it.
 - TEACH project data: memory only, never written to disk or logs.
 - Dev.to: send as `published: false`; no image upload in v1 (insert `<INSERT IMAGE HERE: …>` placeholders).
 - Posts are local markdown files in the OS app-storage dir.

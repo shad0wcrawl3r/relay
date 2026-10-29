@@ -4,6 +4,7 @@ import { isOverdue, norm } from "@/lib/plane";
 import { duration, shortDate } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { AgentTag, PriorityIcon } from "@/components/bits";
+import { usePlane } from "@/lib/store";
 
 export const DRAG_MIME = "application/x-relay-item";
 
@@ -35,6 +36,7 @@ function startDrag(e: React.DragEvent, it: Item) {
 }
 
 export function ItemCard({ item: it, project, state, selected, compact, onOpen }: CardProps) {
+  const { readOnly } = usePlane();
   const variant = cardVariant(it, state);
   const n = norm(state?.name);
   const labels = project.labels.filter((l) => it.labelIds?.includes(l.id));
@@ -47,7 +49,7 @@ export function ItemCard({ item: it, project, state, selected, compact, onOpen }
   if (compact) {
     return (
       <article
-        draggable
+        draggable={!readOnly}
         onDragStart={(e) => startDrag(e, it)}
         onClick={onOpen}
         className={cn(
@@ -70,7 +72,7 @@ export function ItemCard({ item: it, project, state, selected, compact, onOpen }
 
   return (
     <article
-      draggable
+      draggable={!readOnly}
       onDragStart={(e) => startDrag(e, it)}
       onClick={onOpen}
       onKeyDown={(e) => e.key === "Enter" && onOpen()}

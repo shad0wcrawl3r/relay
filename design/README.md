@@ -253,6 +253,9 @@ Kanban
 - Plane is source of truth; Relay reads everything via OAuth and writes
   changes back (state moves via drag, comments, create, approve/shelve…).
 - Teaching never touches disk.
+- Launch shows the last good sync from a display cache (non-private
+  projects only) with a "Saved data · syncing…" banner; moving, editing,
+  creating and commenting are blocked until the first live sync.
 - Attention view is the home screen.
 
 Terminal

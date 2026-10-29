@@ -173,7 +173,7 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board({ projec
   );
 
   return (
-    <main className="flex min-w-0 flex-1 flex-col">
+    <main className="flex min-h-0 min-w-0 flex-1 flex-col">
       <header className="drag flex min-h-14 flex-wrap items-center gap-2.5 border-b border-hairline px-5 pb-2.5 pt-10">
         <div className="mr-1.5 flex items-center gap-2.5">
           <ProjectGlyph project={project} />

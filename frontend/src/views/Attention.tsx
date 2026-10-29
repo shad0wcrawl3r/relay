@@ -74,7 +74,7 @@ export function Attention({ openItem }: { openItem: (o: OpenItem) => void }) {
   };
 
   return (
-    <main className="min-w-0 flex-1 overflow-y-auto">
+    <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">
       <div className="drag h-10 shrink-0" />
       <div className="mx-auto flex max-w-[980px] flex-col px-8 pb-10">
         <div className="mb-6 flex flex-wrap items-end gap-4">

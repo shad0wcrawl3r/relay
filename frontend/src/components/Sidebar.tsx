@@ -19,7 +19,7 @@ function useNow(ms = 5000) {
 }
 
 export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => void; rail: boolean }) {
-  const { projects, snapshot, syncing, syncNow } = usePlane();
+  const { projects, snapshot, syncing, syncNow, readOnly } = usePlane();
   const { sessions } = useTerminal();
   // Blue dot on the Terminal entry while a session runs out of view.
   const termBusy = route.name !== "terminal" && sessions.some((s) => s.status === "running");
@@ -28,12 +28,16 @@ export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => v
   const synced = snapshot?.syncedAt && !snapshot.syncedAt.startsWith("0001") ? snapshot.syncedAt : "";
   const syncLabel = !snapshot?.connected
     ? "Plane not connected"
-    : syncing
+    : readOnly
+      ? snapshot.error
+        ? "Saved data · sync failed"
+        : "Saved data · syncing…"
+      : syncing
       ? "Syncing…"
       : synced
         ? `Synced ${syncedAgo(synced, now)}`
         : "Not synced yet";
-  const syncColor = !snapshot?.connected ? "#71717a" : snapshot.error ? "#ef4444" : "#46a758";
+  const syncColor = !snapshot?.connected ? "#71717a" : snapshot.error ? "#ef4444" : readOnly ? "#f59e0b" : "#46a758";
 
   const item = (active: boolean, extra?: string) =>
     cn(

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePlane } from "@/lib/store";
 import { stateById } from "@/lib/plane";
 import { Sidebar } from "@/components/Sidebar";
+import { CachedBanner } from "@/components/CachedBanner";
 import { Capture } from "@/components/Capture";
 import { ItemDrawer } from "@/components/ItemDrawer";
 import { Attention } from "@/views/Attention";
@@ -100,9 +101,14 @@ export default function App() {
   return (
     <div className="flex h-full">
       <Sidebar route={route} go={go} rail={route.name === "editor" || route.name === "terminal"} />
-      {route.name === "attention" && <Attention openItem={setDrawer} />}
-      {route.name === "project" && current && (
-        <Board ref={board} project={current} openItem={setDrawer} selectedId={drawer?.itemId} onNewItem={() => setCapture(true)} />
+      {(route.name === "attention" || (route.name === "project" && current)) && (
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <CachedBanner />
+          {route.name === "attention" && <Attention openItem={setDrawer} />}
+          {route.name === "project" && current && (
+            <Board ref={board} project={current} openItem={setDrawer} selectedId={drawer?.itemId} onNewItem={() => setCapture(true)} />
+          )}
+        </div>
       )}
       {route.name === "editor" && <Editor />}
       {route.name === "terminal" && <Terminal />}

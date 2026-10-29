@@ -146,6 +146,12 @@ export interface Snapshot {
     "projects": Project[] | null;
     "syncedAt": string;
     "error": string;
+
+    /**
+     * Cached is set while showing the on-disk display cache, before the first
+     * live sync of this run. The UI must not write to Plane from it.
+     */
+    "cached": boolean;
 }
 
 export interface State {

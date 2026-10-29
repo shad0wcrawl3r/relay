@@ -26,6 +26,8 @@ func NewPlaneService() *PlaneService {
 
 func (s *PlaneService) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
 	s.app = application.Get()
+	// Show the last synced board right away; the first poll replaces it.
+	s.client.LoadCache()
 	go s.poll(ctx)
 	return nil
 }

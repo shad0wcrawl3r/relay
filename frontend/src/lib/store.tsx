@@ -7,6 +7,8 @@ import { useToast } from "@/components/Toaster";
 interface PlaneStore {
   snapshot: Snapshot | null;
   syncing: boolean;
+  /** Showing the on-disk cache from a previous run: look, don't touch. */
+  readOnly: boolean;
   projects: Project[];
   project: (id: string) => Project | undefined;
   syncNow: () => Promise<void>;
@@ -92,8 +94,19 @@ export function PlaneProvider({ children }: { children: ReactNode }) {
     }
   }, [receive]);
 
+  const readOnly = !!snapshot?.cached;
+  const live = useRef(readOnly);
+  live.current = readOnly;
+  const refuse = useCallback(() => {
+    toast({ tone: "error", title: "Still syncing with Plane", body: "This is saved data from your last session. Changes unlock once the sync finishes." });
+  }, [toast]);
+
   const update = useCallback(
     async (item: Item, patch: Partial<ItemPatch>, okMessage?: string) => {
+      if (live.current) {
+        refuse();
+        return false;
+      }
       pending.current.set(item.id, { ...pending.current.get(item.id), ...patch });
       pendingAt.current.set(item.id, Date.now());
       setSnapshot((s) => (s ? { ...s } : s));
@@ -108,11 +121,15 @@ export function PlaneProvider({ children }: { children: ReactNode }) {
         return false;
       }
     },
-    [toast],
+    [toast, refuse],
   );
 
   const create = useCallback(
     async (projectId: string, name: string, stateId?: string) => {
+      if (live.current) {
+        refuse();
+        return null;
+      }
       try {
         const it = await PlaneService.Create({ projectId, name, stateId: stateId ?? "", priority: "", descriptionHtml: "" });
         setSnapshot((s) =>
@@ -125,11 +142,15 @@ export function PlaneProvider({ children }: { children: ReactNode }) {
         return null;
       }
     },
-    [toast],
+    [toast, refuse],
   );
 
   const comment = useCallback(
     async (item: Item, html: string) => {
+      if (live.current) {
+        refuse();
+        return false;
+      }
       try {
         await PlaneService.Comment(item.projectId, item.id, html);
         return true;
@@ -138,12 +159,12 @@ export function PlaneProvider({ children }: { children: ReactNode }) {
         return false;
       }
     },
-    [toast],
+    [toast, refuse],
   );
 
   const value = useMemo(
-    () => ({ snapshot, syncing, projects, project, syncNow, update, create, comment }),
-    [snapshot, syncing, projects, project, syncNow, update, create, comment],
+    () => ({ snapshot, syncing, readOnly, projects, project, syncNow, update, create, comment }),
+    [snapshot, syncing, readOnly, projects, project, syncNow, update, create, comment],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
