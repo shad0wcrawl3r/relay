@@ -88,8 +88,9 @@ export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => v
         rail ? "w-14 items-center px-1.5" : "w-[220px] px-2.5",
       )}
     >
-      <div className={cn("flex items-center gap-2.5 text-sm font-semibold text-strong", rail ? "justify-center" : "px-2")}>
-        <img src="/relay.svg" alt="" className="size-7 shrink-0" draggable={false} />
+      {/* Same left edge as the nav icons below (nav px-2.5 + item px-2.5). */}
+      <div className={cn("flex h-6 items-center gap-2.5 text-sm font-semibold text-strong", rail ? "justify-center" : "px-2.5")}>
+        <img src="/relay-mark.svg" alt="" className="block size-6 shrink-0" draggable={false} />
         {!rail && <span>Relay</span>}
       </div>
 
