@@ -14,6 +14,9 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as plane$0 from "./internal/plane/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as unlock$0 from "./internal/unlock/models.js";
 
 export function Comment(projectID: string, itemID: string, html: string): $CancellablePromise<void> {
     return $Call.ByID(1830150044, projectID, itemID, html);
@@ -36,6 +39,21 @@ export function Disconnect(): $CancellablePromise<void> {
 }
 
 /**
+ * Lock hides key again; an empty key locks everything.
+ */
+export function Lock(key: string): $CancellablePromise<void> {
+    return $Call.ByID(1995652964, key);
+}
+
+/**
+ * SetLockable adds key to or removes it from the locked list. Removing a lock
+ * needs the same confirmation as unlocking.
+ */
+export function SetLockable(key: string, locked: boolean): $CancellablePromise<void> {
+    return $Call.ByID(25912794, key, locked);
+}
+
+/**
  * Snapshot returns the last synced state without a network round trip.
  */
 export function Snapshot(): $CancellablePromise<plane$0.Snapshot> {
@@ -47,6 +65,21 @@ export function Snapshot(): $CancellablePromise<plane$0.Snapshot> {
  */
 export function SyncNow(): $CancellablePromise<plane$0.Snapshot> {
     return $Call.ByID(2346408804);
+}
+
+/**
+ * Unlock shows a locked project ("project:<IDENTIFIER>") or module
+ * ("module:<id>") after the OS confirms the device owner.
+ */
+export function Unlock(key: string): $CancellablePromise<void> {
+    return $Call.ByID(837555571, key);
+}
+
+/**
+ * UnlockMethod says how Unlock will verify the user (Touch ID, password…).
+ */
+export function UnlockMethod(): $CancellablePromise<unlock$0.Method> {
+    return $Call.ByID(3687656834);
 }
 
 export function Update(projectID: string, itemID: string, patch: plane$0.ItemPatch): $CancellablePromise<void> {

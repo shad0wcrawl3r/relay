@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Browser, Clipboard } from "@wailsio/runtime";
 import { Check, Copy, Loader2 } from "lucide-react";
-import { PlaneService, SettingsService, TerminalService, type Settings as SettingsT, type SettingsInput } from "@/lib/api";
+import { moduleKey, PlaneService, projectKey, SettingsService, TerminalService, type Settings as SettingsT, type SettingsInput } from "@/lib/api";
 import { useTerminal } from "@/lib/terminal";
 import { showKey } from "@/lib/keys";
 import { Switch } from "@/components/ui/switch";
@@ -15,7 +15,7 @@ import { PlaneAppGuide } from "@/components/PlaneAppGuide";
 
 export function Settings() {
   const toast = useToast();
-  const { syncNow } = usePlane();
+  const { syncNow, projects, setLockable, unlockMethod } = usePlane();
   const [s, setS] = useState<SettingsT | null>(null);
   const [form, setForm] = useState<SettingsInput | null>(null);
   const [saving, setSaving] = useState(false);
@@ -39,6 +39,7 @@ export function Settings() {
       agentName: next.agentName,
       agentLabel: next.agentLabel,
       terminalTmuxKeys: next.terminalTmuxKeys,
+      autoLockMinutes: next.autoLockMinutes,
     });
   };
 
@@ -62,7 +63,8 @@ export function Settings() {
     form.syncInterval !== s.syncInterval ||
     form.agentName !== s.agentName ||
     form.agentLabel !== s.agentLabel ||
-    form.terminalTmuxKeys !== s.terminalTmuxKeys;
+    form.terminalTmuxKeys !== s.terminalTmuxKeys ||
+    form.autoLockMinutes !== s.autoLockMinutes;
 
   const save = async () => {
     setSaving(true);
@@ -241,6 +243,53 @@ export function Settings() {
                   Remove
                 </Button>
               )}
+            </div>
+          </Row>
+        </Section>
+
+        <Section
+          title="Privacy"
+          description="Everything Relay stores on disk is encrypted with a key kept in your system keychain. Locked projects and modules stay hidden until you unlock them."
+        >
+          <Row
+            label="Unlock with"
+            hint={
+              unlockMethod?.available
+                ? "Turning a lock off asks for the same confirmation."
+                : "Unlocking needs macOS for now; locked items stay hidden on this system."
+            }
+          >
+            <span className="flex h-9 items-center text-[13px] text-foreground">
+              {!unlockMethod ? "…" : !unlockMethod.available ? "Not available" : unlockMethod.biometry ? `${unlockMethod.label.replace("Unlock with ", "")}, or your login password` : "Your login password"}
+            </span>
+          </Row>
+          <Row label="Locked" hint="Projects and their modules (sub-projects). A locked project's modules appear once it's unlocked.">
+            <div className="flex flex-col gap-1.5 pt-1.5">
+              {projects.length === 0 && <span className="text-xs text-dim">Connect Plane to choose projects.</span>}
+              {projects.map((p) => (
+                <div key={p.id} className="flex flex-col gap-1.5">
+                  <label className="flex items-center gap-2.5 text-[13px] text-foreground">
+                    <Switch checked={p.private} onCheckedChange={(v) => setLockable(projectKey(p.identifier), v)} />
+                    {p.name}
+                    <span className="font-mono text-[11px] text-dim">{p.identifier}</span>
+                    {p.private && <span className="text-xs text-dim">{p.locked ? "· locked" : "· unlocked"}</span>}
+                  </label>
+                  {!p.locked &&
+                    p.modules.map((m) => (
+                      <label key={m.id} className="ml-9 flex items-center gap-2.5 text-xs text-muted-foreground">
+                        <Switch checked={m.private} onCheckedChange={(v) => setLockable(moduleKey(m.id), v)} />
+                        {m.name}
+                        {m.private && <span className="text-dim">{m.locked ? "· locked" : "· unlocked"}</span>}
+                      </label>
+                    ))}
+                </div>
+              ))}
+            </div>
+          </Row>
+          <Row label="Lock again after" hint="Minutes after unlocking. Quitting Relay locks everything.">
+            <div className="flex items-center gap-2">
+              <Input type="number" min={1} value={form.autoLockMinutes} onChange={(e) => set({ autoLockMinutes: Number(e.target.value) })} className="w-24" />
+              <span className="text-xs text-dim">minutes</span>
             </div>
           </Row>
         </Section>

@@ -19,10 +19,12 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
 - Build/run: `wails3 dev`, `wails3 build` (Taskfile).
 
 ## Rules
-- Plane is the source of truth; Relay writes changes back. Its only copy is a display cache
-  (`plane-cache.json` in the app dir, last good sync, non-private projects) shown at launch;
+- Plane is the source of truth; Relay writes changes back. Its only copy is an encrypted display
+  cache (`plane-cache.json` in the app dir, last good sync, all projects) shown at launch;
   writes are refused (UI and Go) until the first live sync replaces it.
-- TEACH project data: memory only, never written to disk or logs.
+- Everything Relay writes to disk goes through `internal/vault` (AES-256-GCM, key in the OS keychain).
+- Locked projects/modules (`[privacy] LOCKED`, default TEACH) never reach the UI until unlocked via
+  `internal/unlock` (Touch ID / login password); unlocks expire. Never log their data.
 - Dev.to: send as `published: false`; no image upload in v1 (insert `<INSERT IMAGE HERE: …>` placeholders).
 - Posts are local markdown files in the OS app-storage dir.
 - Never commit `config.toml` or log secrets.

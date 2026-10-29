@@ -52,8 +52,8 @@ Relay = a Wails3 desktop workbench with two halves:
 - Agent handoff happens **inside each project** via states (Ready for Agent →
   Agent Working → Needs Review / In Debate), not a separate project. The agent
   is Claude Code.
-- **Teaching is private**: fetched live, held in memory only, **never cached to
-  disk**. UI shows a lock glyph on it everywhere.
+- **Teaching is private**: encrypted at rest and **locked** — hidden until
+  unlocked (Touch ID / login password). UI shows a lock glyph on it everywhere.
 - Plane is on cloud now; self-hosting later (so `BASE_URL` must be
   configurable — it already is in `config.toml`).
 
@@ -78,7 +78,7 @@ sync status ("● Synced 14s ago" + sync-now icon button) · Settings.
    - *Blocked* → **Unblock · Open**
    - *Overdue* — past target date (subtitle in red) → **Reschedule · Open**
    Row: project glyph · mono ID · title (+lock if Teaching) · subtitle · state pill · actions (first is primary).
-   Footer note: "Teaching items are fetched live and kept in memory only — never cached to disk."
+   Footer note: Teaching is encrypted on disk and hidden until unlocked.
 
 2. **Work board** — `kanban/Main.dc.html`
    Top bar: glyph + "Work" + mono key · view toggle **Board | Lanes** ·
@@ -252,10 +252,12 @@ Editor
 Kanban
 - Plane is source of truth; Relay reads everything via OAuth and writes
   changes back (state moves via drag, comments, create, approve/shelve…).
-- Teaching never touches disk.
-- Launch shows the last good sync from a display cache (non-private
-  projects only) with a "Saved data · syncing…" banner; moving, editing,
-  creating and commenting are blocked until the first live sync.
+- Teaching is locked: stored only encrypted, hidden until unlocked with
+  Touch ID or the login password, relocks after the auto-lock timeout.
+  Projects and modules can be locked in Settings → Privacy.
+- Launch shows the last good sync from an encrypted display cache with a
+  "Saved data · syncing…" banner; moving, editing, creating and commenting
+  are blocked until the first live sync.
 - Attention view is the home screen.
 
 Terminal

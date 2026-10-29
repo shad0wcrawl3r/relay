@@ -8,6 +8,7 @@ import (
 
 	"github.com/shad0wcrawl3r/relay/internal/config"
 	"github.com/shad0wcrawl3r/relay/internal/term"
+	"github.com/shad0wcrawl3r/relay/internal/vault"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
@@ -103,24 +104,23 @@ func (s *TerminalService) Rename(id, name string) error {
 func layoutPath() string { return filepath.Join(config.AppDir(), "terminal-layout.json") }
 
 // LoadLayout returns the saved tabs and split trees as JSON ("" if none).
-// The layout holds session names and folders only, no output.
+// The layout holds session names and folders only, no output, and is
+// encrypted on disk like everything else Relay stores.
 func (s *TerminalService) LoadLayout() (string, error) {
-	b, err := os.ReadFile(layoutPath())
-	if errors.Is(err, os.ErrNotExist) {
+	b, err := vault.ReadFile(layoutPath())
+	switch {
+	case errors.Is(err, os.ErrNotExist):
 		return "", nil
+	case errors.Is(err, vault.ErrNotSealed):
+		// Written before encryption: read it once; the next save seals it.
+		raw, err := os.ReadFile(layoutPath())
+		return string(raw), err
 	}
 	return string(b), err
 }
 
 func (s *TerminalService) SaveLayout(layout string) error {
-	if err := os.MkdirAll(config.AppDir(), 0o700); err != nil {
-		return err
-	}
-	tmp := layoutPath() + ".tmp"
-	if err := os.WriteFile(tmp, []byte(layout), 0o600); err != nil {
-		return err
-	}
-	return os.Rename(tmp, layoutPath())
+	return vault.WriteFile(layoutPath(), []byte(layout))
 }
 
 // Keymap is the terminal view's prefix and bindings: tmux's defaults, with

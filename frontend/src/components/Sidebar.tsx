@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, PenLine, RefreshCw, SlidersHorizontal, SquareTerminal } from "lucide-react";
+import { Bell, Lock, LockOpen, PenLine, RefreshCw, SlidersHorizontal, SquareTerminal } from "lucide-react";
 import { usePlane } from "@/lib/store";
 import { useTerminal } from "@/lib/terminal";
 import { attentionRows, openCount } from "@/lib/plane";
@@ -19,7 +19,8 @@ function useNow(ms = 5000) {
 }
 
 export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => void; rail: boolean }) {
-  const { projects, snapshot, syncing, syncNow, readOnly } = usePlane();
+  const { projects, snapshot, syncing, syncNow, readOnly, lock } = usePlane();
+  const anyUnlocked = projects.some((p) => (p.private && !p.locked) || p.modules.some((m) => m.private && !m.locked));
   const { sessions } = useTerminal();
   // Blue dot on the Terminal entry while a session runs out of view.
   const termBusy = route.name !== "terminal" && sessions.some((s) => s.status === "running");
@@ -112,8 +113,8 @@ export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => v
             icon={<ProjectGlyph project={p} />}
             label={p.name}
             badge={
-              <span className="ml-auto text-[11px] text-dim" title={p.private ? "Private: kept in memory only" : undefined}>
-                {p.private ? <PrivateLock /> : openCount(p)}
+              <span className="ml-auto text-[11px] text-dim" title={p.private ? (p.locked ? "Locked: unlock to see items" : "Unlocked: locks again automatically") : undefined}>
+                {p.private ? p.locked ? <PrivateLock /> : <LockOpen className="size-[13px] text-[#5eead4]" strokeWidth={1.9} aria-label="Unlocked" /> : openCount(p)}
               </span>
             }
           />
@@ -165,6 +166,9 @@ export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => v
             </button>
           </Tooltip>
         </div>
+      )}
+      {anyUnlocked && (
+        <Item active={false} onClick={() => lock()} icon={<Lock className="size-[15px] text-[#5eead4]" strokeWidth={1.8} />} label="Lock private items" />
       )}
       <Item
         active={route.name === "settings"}

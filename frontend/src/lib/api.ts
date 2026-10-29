@@ -11,6 +11,7 @@ import type * as M from "../../bindings/github.com/shad0wcrawl3r/relay/models";
 import type * as PM from "../../bindings/github.com/shad0wcrawl3r/relay/internal/plane/models";
 import type * as PostM from "../../bindings/github.com/shad0wcrawl3r/relay/internal/posts/models";
 import type * as TermM from "../../bindings/github.com/shad0wcrawl3r/relay/internal/term/models";
+import type * as UnlockM from "../../bindings/github.com/shad0wcrawl3r/relay/internal/unlock/models";
 
 type Clean<T> = T extends (infer U)[] ? Clean<U>[] : T extends object ? { [K in keyof T]: Clean<Exclude<T[K], null>> } : T;
 
@@ -33,6 +34,7 @@ export type Settings = Clean<M.Settings>;
 export type SettingsInput = Clean<M.SettingsInput>;
 export type Post = Clean<PostM.Post>;
 export type TermInfo = Clean<TermM.Info>;
+export type UnlockMethod = Clean<UnlockM.Method>;
 export type TermOptions = Clean<TermM.Options>;
 export type TermEndpoint = Clean<M.Endpoint>;
 export type TermKeymap = Clean<TermM.Keymap>;
@@ -69,7 +71,15 @@ export const PlaneService = {
   Update: (projectId: string, itemId: string, patch: Partial<ItemPatch>) => PlaneBindings.Update(projectId, itemId, patch as PM.ItemPatch),
   Create: async (n: NewItem) => item(await PlaneBindings.Create(n as PM.NewItem)),
   Comment: (projectId: string, itemId: string, html: string) => PlaneBindings.Comment(projectId, itemId, html),
+  UnlockMethod: (): Promise<UnlockMethod> => PlaneBindings.UnlockMethod(),
+  Unlock: (key: string) => PlaneBindings.Unlock(key),
+  Lock: (key = "") => PlaneBindings.Lock(key),
+  SetLockable: (key: string, locked: boolean) => PlaneBindings.SetLockable(key, locked),
 };
+
+/** Lock keys, matching internal/plane/locks.go. */
+export const projectKey = (identifier: string) => `project:${identifier.toUpperCase()}`;
+export const moduleKey = (id: string) => `module:${id}`;
 
 /** Normalise a snapshot pushed over the "plane:snapshot" event. */
 export const normaliseSnapshot = (s: PM.Snapshot) => snapshot(s);

@@ -2,11 +2,15 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"slices"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/shad0wcrawl3r/relay/internal/config"
 	"github.com/shad0wcrawl3r/relay/internal/plane"
+	"github.com/shad0wcrawl3r/relay/internal/unlock"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
@@ -15,13 +19,14 @@ import (
 type PlaneService struct {
 	client *plane.Client
 	app    *application.App
+	locks  *plane.Locks
 
 	syncMu sync.Mutex
 	kick   chan struct{}
 }
 
 func NewPlaneService() *PlaneService {
-	return &PlaneService{client: plane.New(), kick: make(chan struct{}, 1)}
+	return &PlaneService{client: plane.New(), locks: plane.NewLocks(), kick: make(chan struct{}, 1)}
 }
 
 func (s *PlaneService) ServiceStartup(ctx context.Context, _ application.ServiceOptions) error {
@@ -29,7 +34,31 @@ func (s *PlaneService) ServiceStartup(ctx context.Context, _ application.Service
 	// Show the last synced board right away; the first poll replaces it.
 	s.client.LoadCache()
 	go s.poll(ctx)
+	go s.watchLocks(ctx)
 	return nil
+}
+
+// watchLocks re-sends the snapshot when an unlock times out, so locked
+// content leaves the screen.
+func (s *PlaneService) watchLocks(ctx context.Context) {
+	t := time.NewTicker(10 * time.Second)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			if s.locks.Expired() {
+				s.emit()
+			}
+		}
+	}
+}
+
+func (s *PlaneService) emit() {
+	if s.app != nil {
+		s.app.Event.Emit("plane:snapshot", s.Snapshot())
+	}
 }
 
 func (s *PlaneService) poll(ctx context.Context) {
@@ -52,6 +81,7 @@ func (s *PlaneService) sync(ctx context.Context, force bool) plane.Snapshot {
 	s.syncMu.Lock()
 	defer s.syncMu.Unlock()
 	snap, _ := s.client.Sync(ctx, force)
+	snap = s.locks.Redact(snap)
 	if s.app != nil {
 		s.app.Event.Emit("plane:snapshot", snap)
 	}
@@ -64,7 +94,7 @@ func (s *PlaneService) Snapshot() plane.Snapshot {
 	snap.Connected = s.client.Connected()
 	snap.Workspace = s.client.Workspace()
 	snap.AppURL = plane.AppURL()
-	return snap
+	return s.locks.Redact(snap)
 }
 
 // SyncNow fetches everything immediately and returns the result.
@@ -89,11 +119,22 @@ func (s *PlaneService) Disconnect() error {
 	return err
 }
 
+// allowed is false for items in locked projects or modules.
+func (s *PlaneService) allowed(projectID, itemID string) bool {
+	return s.locks.Allowed(s.client.Last(), projectID, itemID)
+}
+
 func (s *PlaneService) Detail(ctx context.Context, projectID, itemID string) (plane.ItemDetail, error) {
+	if !s.allowed(projectID, itemID) {
+		return plane.ItemDetail{}, plane.ErrLocked
+	}
 	return s.client.Detail(ctx, projectID, itemID)
 }
 
 func (s *PlaneService) Update(ctx context.Context, projectID, itemID string, patch plane.ItemPatch) error {
+	if !s.allowed(projectID, itemID) {
+		return plane.ErrLocked
+	}
 	if err := s.client.Update(ctx, projectID, itemID, patch); err != nil {
 		return err
 	}
@@ -102,6 +143,9 @@ func (s *PlaneService) Update(ctx context.Context, projectID, itemID string, pat
 }
 
 func (s *PlaneService) Create(ctx context.Context, item plane.NewItem) (plane.Item, error) {
+	if !s.allowed(item.ProjectID, "") {
+		return plane.Item{}, plane.ErrLocked
+	}
 	it, err := s.client.Create(ctx, item)
 	if err != nil {
 		return plane.Item{}, err
@@ -111,6 +155,9 @@ func (s *PlaneService) Create(ctx context.Context, item plane.NewItem) (plane.It
 }
 
 func (s *PlaneService) Comment(ctx context.Context, projectID, itemID, html string) error {
+	if !s.allowed(projectID, itemID) {
+		return plane.ErrLocked
+	}
 	if err := s.client.Comment(ctx, projectID, itemID, html); err != nil {
 		return err
 	}
@@ -124,4 +171,71 @@ func (s *PlaneService) resync() {
 	case s.kick <- struct{}{}:
 	default:
 	}
+}
+
+// UnlockMethod says how Unlock will verify the user (Touch ID, password…).
+func (s *PlaneService) UnlockMethod() unlock.Method { return unlock.Available() }
+
+// Unlock shows a locked project ("project:<IDENTIFIER>") or module
+// ("module:<id>") after the OS confirms the device owner.
+func (s *PlaneService) Unlock(key string) error {
+	if !plane.Lockable(key) {
+		return nil
+	}
+	if err := unlock.Authenticate("show " + s.lockName(key)); err != nil {
+		return err
+	}
+	s.locks.Unlock(key)
+	s.emit()
+	return nil
+}
+
+// Lock hides key again; an empty key locks everything.
+func (s *PlaneService) Lock(key string) {
+	s.locks.Lock(key)
+	s.emit()
+}
+
+// SetLockable adds key to or removes it from the locked list. Removing a lock
+// needs the same confirmation as unlocking.
+func (s *PlaneService) SetLockable(key string, locked bool) error {
+	if !strings.HasPrefix(key, "project:") && !strings.HasPrefix(key, "module:") {
+		return fmt.Errorf("not a lockable key: %q", key)
+	}
+	if !locked && plane.Lockable(key) && s.locks.Locked(key) {
+		if err := unlock.Authenticate("stop locking " + s.lockName(key)); err != nil {
+			return err
+		}
+	}
+	err := config.Update(func(c *config.Config) {
+		list := slices.DeleteFunc(slices.Clone(c.Privacy.Locked), func(k string) bool { return k == key })
+		if locked {
+			list = append(list, key)
+		}
+		c.Privacy.Locked = list
+	})
+	if err != nil {
+		return err
+	}
+	if locked {
+		s.locks.Lock(key)
+	}
+	s.emit()
+	return nil
+}
+
+// lockName is the project or module name for the system prompt.
+func (s *PlaneService) lockName(key string) string {
+	snap := s.client.Last()
+	for _, p := range snap.Projects {
+		if key == plane.ProjectKey(p.Identifier) {
+			return "the locked project " + p.Name
+		}
+		for _, m := range p.Modules {
+			if key == plane.ModuleKey(m.ID) {
+				return "the locked module " + m.Name
+			}
+		}
+	}
+	return "locked Plane items"
 }

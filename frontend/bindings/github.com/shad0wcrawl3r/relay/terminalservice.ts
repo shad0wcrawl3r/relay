@@ -46,7 +46,8 @@ export function List(): $CancellablePromise<term$0.Info[] | null> {
 
 /**
  * LoadLayout returns the saved tabs and split trees as JSON ("" if none).
- * The layout holds session names and folders only, no output.
+ * The layout holds session names and folders only, no output, and is
+ * encrypted on disk like everything else Relay stores.
  */
 export function LoadLayout(): $CancellablePromise<string> {
     return $Call.ByID(1028045995);

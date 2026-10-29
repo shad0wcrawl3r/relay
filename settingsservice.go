@@ -33,6 +33,7 @@ type Settings struct {
 	PostsDir          string `json:"postsDir"`
 	RedirectURI       string `json:"redirectUri"`
 	TerminalTmuxKeys  bool   `json:"terminalTmuxKeys"`
+	AutoLockMinutes   int    `json:"autoLockMinutes"`
 }
 
 type SettingsInput struct {
@@ -48,6 +49,7 @@ type SettingsInput struct {
 	AgentName         string `json:"agentName"`
 	AgentLabel        string `json:"agentLabel"`
 	TerminalTmuxKeys  bool   `json:"terminalTmuxKeys"`
+	AutoLockMinutes   int    `json:"autoLockMinutes"`
 }
 
 func (s *SettingsService) Get() Settings {
@@ -62,6 +64,7 @@ func (s *SettingsService) Get() Settings {
 		ConfigPath: config.Path(), PostsDir: s.posts.store.Dir,
 		RedirectURI:      "http://127.0.0.1:" + strconv.Itoa(c.Plane.RedirectPort) + "/oauth/callback",
 		TerminalTmuxKeys: c.Terminal.TmuxKeys,
+		AutoLockMinutes:  c.Privacy.AutoLockMinutes,
 	}
 }
 
@@ -92,6 +95,9 @@ func (s *SettingsService) Save(in SettingsInput) (Settings, error) {
 		c.Agent.Name = in.AgentName
 		c.Agent.Label = in.AgentLabel
 		c.Terminal.TmuxKeys = in.TerminalTmuxKeys
+		if in.AutoLockMinutes >= 1 {
+			c.Privacy.AutoLockMinutes = in.AutoLockMinutes
+		}
 	})
 	if err != nil {
 		return Settings{}, err

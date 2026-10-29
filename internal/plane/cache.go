@@ -7,43 +7,36 @@ import (
 	"path/filepath"
 
 	"github.com/shad0wcrawl3r/relay/internal/config"
+	"github.com/shad0wcrawl3r/relay/internal/vault"
 )
 
 // The display cache lets Relay show the last synced board at launch instead
-// of an empty window. It is read-only: the frontend blocks edits until a live
-// sync replaces it. Private projects (Teaching) are never written.
+// of an empty window. It is encrypted with the keychain-held vault key, holds
+// every project (locked ones are redacted before they reach the UI), and is
+// read-only: writes are refused until a live sync replaces it.
 
 func cachePath() string { return filepath.Join(config.AppDir(), "plane-cache.json") }
 
-// saveCache writes a successful snapshot, minus private projects.
+// saveCache encrypts and writes a successful snapshot.
 func saveCache(snap Snapshot) error {
 	if !snap.Connected || snap.Error != "" || snap.SyncedAt.IsZero() {
 		return nil
 	}
-	pub := make([]Project, 0, len(snap.Projects))
-	for _, p := range snap.Projects {
-		if !p.Private && !PrivateProjects[p.Identifier] {
-			pub = append(pub, p)
-		}
-	}
-	snap.Projects = pub
 	b, err := json.Marshal(snap)
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(config.AppDir(), 0o700); err != nil {
-		return err
-	}
-	tmp := cachePath() + ".tmp"
-	if err := os.WriteFile(tmp, b, 0o600); err != nil {
-		return err
-	}
-	return os.Rename(tmp, cachePath())
+	return vault.WriteFile(cachePath(), b)
 }
 
 // loadCache returns the cached snapshot for workspace, if there is one.
 func loadCache(workspace string) (Snapshot, bool) {
-	b, err := os.ReadFile(cachePath())
+	b, err := vault.ReadFile(cachePath())
+	if errors.Is(err, vault.ErrNotSealed) {
+		// Plaintext from before encryption: drop it.
+		_ = clearCache()
+		return Snapshot{}, false
+	}
 	if err != nil {
 		return Snapshot{}, false
 	}
@@ -51,14 +44,7 @@ func loadCache(workspace string) (Snapshot, bool) {
 	if json.Unmarshal(b, &snap) != nil || snap.Workspace != workspace {
 		return Snapshot{}, false
 	}
-	// Belt and braces: never surface a private project from disk.
-	pub := snap.Projects[:0]
-	for _, p := range snap.Projects {
-		if !p.Private && !PrivateProjects[p.Identifier] {
-			pub = append(pub, p)
-		}
-	}
-	snap.Projects = orEmpty(pub)
+	snap.Projects = orEmpty(snap.Projects)
 	snap.Cached = true
 	snap.Error = ""
 	return snap, true

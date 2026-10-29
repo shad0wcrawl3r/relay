@@ -116,6 +116,8 @@ export interface Module {
     "id": string;
     "name": string;
     "status": string;
+    "private": boolean;
+    "locked": boolean;
 }
 
 export interface NewItem {
@@ -130,7 +132,18 @@ export interface Project {
     "id": string;
     "name": string;
     "identifier": string;
+
+    /**
+     * Private: the project is lockable; Locked: it is locked right now, so
+     * Items is empty. Both are set by Redact.
+     */
     "private": boolean;
+    "locked": boolean;
+
+    /**
+     * HiddenItems counts items held back because their module is locked.
+     */
+    "hiddenItems": number;
     "states": State[] | null;
     "labels": Label[] | null;
     "modules": Module[] | null;

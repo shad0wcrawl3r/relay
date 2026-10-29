@@ -8,9 +8,13 @@ import (
 	"time"
 
 	"github.com/shad0wcrawl3r/relay/internal/config"
+	"github.com/shad0wcrawl3r/relay/internal/vault"
+	"github.com/zalando/go-keyring"
 )
 
-func TestCacheSkipsPrivateProjects(t *testing.T) {
+func TestCacheIsEncrypted(t *testing.T) {
+	keyring.MockInit()
+	vault.Reset()
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	if err := os.MkdirAll(config.AppDir(), 0o700); err != nil {
@@ -20,18 +24,18 @@ func TestCacheSkipsPrivateProjects(t *testing.T) {
 		Connected: true, Workspace: "ws", SyncedAt: time.Now(),
 		Projects: []Project{
 			{ID: "w", Identifier: "WORK", Items: []Item{{ID: "i1", Name: "public"}}},
-			{ID: "h", Identifier: "TEACH", Private: true, Items: []Item{{ID: "i2", Name: "secret"}}},
+			{ID: "h", Identifier: "TEACH", Items: []Item{{ID: "i2", Name: "secret"}}},
 		},
 	}
 	if err := saveCache(snap); err != nil {
 		t.Fatal(err)
 	}
 	raw, _ := os.ReadFile(cachePath())
-	if len(raw) == 0 || strings.Contains(string(raw), "TEACH") || strings.Contains(string(raw), "secret") {
-		t.Fatalf("cache leaks private data or is empty: %s", raw)
+	if len(raw) == 0 || strings.Contains(string(raw), "TEACH") || strings.Contains(string(raw), "secret") || strings.Contains(string(raw), "public") {
+		t.Fatalf("cache is not encrypted: %q", raw[:min(len(raw), 80)])
 	}
 	got, ok := loadCache("ws")
-	if !ok || !got.Cached || len(got.Projects) != 1 || got.Projects[0].Identifier != "WORK" {
+	if !ok || !got.Cached || len(got.Projects) != 2 {
 		t.Errorf("loaded %+v ok=%v", got, ok)
 	}
 	if _, ok := loadCache("other-workspace"); ok {
@@ -44,10 +48,13 @@ func TestCacheSkipsPrivateProjects(t *testing.T) {
 	if err := c.Update(context.Background(), "w", "i1", ItemPatch{}); err != ErrStale {
 		t.Errorf("Update while stale = %v", err)
 	}
-	if err := clearCache(); err != nil {
-		t.Fatal(err)
+
+	// A plaintext cache from an older version is discarded.
+	os.WriteFile(cachePath(), []byte(`{"workspace":"ws"}`), 0o600)
+	if _, ok := loadCache("ws"); ok {
+		t.Error("plaintext cache accepted")
 	}
 	if _, err := os.Stat(cachePath()); !os.IsNotExist(err) {
-		t.Error("cache not removed")
+		t.Error("plaintext cache not removed")
 	}
 }

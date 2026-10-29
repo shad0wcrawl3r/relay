@@ -21,9 +21,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// PrivateProjects are shown with a lock and must never be cached to disk.
-var PrivateProjects = map[string]bool{"TEACH": true}
-
 // States whose items get their comment thread fetched during sync, so the
 // Attention view can say who spoke last.
 var threadStates = map[string]bool{"needs review": true, "in debate": true}
@@ -48,15 +45,20 @@ type Member struct {
 }
 
 type Project struct {
-	ID         string   `json:"id"`
-	Name       string   `json:"name"`
-	Identifier string   `json:"identifier"`
-	Private    bool     `json:"private"`
-	States     []State  `json:"states"`
-	Labels     []Label  `json:"labels"`
-	Modules    []Module `json:"modules"`
-	Cycles     []Cycle  `json:"cycles"`
-	Items      []Item   `json:"items"`
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	Identifier string `json:"identifier"`
+	// Private: the project is lockable; Locked: it is locked right now, so
+	// Items is empty. Both are set by Redact.
+	Private bool `json:"private"`
+	Locked  bool `json:"locked"`
+	// HiddenItems counts items held back because their module is locked.
+	HiddenItems int      `json:"hiddenItems"`
+	States      []State  `json:"states"`
+	Labels      []Label  `json:"labels"`
+	Modules     []Module `json:"modules"`
+	Cycles      []Cycle  `json:"cycles"`
+	Items       []Item   `json:"items"`
 }
 
 type State struct {
@@ -74,9 +76,11 @@ type Label struct {
 }
 
 type Module struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
-	Status string `json:"status"`
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Status  string `json:"status"`
+	Private bool   `json:"private"`
+	Locked  bool   `json:"locked"`
 }
 
 type Cycle struct {
@@ -474,8 +478,7 @@ func (c *Client) syncProject(ctx context.Context, rp rawProject, force bool) (Pr
 
 	p := Project{
 		ID: rp.ID, Name: rp.Name, Identifier: rp.Identifier,
-		Private: PrivateProjects[strings.ToUpper(rp.Identifier)],
-		States:  orEmpty(m.states), Labels: orEmpty(m.labels), Modules: orEmpty(m.modules), Cycles: orEmpty(m.cycles),
+		States: orEmpty(m.states), Labels: orEmpty(m.labels), Modules: orEmpty(m.modules), Cycles: orEmpty(m.cycles),
 		Items: make([]Item, 0, len(raw)),
 	}
 	for _, ri := range raw {

@@ -55,6 +55,7 @@ export interface Settings {
     "postsDir": string;
     "redirectUri": string;
     "terminalTmuxKeys": boolean;
+    "autoLockMinutes": number;
 }
 
 export interface SettingsInput {
@@ -70,4 +71,5 @@ export interface SettingsInput {
     "agentName": string;
     "agentLabel": string;
     "terminalTmuxKeys": boolean;
+    "autoLockMinutes": number;
 }

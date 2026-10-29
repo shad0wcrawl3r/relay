@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
-import { ChevronDown, Columns3, ListFilter, Plus, Rows3, Search } from "lucide-react";
-import type { Item, Project, State } from "@/lib/api";
+import { ChevronDown, Columns3, ListFilter, Lock, Plus, Rows3, Search } from "lucide-react";
+import { moduleKey, projectKey, type Item, type Project, type State } from "@/lib/api";
+import { UnlockButton } from "@/components/LockScreen";
 import { usePlane } from "@/lib/store";
 import { collapsedByDefault, isDoneGroup, isOverdue, PRIORITIES, priorityLabel, stateById, stateColor } from "@/lib/plane";
 import { cn } from "@/lib/utils";
@@ -102,7 +103,7 @@ interface BoardProps {
 }
 
 export const Board = forwardRef<BoardHandle, BoardProps>(function Board({ project, openItem, selectedId, onNewItem }, ref) {
-  const { update } = usePlane();
+  const { update, lock } = usePlane();
   const [view, setView] = useState<"board" | "lanes">(() => viewMemory.get(project.id) ?? "board");
   const [collapsed, setCollapsed] = useState<Set<string>>(
     () => collapsedMemory.get(project.id) ?? new Set(project.states.filter(collapsedByDefault).map((s) => s.id)),
@@ -180,6 +181,16 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board({ projec
           <h1 className="m-0 text-[15px] font-semibold text-strong">{project.name}</h1>
           <span className="font-mono text-[11px] text-dim">{project.identifier}</span>
           {project.private && <PrivateLock size={13} color="#5eead4" />}
+          {project.private && (
+            <button
+              className="no-drag ml-1 inline-flex h-[26px] items-center gap-1.5 rounded-md border border-border px-2 text-xs text-muted-foreground hover:text-strong"
+              title="Hide this project until you unlock it again"
+              onClick={() => lock(projectKey(project.identifier))}
+            >
+              <Lock className="size-3" strokeWidth={2} />
+              Lock
+            </button>
+          )}
         </div>
         <div className="no-drag inline-flex rounded-[7px] border border-border bg-[#0f0f11] p-0.5" role="group" aria-label="View">
           {(
@@ -257,6 +268,20 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board({ projec
           {isLab ? "New idea" : "New item"}
         </Button>
       </header>
+      {project.hiddenItems > 0 && (
+        <div className="flex flex-wrap items-center gap-2 border-b border-hairline bg-[#0f0f11] px-5 py-2 text-xs text-dim">
+          <Lock className="size-3.5 text-[#5eead4]" strokeWidth={2} />
+          {project.hiddenItems} {project.hiddenItems === 1 ? "item is" : "items are"} hidden in locked modules:
+          {project.modules
+            .filter((m) => m.locked)
+            .map((m) => (
+              <span key={m.id} className="inline-flex items-center gap-1.5">
+                <span className="text-foreground">{m.name}</span>
+                <UnlockButton lockKey={moduleKey(m.id)} label="Unlock" small />
+              </span>
+            ))}
+        </div>
+      )}
 
       {view === "board" ? (
         <div className="flex flex-1 items-start gap-3 overflow-x-auto px-5 pb-6 pt-4">

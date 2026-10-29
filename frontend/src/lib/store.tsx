@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Events } from "@wailsio/runtime";
-import { normaliseSnapshot, PlaneService, type Item, type ItemPatch, type Project, type Snapshot } from "./api";
+import { normaliseSnapshot, PlaneService, type Item, type ItemPatch, type Project, type Snapshot, type UnlockMethod } from "./api";
 import { errorMessage } from "./utils";
 import { useToast } from "@/components/Toaster";
 
@@ -9,6 +9,12 @@ interface PlaneStore {
   syncing: boolean;
   /** Showing the on-disk cache from a previous run: look, don't touch. */
   readOnly: boolean;
+  /** How unlocking verifies the user; null until known. */
+  unlockMethod: UnlockMethod | null;
+  /** Asks the OS (Touch ID / password) and reveals a locked project or module. */
+  unlock: (key: string) => Promise<boolean>;
+  lock: (key?: string) => Promise<void>;
+  setLockable: (key: string, locked: boolean) => Promise<boolean>;
   projects: Project[];
   project: (id: string) => Project | undefined;
   syncNow: () => Promise<void>;
@@ -95,6 +101,45 @@ export function PlaneProvider({ children }: { children: ReactNode }) {
   }, [receive]);
 
   const readOnly = !!snapshot?.cached;
+  const [unlockMethod, setUnlockMethod] = useState<UnlockMethod | null>(null);
+  useEffect(() => {
+    PlaneService.UnlockMethod().then(setUnlockMethod).catch(() => {});
+  }, []);
+  // Cancelling the system prompt isn't an error worth a toast.
+  const lockError = useCallback(
+    (title: string, err: unknown) => {
+      const msg = errorMessage(err);
+      if (!/cancel/i.test(msg)) toast({ tone: "error", title, body: msg });
+    },
+    [toast],
+  );
+  const unlock = useCallback(
+    async (key: string) => {
+      try {
+        await PlaneService.Unlock(key);
+        return true;
+      } catch (err) {
+        lockError("Couldn't unlock", err);
+        return false;
+      }
+    },
+    [lockError],
+  );
+  const lock = useCallback(async (key?: string) => {
+    await PlaneService.Lock(key ?? "").catch(() => {});
+  }, []);
+  const setLockable = useCallback(
+    async (key: string, locked: boolean) => {
+      try {
+        await PlaneService.SetLockable(key, locked);
+        return true;
+      } catch (err) {
+        lockError("Couldn't change the lock", err);
+        return false;
+      }
+    },
+    [lockError],
+  );
   const live = useRef(readOnly);
   live.current = readOnly;
   const refuse = useCallback(() => {
@@ -163,8 +208,8 @@ export function PlaneProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ snapshot, syncing, readOnly, projects, project, syncNow, update, create, comment }),
-    [snapshot, syncing, readOnly, projects, project, syncNow, update, create, comment],
+    () => ({ snapshot, syncing, readOnly, unlockMethod, unlock, lock, setLockable, projects, project, syncNow, update, create, comment }),
+    [snapshot, syncing, readOnly, unlockMethod, unlock, lock, setLockable, projects, project, syncNow, update, create, comment],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

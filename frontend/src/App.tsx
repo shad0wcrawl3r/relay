@@ -3,6 +3,7 @@ import { usePlane } from "@/lib/store";
 import { stateById } from "@/lib/plane";
 import { Sidebar } from "@/components/Sidebar";
 import { CachedBanner } from "@/components/CachedBanner";
+import { LockScreen } from "@/components/LockScreen";
 import { Capture } from "@/components/Capture";
 import { ItemDrawer } from "@/components/ItemDrawer";
 import { Attention } from "@/views/Attention";
@@ -37,6 +38,10 @@ export default function App() {
 
   const current = route.name === "project" ? project(route.projectId) : undefined;
   const drawerProject = drawer ? project(drawer.projectId) : undefined;
+  // Relocking hides the item; don't leave its drawer open.
+  useEffect(() => {
+    if (drawer && drawerProject && !drawerProject.items.some((it) => it.id === drawer.itemId)) setDrawer(null);
+  }, [drawer, drawerProject]);
 
   // If a project disappears (disconnect, permissions), fall back home.
   useEffect(() => {
@@ -105,7 +110,8 @@ export default function App() {
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <CachedBanner />
           {route.name === "attention" && <Attention openItem={setDrawer} />}
-          {route.name === "project" && current && (
+          {route.name === "project" && current && current.locked && <LockScreen project={current} />}
+          {route.name === "project" && current && !current.locked && (
             <Board ref={board} project={current} openItem={setDrawer} selectedId={drawer?.itemId} onNewItem={() => setCapture(true)} />
           )}
         </div>

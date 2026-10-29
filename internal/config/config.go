@@ -38,6 +38,10 @@ func init() {
 	v.SetDefault("terminal.SHELL", "")
 	v.SetDefault("terminal.SCROLLBACK", 10000)
 	v.SetDefault("terminal.TMUX_KEYS", false)
+	// Lockable Plane projects ("project:<IDENTIFIER>") and modules
+	// ("module:<id>"): hidden until the device owner unlocks them.
+	v.SetDefault("privacy.LOCKED", []string{"project:TEACH"})
+	v.SetDefault("privacy.AUTO_LOCK_MINUTES", 15)
 	if err := v.ReadInConfig(); err != nil {
 		// A missing file is fine: the user fills it in from Settings.
 		var notFound viper.ConfigFileNotFoundError
@@ -103,6 +107,8 @@ func Update(fn func(c *Config)) error {
 	v.Set("terminal.SHELL", next.Terminal.Shell)
 	v.Set("terminal.SCROLLBACK", next.Terminal.Scrollback)
 	v.Set("terminal.TMUX_KEYS", next.Terminal.TmuxKeys)
+	v.Set("privacy.LOCKED", next.Privacy.Locked)
+	v.Set("privacy.AUTO_LOCK_MINUTES", next.Privacy.AutoLockMinutes)
 	path := Path()
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return err
@@ -149,5 +155,9 @@ type Config struct {
 		Scrollback int    `mapstructure:"SCROLLBACK"`
 		// TmuxKeys reads prefix and bindings from the user's tmux config.
 		TmuxKeys bool `mapstructure:"TMUX_KEYS"`
+	}
+	Privacy struct {
+		Locked          []string `mapstructure:"LOCKED"`
+		AutoLockMinutes int      `mapstructure:"AUTO_LOCK_MINUTES"`
 	}
 }

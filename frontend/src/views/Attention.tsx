@@ -165,7 +165,8 @@ export function Attention({ openItem }: { openItem: (o: OpenItem) => void }) {
         {hasPrivate && (
           <div className="mt-2 flex items-center gap-2 px-1 text-xs text-dim">
             <PrivateLock size={13} />
-            {projects.filter((p) => p.private).map((p) => p.name).join(", ")} items are fetched live and kept in memory only — never cached to disk.
+            {projects.filter((p) => p.private).map((p) => p.name).join(", ")}: encrypted on disk and hidden until unlocked
+            {projects.some((p) => p.private && p.locked) ? " — locked items aren't listed here." : "."}
           </div>
         )}
       </div>

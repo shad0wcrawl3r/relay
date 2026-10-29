@@ -54,7 +54,7 @@ export function PrivateLock({ size = 13, className, color }: { size?: number; cl
   return (
     <Lock
       role="img"
-      aria-label="Private: kept in memory only"
+      aria-label="Locked project"
       width={size}
       height={size}
       strokeWidth={1.9}
