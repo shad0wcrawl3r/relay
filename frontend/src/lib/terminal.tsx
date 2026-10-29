@@ -58,6 +58,8 @@ interface TerminalStore {
   quickSession: (kind: QuickKind, cwd: string) => Promise<string>;
   /** Shows a session in a new tab of the Terminal view. */
   openInTab: (sessionId: string) => void;
+  /** Sessions currently owned by the quick terminal, by kind. */
+  quickIds: Partial<Record<QuickKind, string>>;
 }
 
 export type QuickKind = "home" | "posts";
@@ -83,7 +85,9 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
   const [dragging, setDragging] = useState<string | null>(null);
   const started = useRef(false);
   const handles = useRef(new Map<string, PaneHandle>());
-  const quick = useRef<Partial<Record<QuickKind, string>>>({});
+  const [quickIds, setQuickIds] = useState<Partial<Record<QuickKind, string>>>({});
+  const quick = useRef(quickIds);
+  quick.current = quickIds;
   // Tabs opened before the Terminal view has loaded its layout.
   const pendingTabs = useRef<L.Tab[]>([]);
   const readyRef = useRef(false);
@@ -471,8 +475,11 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
     const live = await TerminalService.List();
     setSessions(live);
     if (prev && live.some((s) => s.id === prev && s.status !== "exited")) return prev;
+    // The old shell is dead; don't leave it in the sessions list.
+    if (prev) TerminalService.Kill(prev).catch(() => {});
     const info = await TerminalService.Create({ cwd, name: kind === "posts" ? "posts" : "quick" });
-    quick.current[kind] = info.id;
+    quick.current = { ...quick.current, [kind]: info.id };
+    setQuickIds(quick.current);
     setSessions((s) => (s.some((x) => x.id === info.id) ? s : [...s, info]));
     return info.id;
   }, []);
@@ -480,7 +487,11 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
   const openInTab = useCallback(
     (sessionId: string) => {
       // It belongs to the Terminal view now; the quick terminal starts afresh.
-      for (const k of Object.keys(quick.current) as QuickKind[]) if (quick.current[k] === sessionId) delete quick.current[k];
+      const kept = Object.fromEntries(Object.entries(quick.current).filter(([, id]) => id !== sessionId));
+      if (Object.keys(kept).length !== Object.keys(quick.current).length) {
+        quick.current = kept;
+        setQuickIds(kept);
+      }
       const owner = live.current.tabs.find((t) => L.panes(t.root).some((p) => p.sessionId === sessionId));
       if (owner) return attach(sessionId);
       const p = L.pane(sessionId);
@@ -535,6 +546,7 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
       setDragging,
       quickSession,
       openInTab,
+      quickIds,
     }),
     [
       endpoint,
@@ -569,6 +581,7 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
       dragging,
       quickSession,
       openInTab,
+      quickIds,
     ],
   );
 

@@ -211,6 +211,11 @@ export function Pane({ node, focused, zoomed, detached }: { node: PaneNode; focu
             </span>
           )}
           {proc && <span className="truncate font-mono text-muted-foreground">{proc}</span>}
+          {info?.status === "exited" && (
+            <span className="ml-1 inline-flex h-[22px] items-center gap-1.5 rounded bg-[rgba(248,113,113,0.14)] px-2 text-[11px] font-medium text-[#fca5a5]">
+              exited{info.exitCode ? ` ${info.exitCode}` : ""}
+            </span>
+          )}
           {info?.altScreen && (
             <span className="ml-1 inline-flex h-[22px] items-center rounded bg-[#27272a] px-2 text-[11px] text-[#d4d4d8]">full-screen app</span>
           )}

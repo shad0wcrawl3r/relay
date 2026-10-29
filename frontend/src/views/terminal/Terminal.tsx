@@ -45,10 +45,21 @@ function useNow(ms = 1000) {
 }
 
 export function statusLook(s: TermInfo, now: number) {
-  if (s.status === "exited")
-    return s.exitCode === 0 ? { dot: "#4ade80", meta: "done", metaColor: "#4ade80" } : { dot: "#f87171", meta: `exit ${s.exitCode}`, metaColor: "#f87171" };
-  if (s.status === "running") return { dot: "#60a5fa", meta: elapsed(s.since, now), metaColor: "#93c5fd" };
-  return { dot: "#52525b", meta: "idle", metaColor: "#a1a1aa" };
+  // The shell itself is gone, whatever its exit code: show it as dead.
+  if (s.status === "exited") return { dot: "#f87171", meta: s.exitCode ? `exited ${s.exitCode}` : "exited", metaColor: "#f87171", dead: true };
+  if (s.status === "running") return { dot: "#60a5fa", meta: elapsed(s.since, now), metaColor: "#93c5fd", dead: false };
+  return { dot: "#52525b", meta: "idle", metaColor: "#a1a1aa", dead: false };
+}
+
+/** A hollow red ring for dead sessions, a filled dot otherwise. */
+function StatusDot({ look, size = 7 }: { look: ReturnType<typeof statusLook>; size?: number }) {
+  return (
+    <span
+      aria-hidden
+      className="shrink-0 rounded-full"
+      style={look.dead ? { width: size, height: size, boxShadow: `inset 0 0 0 1.5px ${look.dot}` } : { width: size, height: size, background: look.dot }}
+    />
+  );
 }
 
 export function Terminal() {
@@ -291,7 +302,7 @@ function Header({ paneCount }: { paneCount: number }) {
 }
 
 function SessionsSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
-  const { sessions, tabs, active, attach, newSession, endpoint } = useTerminal();
+  const { sessions, tabs, active, attach, newSession, endpoint, quickIds, openInTab } = useTerminal();
   const now = useNow();
   const home = endpoint?.home ?? "";
   const tilde = (p: string) => (home && p.startsWith(home) ? "~" + p.slice(home.length) : p);
@@ -299,11 +310,18 @@ function SessionsSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle
   const inTab = new Set(active ? L.panes(active.root).map((p) => p.sessionId) : []);
   const inOtherTabs = new Set(tabs.filter((x) => x.id !== active?.id).flatMap((x) => L.panes(x.root).map((p) => p.sessionId)));
   const focusedSession = active && L.findPane(active.root, active.focus)?.sessionId;
+  // Quick-terminal sessions get their own sections while their shell lives;
+  // a dead one is replaced on the next ⌘/, so it isn't listed.
+  const quickOf = new Map(Object.entries(quickIds).map(([k, id]) => [id, k]));
+  const quickRows = (kind: string) => sessions.filter((s) => quickOf.get(s.id) === kind && s.status !== "exited" && !inTab.has(s.id) && !inOtherTabs.has(s.id));
+  const elsewhere = (s: TermInfo) => !inTab.has(s.id) && !quickOf.has(s.id);
   const groups = [
     { label: "In this tab", rows: sessions.filter((s) => inTab.has(s.id)) },
-    { label: "Other tabs", rows: sessions.filter((s) => !inTab.has(s.id) && inOtherTabs.has(s.id)) },
-    { label: "Background", rows: sessions.filter((s) => !inTab.has(s.id) && !inOtherTabs.has(s.id)) },
-  ].filter((g) => g.rows.length || g.label !== "Other tabs");
+    { label: "Other tabs", rows: sessions.filter((s) => elsewhere(s) && inOtherTabs.has(s.id)) },
+    { label: "Quick terminal", rows: quickRows("home"), quick: true },
+    { label: "Editor", rows: quickRows("posts"), quick: true },
+    { label: "Background", rows: sessions.filter((s) => elsewhere(s) && !inOtherTabs.has(s.id)) },
+  ].filter((g) => g.rows.length || g.label === "In this tab");
 
   if (collapsed) {
     return (
@@ -318,7 +336,7 @@ function SessionsSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle
           return (
             <Tooltip key={s.id} label={`${s.name} · ${look.meta}`} side="right">
               <button aria-label={s.name} className={cn("grid size-8 place-items-center rounded-md hover:bg-[#18181b]", s.id === focusedSession && "bg-[#18181b]")} onClick={() => attach(s.id)}>
-                <span className="size-[7px] rounded-full" style={{ background: look.dot }} />
+                <StatusDot look={look} />
               </button>
             </Tooltip>
           );
@@ -356,15 +374,15 @@ function SessionsSidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle
               return (
                 <button
                   key={s.id}
-                  onClick={() => attach(s.id)}
-                  title={g.label === "Background" ? "Attach to the focused pane" : undefined}
+                  onClick={() => ("quick" in g ? openInTab(s.id) : attach(s.id))}
+                  title={"quick" in g ? "Open in a new tab (⌘/ shows it over the other views)" : g.label === "Background" ? "Attach to the focused pane" : undefined}
                   className={cn(
                     "flex w-full flex-col items-start gap-1 rounded-lg px-2.5 py-[9px] text-left hover:bg-[#141417]",
                     s.id === focusedSession && "bg-[#18181b] shadow-[inset_0_0_0_1px_#27272a]",
                   )}
                 >
                   <span className="flex w-full items-center gap-2">
-                    <span aria-hidden className="size-[7px] shrink-0 rounded-full" style={{ background: look.dot }} />
+                    <StatusDot look={look} />
                     <span className={cn("flex-1 truncate text-[13px] font-medium", g.label === "In this tab" ? "text-strong" : "text-[#e4e4e7]")}>{s.name}</span>
                     <span className="font-mono text-[11px]" style={{ color: look.metaColor }}>
                       {look.meta}
