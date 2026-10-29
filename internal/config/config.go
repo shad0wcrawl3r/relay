@@ -34,6 +34,9 @@ func init() {
 	v.SetDefault("sync.INTERVAL_SECONDS", 120)
 	v.SetDefault("agent.NAME", "Claude Code")
 	v.SetDefault("agent.LABEL", "agent")
+	// Empty shell: $SHELL.
+	v.SetDefault("terminal.SHELL", "")
+	v.SetDefault("terminal.SCROLLBACK", 10000)
 	if err := v.ReadInConfig(); err != nil {
 		// A missing file is fine: the user fills it in from Settings.
 		var notFound viper.ConfigFileNotFoundError
@@ -96,6 +99,8 @@ func Update(fn func(c *Config)) error {
 	v.Set("sync.INTERVAL_SECONDS", next.Sync.IntervalSeconds)
 	v.Set("agent.NAME", next.Agent.Name)
 	v.Set("agent.LABEL", next.Agent.Label)
+	v.Set("terminal.SHELL", next.Terminal.Shell)
+	v.Set("terminal.SCROLLBACK", next.Terminal.Scrollback)
 	path := Path()
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return err
@@ -135,5 +140,10 @@ type Config struct {
 		Name string `mapstructure:"NAME"`
 		// Label marks a work item as agent-handled.
 		Label string `mapstructure:"LABEL"`
+	}
+	Terminal struct {
+		// Shell for new sessions; empty uses $SHELL.
+		Shell      string `mapstructure:"SHELL"`
+		Scrollback int    `mapstructure:"SCROLLBACK"`
 	}
 }

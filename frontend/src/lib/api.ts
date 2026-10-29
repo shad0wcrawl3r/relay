@@ -6,9 +6,11 @@
 import * as PlaneBindings from "../../bindings/github.com/shad0wcrawl3r/relay/planeservice";
 import * as PostBindings from "../../bindings/github.com/shad0wcrawl3r/relay/postservice";
 import * as SettingsBindings from "../../bindings/github.com/shad0wcrawl3r/relay/settingsservice";
+import * as TerminalBindings from "../../bindings/github.com/shad0wcrawl3r/relay/terminalservice";
 import type * as M from "../../bindings/github.com/shad0wcrawl3r/relay/models";
 import type * as PM from "../../bindings/github.com/shad0wcrawl3r/relay/internal/plane/models";
 import type * as PostM from "../../bindings/github.com/shad0wcrawl3r/relay/internal/posts/models";
+import type * as TermM from "../../bindings/github.com/shad0wcrawl3r/relay/internal/term/models";
 
 type Clean<T> = T extends (infer U)[] ? Clean<U>[] : T extends object ? { [K in keyof T]: Clean<Exclude<T[K], null>> } : T;
 
@@ -30,6 +32,9 @@ export type PostList = Clean<M.PostList>;
 export type Settings = Clean<M.Settings>;
 export type SettingsInput = Clean<M.SettingsInput>;
 export type Post = Clean<PostM.Post>;
+export type TermInfo = Clean<TermM.Info>;
+export type TermOptions = Clean<TermM.Options>;
+export type TermEndpoint = Clean<M.Endpoint>;
 
 const arr = <T,>(v: T[] | null | undefined): T[] => v ?? [];
 
@@ -81,4 +86,18 @@ export const SettingsService = {
   Get: async (): Promise<Settings> => SettingsBindings.Get(),
   Save: async (s: SettingsInput): Promise<Settings> => SettingsBindings.Save(s as M.SettingsInput),
   ClearDevtoKey: async (): Promise<Settings> => SettingsBindings.ClearDevtoKey(),
+};
+
+export const normaliseSessions = (l: TermM.Info[] | null | undefined): TermInfo[] => arr(l);
+
+export const TerminalService = {
+  Endpoint: (): Promise<TermEndpoint> => TerminalBindings.Endpoint(),
+  Create: (o: Partial<TermOptions>): Promise<TermInfo> =>
+    TerminalBindings.Create({ name: "", shell: "", cwd: "", cols: 0, rows: 0, ...o }),
+  List: async () => normaliseSessions(await TerminalBindings.List()),
+  Kill: (id: string) => TerminalBindings.Kill(id),
+  Resize: (id: string, cols: number, rows: number) => TerminalBindings.Resize(id, cols, rows),
+  Rename: (id: string, name: string) => TerminalBindings.Rename(id, name),
+  LoadLayout: () => TerminalBindings.LoadLayout(),
+  SaveLayout: (layout: string) => TerminalBindings.SaveLayout(layout),
 };

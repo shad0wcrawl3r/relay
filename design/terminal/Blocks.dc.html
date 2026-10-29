@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Relay terminal — block states</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+html,body{background:#09090b}
+a{color:#e4e4e7}a:hover{color:#fafafa}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1000px; box-sizing: border-box; padding: 40px 32px 48px; background: #09090b; color: #e4e4e7; font-family: 'Geist', system-ui, sans-serif;">
+<div style="max-width: 1216px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px;">
+
+<header style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 32px;">
+<div style="flex: 1 1 360px;">
+<h1 style="margin: 0 0 8px; font-size: 28px; font-weight: 600; letter-spacing: -0.01em; color: #fafafa;">Block states</h1>
+<p style="margin: 0; font-size: 14px; line-height: 1.5; color: #a1a1aa;">One block per command, cut from the stream by OSC 133 marks. Header: cwd, branch or context, duration, result.</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 12px; color: #a1a1aa;">
+<span style="display: inline-flex; align-items: center; gap: 6px;"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: #60a5fa;"></span>running</span>
+<span style="display: inline-flex; align-items: center; gap: 6px;"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: #4ade80;"></span>exit 0</span>
+<span style="display: inline-flex; align-items: center; gap: 6px;"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: #f87171;"></span>non-zero</span>
+<span style="display: inline-flex; align-items: center; gap: 6px;"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: #fbbf24;"></span>interrupted</span>
+</div>
+</header>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); gap: 20px;">
+
+<figure style="margin: 0; border: 1px solid #27272a; border-radius: 10px; overflow: hidden; background: #0c0c0e;">
+<figcaption style="padding: 12px 16px; border-bottom: 1px solid #1f1f23; display: flex; align-items: baseline; gap: 10px; font-size: 13px;"><span style="font-weight: 600; color: #fafafa;">Running</span><span style="color: #a1a1aa; font-size: 12px; font-family: 'Geist Mono', monospace;">C seen, no D yet</span></figcaption>
+<div style="padding: 14px 16px; background: rgba(96, 165, 250, 0.04); font-family: 'Geist Mono', monospace; font-size: 13px; line-height: 20px;">
+<div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #a1a1aa; height: 24px;"><span>~/infra/k0s</span><span style="padding: 0 6px; border-radius: 4px; background: #18181b; color: #d4d4d8;">k0s-lab</span><span style="flex-grow: 1;"></span><span style="display: inline-flex; align-items: center; gap: 6px; color: #93c5fd;"><svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>0:42</span></div>
+<div style="color: #fafafa; font-weight: 500;">k0sctl apply --config lab.yaml</div>
+<div style="padding-top: 6px; white-space: pre-wrap; color: #d4d4d8;"><span style="color: #93c5fd;">INFO</span> [ssh] 10.0.20.11:22: connected
+<span style="color: #93c5fd;">INFO</span> ==&gt; Running phase: Upgrade controllers
+<span style="color: #93c5fd;">INFO</span> [ssh] 10.0.20.11:22: waiting for node to become ready<span aria-hidden="true" style="display: inline-block; width: 8px; height: 15px; margin-left: 2px; vertical-align: -3px; background: #d4d4d8;"></span></div>
+<div style="margin-top: 12px; display: flex; align-items: center; gap: 8px; font-family: 'Geist', sans-serif; font-size: 12px; color: #a1a1aa;">
+<button style="height: 32px; padding: 0 12px; border: 1px solid #3f3f46; border-radius: 6px; background: transparent; color: #e4e4e7; font-family: inherit; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;"><svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><rect width="16" height="16" x="4" y="4" rx="2"></rect></svg>Stop</button>
+<span><kbd style="font-family: 'Geist Mono', monospace; color: #e4e4e7;">⌃C</kbd> sends SIGINT</span>
+</div>
+</div>
+</figure>
+
+<figure style="margin: 0; border: 1px solid #27272a; border-radius: 10px; overflow: hidden; background: #0c0c0e;">
+<figcaption style="padding: 12px 16px; border-bottom: 1px solid #1f1f23; display: flex; align-items: baseline; gap: 10px; font-size: 13px;"><span style="font-weight: 600; color: #fafafa;">Succeeded</span><span style="color: #a1a1aa; font-size: 12px; font-family: 'Geist Mono', monospace;">D;0</span></figcaption>
+<div style="padding: 14px 16px; font-family: 'Geist Mono', monospace; font-size: 13px; line-height: 20px;">
+<div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #a1a1aa; height: 24px;"><span>~/dev/relay</span><span style="color: #c4b5fd;">feat/terminal</span><span style="flex-grow: 1;"></span><span>2.8s</span><svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></div>
+<div style="color: #fafafa; font-weight: 500;">go test ./internal/term/...</div>
+<div style="padding-top: 6px; white-space: pre; color: #d4d4d8;"><span style="color: #4ade80;">ok</span>    relay/internal/term        2.31s
+<span style="color: #4ade80;">ok</span>    relay/internal/term/osc    0.42s
+<span style="color: #4ade80;">ok</span>    relay/internal/term/layout 0.19s</div>
+</div>
+</figure>
+
+<figure style="margin: 0; border: 1px solid #27272a; border-radius: 10px; overflow: hidden; background: #0c0c0e;">
+<figcaption style="padding: 12px 16px; border-bottom: 1px solid #1f1f23; display: flex; align-items: baseline; gap: 10px; font-size: 13px;"><span style="font-weight: 600; color: #fafafa;">Failed</span><span style="color: #a1a1aa; font-size: 12px; font-family: 'Geist Mono', monospace;">D;2 — tinted, exit code in header</span></figcaption>
+<div style="padding: 14px 16px; background: rgba(248, 113, 113, 0.05); font-family: 'Geist Mono', monospace; font-size: 13px; line-height: 20px;">
+<div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #a1a1aa; height: 24px;"><span>~/dev/relay</span><span style="color: #c4b5fd;">feat/terminal</span><span style="flex-grow: 1;"></span><span>0.3s</span><span style="padding: 0 6px; border-radius: 4px; background: rgba(248, 113, 113, 0.14); color: #fca5a5; font-weight: 500;">exit 2</span></div>
+<div style="color: #fafafa; font-weight: 500;">make bindings</div>
+<div style="padding-top: 6px; white-space: pre-wrap; color: #fca5a5;">make: *** No rule to make target 'bindings'.  Stop.</div>
+</div>
+</figure>
+
+<figure style="margin: 0; border: 1px solid #27272a; border-radius: 10px; overflow: visible; background: #0c0c0e;">
+<figcaption style="padding: 12px 16px; border-bottom: 1px solid #1f1f23; display: flex; align-items: baseline; gap: 10px; font-size: 13px;"><span style="font-weight: 600; color: #fafafa;">Selected</span><span style="color: #a1a1aa; font-size: 12px;">click header or <kbd style="font-family: 'Geist Mono', monospace; color: #e4e4e7;">⌘↑ ⌘↓</kbd></span></figcaption>
+<div style="position: relative; padding: 28px 16px 14px; font-family: 'Geist Mono', monospace; font-size: 13px; line-height: 20px;">
+<div style="position: relative; padding: 12px 14px; border-radius: 6px; background: #131316; box-shadow: inset 0 0 0 1px #52525b;">
+<div role="toolbar" aria-label="Block actions" style="position: absolute; top: -18px; right: 10px; display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: 8px; background: #18181b; border: 1px solid #3f3f46; box-shadow: 0 6px 20px rgba(0,0,0,0.45); font-family: 'Geist', sans-serif;">
+<button style="height: 30px; padding: 0 10px; border: 0; border-radius: 5px; background: transparent; color: #e4e4e7; font-family: inherit; font-size: 12px; cursor: pointer;">Copy output</button>
+<button style="height: 30px; padding: 0 10px; border: 0; border-radius: 5px; background: transparent; color: #e4e4e7; font-family: inherit; font-size: 12px; cursor: pointer;">Copy command</button>
+<button style="height: 30px; padding: 0 10px; border: 0; border-radius: 5px; background: transparent; color: #e4e4e7; font-family: inherit; font-size: 12px; cursor: pointer;">Re-run</button>
+<button aria-label="More block actions" aria-expanded="true" style="width: 30px; height: 30px; border: 0; border-radius: 5px; background: #27272a; color: #e4e4e7; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg></button>
+</div>
+<div style="position: absolute; top: 18px; right: 10px; z-index: 2; width: 210px; padding: 4px; border-radius: 8px; background: #18181b; border: 1px solid #3f3f46; box-shadow: 0 10px 28px rgba(0,0,0,0.5); font-family: 'Geist', sans-serif; font-size: 13px; display: flex; flex-direction: column;">
+<button style="height: 34px; padding: 0 10px; border: 0; border-radius: 5px; background: #27272a; color: #fafafa; font-family: inherit; font-size: 13px; text-align: left; display: flex; align-items: center; cursor: pointer;"><span style="flex: 1;">Copy as Markdown</span></button>
+<button style="height: 34px; padding: 0 10px; border: 0; border-radius: 5px; background: transparent; color: #e4e4e7; font-family: inherit; font-size: 13px; text-align: left; display: flex; align-items: center; cursor: pointer;"><span style="flex: 1;">Save output to file…</span></button>
+<button style="height: 34px; padding: 0 10px; border: 0; border-radius: 5px; background: transparent; color: #e4e4e7; font-family: inherit; font-size: 13px; text-align: left; display: flex; align-items: center; cursor: pointer;"><span style="flex: 1;">Find in output</span><kbd style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #a1a1aa;">⌘F</kbd></button>
+<button style="height: 34px; padding: 0 10px; border: 0; border-radius: 5px; background: transparent; color: #e4e4e7; font-family: inherit; font-size: 13px; text-align: left; display: flex; align-items: center; cursor: pointer;"><span style="flex: 1;">Pin to top</span></button>
+<span aria-hidden="true" style="height: 1px; background: #27272a; margin: 4px 0;"></span>
+<button style="height: 34px; padding: 0 10px; border: 0; border-radius: 5px; background: transparent; color: #fca5a5; font-family: inherit; font-size: 13px; text-align: left; display: flex; align-items: center; cursor: pointer;"><span style="flex: 1;">Clear block</span></button>
+</div>
+<div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #a1a1aa; height: 24px;"><span>~/dev/relay</span><span style="flex-grow: 1;"></span></div>
+<div style="color: #fafafa; font-weight: 500;">git log --oneline -3</div>
+<div style="padding-top: 6px; white-space: pre; color: #d4d4d8;"><span style="color: #fbbf24;">a41c2e0</span> term: parse OSC 133 marks
+<span style="color: #fbbf24;">9be07d1</span> term: session ring buffer
+<span style="color: #fbbf24;">3f2a9c8</span> ui: split tree reducer</div>
+</div>
+</div>
+</figure>
+
+<figure style="margin: 0; border: 1px solid #27272a; border-radius: 10px; overflow: hidden; background: #0c0c0e;">
+<figcaption style="padding: 12px 16px; border-bottom: 1px solid #1f1f23; display: flex; align-items: baseline; gap: 10px; font-size: 13px;"><span style="font-weight: 600; color: #fafafa;">Collapsed</span><span style="color: #a1a1aa; font-size: 12px;">chevron or <kbd style="font-family: 'Geist Mono', monospace; color: #e4e4e7;">⌃B c</kbd> on selection</span></figcaption>
+<div style="padding: 14px 16px; font-family: 'Geist Mono', monospace; font-size: 13px; line-height: 20px; display: flex; flex-direction: column; gap: 10px;">
+<div style="display: flex; align-items: center; gap: 10px;">
+<button aria-label="Expand block" style="width: 28px; height: 28px; border: 0; border-radius: 4px; background: transparent; color: #a1a1aa; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></button>
+<span style="color: #fafafa; font-weight: 500;">docker compose pull</span><span style="flex-grow: 1;"></span><span style="font-family: 'Geist', sans-serif; font-size: 12px; color: #a1a1aa;">142 lines</span><span style="font-size: 12px; color: #a1a1aa;">38s</span><svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+</div>
+<div style="display: flex; align-items: center; gap: 10px;">
+<button aria-label="Expand block" style="width: 28px; height: 28px; border: 0; border-radius: 4px; background: transparent; color: #a1a1aa; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></button>
+<span style="color: #fafafa; font-weight: 500;">npm install</span><span style="flex-grow: 1;"></span><span style="font-family: 'Geist', sans-serif; font-size: 12px; color: #a1a1aa;">61 lines</span><span style="font-size: 12px; color: #a1a1aa;">12s</span><svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+</div>
+</div>
+</figure>
+
+<figure style="margin: 0; border: 1px solid #27272a; border-radius: 10px; overflow: hidden; background: #0c0c0e;">
+<figcaption style="padding: 12px 16px; border-bottom: 1px solid #1f1f23; display: flex; align-items: baseline; gap: 10px; font-size: 13px;"><span style="font-weight: 600; color: #fafafa;">Long output</span><span style="color: #a1a1aa; font-size: 12px;">capped at 40 lines once finished</span></figcaption>
+<div style="padding: 14px 16px; font-family: 'Geist Mono', monospace; font-size: 13px; line-height: 20px;">
+<div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #a1a1aa; height: 24px;"><span>/var/log</span><span style="flex-grow: 1;"></span><span>0.2s</span><svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></div>
+<div style="color: #fafafa; font-weight: 500;">journalctl -u k0scontroller --since today</div>
+<div style="position: relative; padding-top: 6px; white-space: pre; color: #d4d4d8; overflow: hidden; height: 80px;">Oct 29 06:02:11 lab-1 k0s[912]: starting kube-apiserver
+Oct 29 06:02:12 lab-1 k0s[912]: etcd member healthy
+Oct 29 06:02:14 lab-1 k0s[912]: konnectivity server listening
+Oct 29 06:02:15 lab-1 k0s[912]: reconciling helm charts<div aria-hidden="true" style="position: absolute; left: 0; right: 0; bottom: 0; height: 40px; background: linear-gradient(rgba(12,12,14,0), #0c0c0e);"></div></div>
+<div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; font-family: 'Geist', sans-serif;">
+<button style="height: 32px; padding: 0 12px; border: 1px solid #3f3f46; border-radius: 6px; background: transparent; color: #e4e4e7; font-family: inherit; font-size: 12px; cursor: pointer;">Show all 1,284 lines</button>
+<button style="height: 32px; padding: 0 12px; border: 0; border-radius: 6px; background: transparent; color: #a1a1aa; font-family: inherit; font-size: 12px; cursor: pointer;">Open in pager</button>
+</div>
+</div>
+</figure>
+
+<figure style="margin: 0; border: 1px solid #27272a; border-radius: 10px; overflow: hidden; background: #0c0c0e;">
+<figcaption style="padding: 12px 16px; border-bottom: 1px solid #1f1f23; display: flex; align-items: baseline; gap: 10px; font-size: 13px;"><span style="font-weight: 600; color: #fafafa;">Interrupted</span><span style="color: #a1a1aa; font-size: 12px; font-family: 'Geist Mono', monospace;">D;130 after ⌃C</span></figcaption>
+<div style="padding: 14px 16px; background: rgba(251, 191, 36, 0.04); font-family: 'Geist Mono', monospace; font-size: 13px; line-height: 20px;">
+<div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #a1a1aa; height: 24px;"><span>~</span><span style="flex-grow: 1;"></span><span>1m 12s</span><span style="padding: 0 6px; border-radius: 4px; background: rgba(251, 191, 36, 0.14); color: #fcd34d; font-weight: 500;">stopped</span></div>
+<div style="color: #fafafa; font-weight: 500;">ping 10.0.20.12</div>
+<div style="padding-top: 6px; white-space: pre; color: #d4d4d8;">64 bytes from 10.0.20.12: icmp_seq=71 time=0.41 ms
+64 bytes from 10.0.20.12: icmp_seq=72 time=0.38 ms
+<span style="color: #a1a1aa;">^C</span></div>
+</div>
+</figure>
+
+<figure style="margin: 0; border: 1px solid #27272a; border-radius: 10px; overflow: hidden; background: #0c0c0e;">
+<figcaption style="padding: 12px 16px; border-bottom: 1px solid #1f1f23; display: flex; align-items: baseline; gap: 10px; font-size: 13px;"><span style="font-weight: 600; color: #fafafa;">No shell integration</span><span style="color: #a1a1aa; font-size: 12px;">plain stream, no blocks</span></figcaption>
+<div style="padding: 12px 16px; display: flex; flex-direction: column; gap: 12px;">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 12px; border-radius: 8px; border: 1px solid #3f3f46; background: #131316; font-size: 13px; color: #d4d4d8;">
+<svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+<span style="flex: 1 1 200px;">Blocks are off — no marks from <span style="font-family: 'Geist Mono', monospace; color: #fafafa;">/bin/sh</span></span>
+<a href="Settings.dc.html" style="height: 32px; padding: 0 12px; display: inline-flex; align-items: center; border-radius: 6px; background: #fafafa; color: #09090b; font-size: 12px; font-weight: 500; text-decoration: none;">Set up</a>
+</div>
+<div style="white-space: pre; font-family: 'Geist Mono', monospace; font-size: 13px; line-height: 20px; color: #d4d4d8;">$ uname -sr
+Linux 6.8.0-45-generic
+$ <span aria-hidden="true" style="display: inline-block; width: 8px; height: 15px; vertical-align: -3px; background: #d4d4d8;"></span></div>
+</div>
+</figure>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

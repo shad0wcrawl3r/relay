@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Relay terminal — zoomed pane running nvim</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+html,body{background:#09090b}
+a{color:#e4e4e7}a:hover{color:#fafafa}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1000px; display: flex; flex-wrap: wrap; background: #09090b; color: #e4e4e7; font-family: 'Geist', system-ui, sans-serif;">
+
+<nav aria-label="App" style="flex: 0 0 56px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 0; border-right: 1px solid #27272a;">
+<div style="width: 32px; height: 32px; border-radius: 8px; background: #fafafa; color: #09090b; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; margin-bottom: 12px;">R</div>
+<button aria-label="Projects" style="width: 44px; height: 44px; border: 0; border-radius: 8px; background: transparent; color: #71717a; display: flex; align-items: center; justify-content: center; cursor: pointer;"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5v11"></path><path d="M12 5v6"></path><path d="M18 5v14"></path></svg></button>
+<button aria-label="Posts" style="width: 44px; height: 44px; border: 0; border-radius: 8px; background: transparent; color: #71717a; display: flex; align-items: center; justify-content: center; cursor: pointer;"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"></path></svg></button>
+<button aria-label="Terminal" aria-current="page" style="width: 44px; height: 44px; border: 0; border-radius: 8px; background: #27272a; color: #fafafa; display: flex; align-items: center; justify-content: center; cursor: pointer;"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m7 11 2-2-2-2"></path><path d="M11 13h4"></path><rect width="18" height="18" x="3" y="3" rx="2"></rect></svg></button>
+<div style="flex-grow: 1;"></div>
+<a href="Settings.dc.html" aria-label="Settings" style="width: 44px; height: 44px; border-radius: 8px; color: #71717a; display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4"></line><line x1="10" x2="3" y1="4" y2="4"></line><line x1="21" x2="12" y1="12" y2="12"></line><line x1="8" x2="3" y1="12" y2="12"></line><line x1="21" x2="16" y1="20" y2="20"></line><line x1="12" x2="3" y1="20" y2="20"></line><line x1="14" x2="14" y1="2" y2="6"></line><line x1="8" x2="8" y1="10" y2="14"></line><line x1="16" x2="16" y1="18" y2="22"></line></svg></a>
+</nav>
+
+<div style="flex: 0 0 52px; box-sizing: border-box; border-right: 1px solid #27272a; display: flex; flex-direction: column; align-items: center; padding-top: 4px; gap: 8px;">
+<button aria-label="Show sessions sidebar" style="width: 44px; height: 44px; border: 0; border-radius: 8px; background: transparent; color: #a1a1aa; display: flex; align-items: center; justify-content: center; cursor: pointer;"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M9 3v18"></path></svg></button>
+<span aria-label="2 sessions running" style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 6px;"><span style="width: 7px; height: 7px; border-radius: 50%; background: #f87171;"></span><span style="width: 7px; height: 7px; border-radius: 50%; background: #60a5fa;"></span><span style="width: 7px; height: 7px; border-radius: 50%; background: #52525b;"></span><span style="width: 7px; height: 7px; border-radius: 50%; background: #60a5fa;"></span></span>
+</div>
+
+<div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+
+<header style="min-height: 48px; box-sizing: border-box; padding: 0 8px 0 12px; border-bottom: 1px solid #27272a; display: flex; flex-wrap: wrap; align-items: stretch; gap: 4px;">
+<div role="tablist" aria-label="Terminal tabs" style="display: flex; align-items: stretch; gap: 2px; flex-grow: 1; min-width: 0;">
+<button role="tab" aria-selected="true" style="height: 48px; padding: 0 14px; border: 0; border-bottom: 2px solid #fafafa; background: transparent; color: #fafafa; font-family: inherit; font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">relay<span style="padding: 1px 6px; border-radius: 4px; background: rgba(251, 191, 36, 0.14); color: #fcd34d; font-size: 11px;">zoomed · 1 of 3</span></button>
+<button role="tab" aria-selected="false" style="height: 48px; padding: 0 14px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #a1a1aa; font-family: inherit; font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;">siem-lab<span aria-hidden="true" style="width: 6px; height: 6px; border-radius: 50%; background: #60a5fa;"></span></button>
+</div>
+<div style="display: flex; align-items: center; gap: 4px;">
+<a href="Main.dc.html" style="height: 32px; padding: 0 10px; display: inline-flex; align-items: center; gap: 8px; border-radius: 6px; border: 1px solid #3f3f46; color: #e4e4e7; font-size: 12px; text-decoration: none;"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="14" x2="21" y1="10" y2="3"></line><line x1="3" x2="10" y1="21" y2="14"></line></svg>Restore splits<kbd style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #a1a1aa;">⌃B z</kbd></a>
+</div>
+</header>
+
+<section aria-label="Pane: relay, running nvim" style="flex-grow: 1; display: flex; flex-direction: column; background: #0c0c0e; box-shadow: inset 0 0 0 1px #3f3f46;">
+<div style="height: 36px; box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 0 12px; border-bottom: 1px solid #1f1f23; background: #18181b; font-size: 12px;">
+<span style="font-weight: 600; color: #fafafa;">relay</span><span style="color: #a1a1aa; font-family: 'Geist Mono', monospace;">nvim internal/term/osc133.go</span>
+<span style="flex-grow: 1;"></span>
+<span style="display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 4px; background: #27272a; color: #d4d4d8;"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="4" height="16" x="6" y="4" rx="1"></rect><rect width="4" height="16" x="14" y="4" rx="1"></rect></svg>Blocks paused · full-screen app</span>
+</div>
+
+<div style="flex-grow: 1; display: flex; flex-direction: column; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; line-height: 21px; color: #d4d4d8; overflow-x: auto;">
+<div style="flex-grow: 1; padding: 8px 0; white-space: pre;">
+<sc-for list="{{lines}}" as="l" hint-placeholder-count="30">
+<div style="display: flex; {{l.bg}}"><span style="flex: 0 0 56px; box-sizing: border-box; padding-right: 14px; text-align: right; color: {{l.nc}}; user-select: none;">{{l.n}}</span><span style="flex: 0 0 18px; color: #f87171;">{{l.sign}}</span><span style="color: {{l.c}};">{{l.t}}</span><span style="color: #fca5a5; padding-left: 24px;">{{l.diag}}</span></div>
+</sc-for>
+</div>
+<div style="display: flex; align-items: stretch; height: 24px; font-size: 12px; line-height: 24px; background: #131316; border-top: 1px solid #1f1f23;">
+<span style="padding: 0 12px; background: #c4b5fd; color: #09090b; font-weight: 600;">NORMAL</span>
+<span style="padding: 0 12px; color: #e4e4e7;">feat/terminal</span>
+<span style="padding: 0 12px; color: #a1a1aa;">osc133.go</span>
+<span style="padding: 0 12px; color: #fca5a5;">E 2</span>
+<span style="flex-grow: 1;"></span>
+<span style="padding: 0 12px; color: #a1a1aa;">go</span>
+<span style="padding: 0 12px; color: #e4e4e7;">48:15</span>
+</div>
+<div style="height: 22px; padding: 0 12px; font-size: 12px; line-height: 22px; color: #a1a1aa;">"internal/term/osc133.go" 74L, 1893B</div>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; padding: 8px 12px; border-top: 1px solid #27272a; font-size: 12px; color: #a1a1aa;">
+<span>Every key goes to nvim except the prefix</span>
+<span style="flex-grow: 1;"></span>
+<span><kbd style="font-family: 'Geist Mono', monospace; color: #e4e4e7;">⌃B ⌃B</kbd> sends a literal ⌃B</span>
+<span>Blocks resume when nvim exits</span>
+</div>
+</section>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+renderVals() {
+const src = [
+['package osc', '#c4b5fd'],
+['', ''],
+['// Mark is one OSC 133 semantic prompt mark.', '#8a8a93'],
+['type Mark struct {', '#e4e4e7'],
+['    Kind     byte // A, B, C or D', '#e4e4e7'],
+['    ExitCode int', '#e4e4e7'],
+['    Offset   int64', '#e4e4e7'],
+['}', '#e4e4e7'],
+['', ''],
+['type BlockMark struct {', '#e4e4e7'],
+['    Start, CmdStart, OutStart, End int64', '#e4e4e7'],
+['    ExitCode                       int', '#e4e4e7'],
+['}', '#e4e4e7'],
+['', ''],
+['// Feed scans a chunk of PTY output for marks.', '#8a8a93'],
+['func (p *Parser) Feed(b []byte, base int64) []Mark {', '#93c5fd'],
+['    var out []Mark', '#e4e4e7'],
+['    for i := 0; i < len(b); i++ {', '#e4e4e7'],
+['        if !p.inOSC(b[i]) {', '#e4e4e7'],
+['            continue', '#e4e4e7'],
+['        }', '#e4e4e7'],
+['        if m, ok := p.take(base + int64(i)); ok {', '#e4e4e7'],
+['            out = append(out, m)', '#e4e4e7'],
+['        }', '#e4e4e7'],
+['    }', '#e4e4e7'],
+['    return out', '#e4e4e7'],
+['}', '#e4e4e7'],
+['', ''],
+['func (p *Parser) close(m Mark) BlockMark {', '#93c5fd'],
+['    p.cur.End = blockEnd(m)', '#e4e4e7'],
+['    return mark', '#e4e4e7']
+];
+const first = 19;
+const lines = src.map((row, i) => {
+const n = first + i;
+const err = n === 48 || n === 49;
+const cur = n === 48;
+return {
+n: String(n), t: row[0], c: row[1] || '#e4e4e7',
+nc: cur ? '#e4e4e7' : '#3f3f46',
+sign: err ? '●' : '',
+bg: cur ? 'background: rgba(255,255,255,0.04);' : '',
+diag: n === 48 ? 'undefined: blockEnd' : (n === 49 ? 'cannot use mark as BlockMark' : '')
+};
+});
+return { lines: lines };
+}
+}
+</script>
+</body>
+</html>

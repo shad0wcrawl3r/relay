@@ -4,6 +4,7 @@ Exported 2026-10-28 from two Claude Design canvases:
 
 - **Kanban** (Plane frontend) — https://claude.ai/artifact/BNVk41KsxmWo17jyn82FUT
 - **Dev.to editor** — https://claude.ai/artifact/YZk496ixoG63CtumTnnAgM
+- **Terminal** (added 2026-10-29) — https://claude.ai/artifact/4ADnBCRVu9vGWMgqKsFEEF
 
 The `.dc.html` files are **reference mockups, not runnable code**. They use a
 design-canvas runtime (`support.js`, `<x-dc>`, `<sc-for>`, `<sc-if>`,
@@ -18,6 +19,9 @@ design/
                      Detail.dc.html (item drawer), Capture.dc.html (⌘K)
   editor/            Main.dc.html (edit), Preview.dc.html,
                      ImageDialog.dc.html, Sent.dc.html
+  terminal/          Main.dc.html (split workspace), Blocks.dc.html (block
+                     states), Switcher.dc.html (prefix mode + ⌃B s),
+                     FullScreen.dc.html (zoomed pane, nvim), Settings.dc.html
   */canvas.json      artboard index (titles, sizes) — ignore otherwise
 ```
 
@@ -32,7 +36,10 @@ Relay = a Wails3 desktop workbench with two halves:
    are written back. Relay keeps no source-of-truth of its own.
 2. **Writing** — a markdown editor for Dev.to posts, publishing via the
    Dev.to API key.
-3. **Settings** — OAuth client + Dev.to API key, plus other settings.
+3. **Terminal** — an embedded, tmux-like terminal: sessions live in the Go
+   backend and keep running in the background; splits, tabs and Warp-style
+   command blocks are implemented in the app itself (no tmux dependency).
+4. **Settings** — OAuth client + Dev.to API key, terminal, plus other settings.
 
 ### Plane workspace model (what the UI assumes)
 
@@ -154,6 +161,71 @@ Footer: sync button + "Synced with Dev.to · 2 min ago".
    Bottom-right toast: ✓ "Draft created on Dev.to" / "Unpublished. Add 2
    images and the cover there, then publish." **Open in browser** · Dismiss.
 
+### Terminal canvas (1280×1000 frames, fluid)
+
+**Shell**: same 56px icon rail as the editor with a new **Terminal** entry
+(square-terminal icon) between Posts and Settings. When the terminal view is
+not open, the rail icon carries a small blue dot while any session is
+running (see `Settings.dc.html`). Then a 248px **Sessions** sidebar
+(collapsible to a 52px strip of status dots, see `FullScreen.dc.html`).
+
+1. **Split workspace** — `terminal/Main.dc.html`
+   - Sessions sidebar: groups *In this tab · N* and *Background · N*. Row =
+     status dot + name + right meta (`exit 1` red / elapsed blue / `idle` /
+     `done` green) and a mono subline (process or `shell · cwd`). Footer
+     note: sessions keep running when switching views or hiding to tray.
+   - Header (48px): tabs (active = 2px bottom border, "3 panes" chip; a
+     background tab with activity shows a blue dot), **+** new tab,
+     "Sessions ⌃B s" button, split right, split down, zoom.
+   - Panes: layout tree (left pane, right column split top/bottom), 5px
+     resize gutters with a 1px `#27272a` line. Each pane: 36px header
+     (session name + process, close ×); focused pane = header `#18181b`
+     and `inset 0 0 0 1px #3f3f46` ring.
+   - Blocks stack bottom-up above the input (`justify-content: flex-end`).
+     Block header row: collapse chevron · cwd · git branch (violet, branch
+     icon) or kube context chip · spacer · duration · ✓ / `exit N` pill.
+     Command line in Geist Mono 13/20 weight 500 `#fafafa`; output below.
+   - Selected block: `inset 0 0 0 1px #52525b` (failed: red at .45), floating
+     action bar top-right: Output (copy) · Command (copy) · Re-run · ⋯.
+   - Input box per pane: cwd + branch line, `❯` prompt (violet), single-line
+     input, "⇧⏎ new line" hint. Focused pane's input gets a `#52525b` border.
+   - A pane running a long process (`wails3 dev`) shows a running block
+     (blue tint, spinner, elapsed) and replaces the input with a dashed
+     note "Input goes to wails3 dev · ⌃C to stop".
+   - Status bar: `⌃B` prefix · "zsh integration on · blocks active" ·
+     "6 sessions · 2 running" · focused pane name.
+   - Tweak `density`: comfortable (block padding 14/16) or compact (8/16).
+2. **Block states** — `terminal/Blocks.dc.html`: running, succeeded (D;0),
+   failed (red tint + `exit N`), selected with ⋯ menu (Copy as Markdown,
+   Save output to file…, Find in output ⌘F, Pin to top, Clear block),
+   collapsed (one line: command · "N lines" · duration · result),
+   long output (cap at 40 lines once finished, fade, "Show all N lines" /
+   "Open in pager"), interrupted (amber, `stopped`, exit 130), and no shell
+   integration (plain stream + banner "Blocks are off — no marks from
+   /bin/sh" → **Set up** opens Settings).
+3. **Prefix mode + session switcher** — `terminal/Switcher.dc.html`
+   - Pressing the prefix shows a bottom key strip: `%` split right, `"`
+     split down, arrows focus, `z` zoom, `s` sessions, `d` send to
+     background, `c` new tab, `x` close pane, `[` select mode, esc cancel.
+   - `⌃B s` opens a 640px switcher over a dimmed workspace: search, groups
+     *Background* and *In this tab*, preview of the picked session's last
+     lines. Keys: `⏎` attach to pane · `⌥⏎` open in split · `⌘⏎` new tab ·
+     `⌃X` kill.
+4. **Zoomed pane, full-screen app** — `terminal/FullScreen.dc.html`
+   Tab chip "zoomed · 1 of 3" + "Restore splits ⌃B z". Pane header badge
+   "Blocks paused · full-screen app". The pane renders the raw alt-screen
+   (nvim) edge to edge. Footer: every key goes to the app except the prefix;
+   `⌃B ⌃B` sends a literal ⌃B; blocks resume when the app exits.
+5. **Settings — Terminal** — `terminal/Settings.dc.html`
+   Settings gets a section nav (Plane, Dev.to, Terminal, Appearance, About).
+   Terminal: default shell, start folder (focused pane's / home / fixed),
+   **Shell integration** auto-load switch + per-shell status table (zsh
+   Active, bash "Test in new session", fish not installed), prefix key
+   (`⌃B`, Record new), double-press-to-send-literal switch, keep running when
+   window closes (tray), **When Relay quits**: Ask if anything is running
+   (default) / End all sessions / Keep in background service (disabled,
+   "later version"), scrollback (10 000 lines), font, cursor style.
+
 ---
 
 ## 3. Behaviour decisions (v1)
@@ -182,6 +254,39 @@ Kanban
   changes back (state moves via drag, comments, create, approve/shelve…).
 - Teaching never touches disk.
 - Attention view is the home screen.
+
+Terminal
+- **Go owns sessions.** PTY via `github.com/aymanbagabas/go-pty` (Unix PTY
+  + Windows ConPTY). A session manager maps `sessionID → {pty, process,
+  ring buffer, block index, headless VT}`; the React side only attaches and
+  detaches, so sessions survive view switches and window hide.
+- **Reattach** from a per-session headless VT emulator
+  (e.g. `github.com/charmbracelet/x/vt`) snapshot, not raw-byte replay, so
+  TUIs redraw correctly.
+- **Transport**: Wails bindings/events for control (create, resize, kill,
+  focus); output and input over a localhost WebSocket bound to 127.0.0.1
+  with a per-launch token, flushed in ~8–16ms batches.
+- **Blocks** need shell integration: on spawn, inject an init script
+  (bash `--rcfile`, zsh `ZDOTDIR`, fish `--init-command`) that emits OSC
+  133 `A/B/C/D;exit` marks and OSC 7 cwd; never edit the user's dotfiles.
+  Go parses marks into block records `{id, cmd, cwd, branch, exit,
+  start/end, output range}`.
+- **Rendering**: one xterm.js instance per pane; blocks drawn with
+  `registerMarker` + `registerDecoration` (borders, tints, action bar,
+  collapse), not separate DOM per block. Suspend block mode while the
+  alternate screen is active (DECSET 1049).
+- **Splits**: per-tab layout tree, node `{dir: "h"|"v", sizes, children}`
+  or leaf `{sessionId}`, rendered recursively with shadcn `Resizable`
+  (react-resizable-panels). Split/close/focus/zoom are pure tree ops.
+  Persist layout to the app config dir.
+- **Prefix** defaults to `⌃B`; configurable. No global keydown hijacking
+  outside the terminal view.
+- **Scope**: sessions survive closing/hiding the window (tray). Surviving
+  an app *quit/restart* (sidecar daemon over a unix socket) is v2 — shown as
+  a disabled option in Settings.
+- **Build order**: (1) single pane PTY ↔ xterm + resize, (2) session
+  manager + detach/reattach, (3) split tree + tabs, (4) OSC 133/7 + block
+  decorations, (5) block actions, switcher, settings.
 
 ---
 
@@ -237,6 +342,15 @@ Verdict pill: bg `#0d2a27` fg `#5eead4`.
 Image placeholder: bg `rgba(245,158,11,.12)`, border `rgba(245,158,11,.32)`,
 text `#fbbf24`. Published badge: bg `rgba(74,222,128,.1)` fg `#4ade80`.
 
+**Terminal**: pane bg `#0c0c0e` · pane hairline `#1f1f23` · block divider
+`#1c1c1f` · selected block bg `#131316` · prompt `❯` / branch `#c4b5fd` ·
+running `#60a5fa` (text `#93c5fd`, block tint `rgba(96,165,250,.04)`) ·
+success `#4ade80` · failed `#f87171` (text `#fca5a5`, pill bg
+`rgba(248,113,113,.14)`, block tint `rgba(248,113,113,.05)`) · interrupted
+`#fbbf24` (text `#fcd34d`, tint `rgba(251,191,36,.04)`) · idle dot
+`#52525b`. Popovers/dialogs `#111113`/`#18181b` with `#3f3f46` border.
+Mono: Geist Mono 13/20 in panes.
+
 **Scrollbar** (editor canvas version — preferred):
 ```css
 ::-webkit-scrollbar{width:10px;height:10px}
@@ -266,5 +380,8 @@ Geist Mono. **Pick one** (see open questions).
 4. **How a card is marked "agent"** (label? comment author? state history?).
 5. **Sync model** — polling interval vs Plane webhooks (webhooks only after
    self-hosting); Dev.to sync cadence.
-6. Settings screen isn't designed yet (OAuth connect, Dev.to key, storage
-   path, sync interval, Plane base URL).
+6. Settings screen: only the Terminal section is designed
+   (`terminal/Settings.dc.html`); reuse its layout for OAuth connect,
+   Dev.to key, storage path, sync interval, Plane base URL.
+7. Terminal: the terminal canvas uses the editor's 56px rail — another
+   input for question 1.

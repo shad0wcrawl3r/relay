@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Bell, PenLine, RefreshCw, SlidersHorizontal } from "lucide-react";
+import { Bell, PenLine, RefreshCw, SlidersHorizontal, SquareTerminal } from "lucide-react";
 import { usePlane } from "@/lib/store";
+import { useTerminal } from "@/lib/terminal";
 import { attentionRows, openCount } from "@/lib/plane";
 import { syncedAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,9 @@ function useNow(ms = 5000) {
 
 export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => void; rail: boolean }) {
   const { projects, snapshot, syncing, syncNow } = usePlane();
+  const { sessions } = useTerminal();
+  // Blue dot on the Terminal entry while a session runs out of view.
+  const termBusy = route.name !== "terminal" && sessions.some((s) => s.status === "running");
   const now = useNow(1000);
   const attention = attentionRows(projects).length;
   const synced = snapshot?.syncedAt && !snapshot.syncedAt.startsWith("0001") ? snapshot.syncedAt : "";
@@ -39,10 +43,25 @@ export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => v
       extra,
     );
 
-  const Item = ({ active, onClick, icon, label, badge }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string; badge?: React.ReactNode }) => {
+  const Item = ({
+    active,
+    onClick,
+    icon,
+    label,
+    badge,
+    dot,
+  }: {
+    active: boolean;
+    onClick: () => void;
+    icon: React.ReactNode;
+    label: string;
+    badge?: React.ReactNode;
+    dot?: boolean;
+  }) => {
     const btn = (
-      <button className={item(active)} onClick={onClick} aria-current={active ? "page" : undefined} aria-label={rail ? label : undefined}>
+      <button className={cn(item(active), "relative")} onClick={onClick} aria-current={active ? "page" : undefined} aria-label={rail ? label : undefined}>
         {icon}
+        {rail && dot && <span aria-hidden className="absolute right-2 top-2 size-1.5 rounded-full bg-[#60a5fa]" />}
         {!rail && <span className="truncate">{label}</span>}
         {!rail && badge}
       </button>
@@ -105,6 +124,18 @@ export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => v
       <div className="flex flex-col gap-0.5">
         {!rail && <div className="px-2.5 pb-1.5 text-[11px] font-medium uppercase tracking-[.06em] text-dim">Write</div>}
         <Item active={route.name === "editor"} onClick={() => go({ name: "editor" })} icon={<PenLine className="size-[15px]" strokeWidth={1.8} />} label="Dev.to editor" />
+      </div>
+
+      <div className="flex flex-col gap-0.5">
+        {!rail && <div className="px-2.5 pb-1.5 text-[11px] font-medium uppercase tracking-[.06em] text-dim">Run</div>}
+        <Item
+          active={route.name === "terminal"}
+          onClick={() => go({ name: "terminal" })}
+          icon={<SquareTerminal className="size-[15px]" strokeWidth={1.8} />}
+          label="Terminal"
+          dot={termBusy}
+          badge={termBusy && <span aria-label="Sessions running" className="ml-auto size-1.5 rounded-full bg-[#60a5fa]" />}
+        />
       </div>
 
       <div className="flex-1" />

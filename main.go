@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/shad0wcrawl3r/relay/internal/plane"
+	"github.com/shad0wcrawl3r/relay/internal/term"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
@@ -13,6 +14,7 @@ var assets embed.FS
 
 func init() {
 	application.RegisterEvent[plane.Snapshot]("plane:snapshot")
+	application.RegisterEvent[[]term.Info]("term:sessions")
 }
 
 func main() {
@@ -25,11 +27,12 @@ func main() {
 
 	app := application.New(application.Options{
 		Name:        "Relay",
-		Description: "Plane kanban + Dev.to writing workbench",
+		Description: "Plane kanban, Dev.to writing and terminal workbench",
 		Services: []application.Service{
 			application.NewService(planeSvc),
 			application.NewService(postSvc),
 			application.NewService(settingsSvc),
+			application.NewService(NewTerminalService()),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),

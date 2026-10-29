@@ -8,8 +8,9 @@ import { Attention } from "@/views/Attention";
 import { Board, type BoardHandle } from "@/views/Board";
 import { Editor } from "@/views/editor/Editor";
 import { Settings } from "@/views/Settings";
+import { Terminal } from "@/views/terminal/Terminal";
 
-export type Route = { name: "attention" } | { name: "project"; projectId: string } | { name: "editor" } | { name: "settings" };
+export type Route = { name: "attention" } | { name: "project"; projectId: string } | { name: "editor" } | { name: "terminal" } | { name: "settings" };
 
 export interface OpenItem {
   projectId: string;
@@ -79,6 +80,7 @@ export default function App() {
         return;
       }
       if (k === "e") go({ name: "editor" });
+      if (k === "t") go({ name: "terminal" });
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -97,12 +99,13 @@ export default function App() {
 
   return (
     <div className="flex h-full">
-      <Sidebar route={route} go={go} rail={route.name === "editor"} />
+      <Sidebar route={route} go={go} rail={route.name === "editor" || route.name === "terminal"} />
       {route.name === "attention" && <Attention openItem={setDrawer} />}
       {route.name === "project" && current && (
         <Board ref={board} project={current} openItem={setDrawer} selectedId={drawer?.itemId} onNewItem={() => setCapture(true)} />
       )}
       {route.name === "editor" && <Editor />}
+      {route.name === "terminal" && <Terminal />}
       {route.name === "settings" && <Settings />}
 
       {drawer && drawerProject && (

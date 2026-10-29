@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Relay settings — terminal</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+html,body{background:#09090b}
+a{color:#e4e4e7}a:hover{color:#fafafa}
+</style>
+</helmet>
+<div style="width: 100%; min-height: 1000px; display: flex; flex-wrap: wrap; background: #09090b; color: #e4e4e7; font-family: 'Geist', system-ui, sans-serif;">
+
+<nav aria-label="App" style="flex: 0 0 56px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 0; border-right: 1px solid #27272a;">
+<div style="width: 32px; height: 32px; border-radius: 8px; background: #fafafa; color: #09090b; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; margin-bottom: 12px;">R</div>
+<button aria-label="Projects" style="width: 44px; height: 44px; border: 0; border-radius: 8px; background: transparent; color: #71717a; display: flex; align-items: center; justify-content: center; cursor: pointer;"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5v11"></path><path d="M12 5v6"></path><path d="M18 5v14"></path></svg></button>
+<button aria-label="Posts" style="width: 44px; height: 44px; border: 0; border-radius: 8px; background: transparent; color: #71717a; display: flex; align-items: center; justify-content: center; cursor: pointer;"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"></path></svg></button>
+<a href="Main.dc.html" aria-label="Terminal, 2 sessions running" style="position: relative; width: 44px; height: 44px; border-radius: 8px; color: #71717a; display: flex; align-items: center; justify-content: center;"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m7 11 2-2-2-2"></path><path d="M11 13h4"></path><rect width="18" height="18" x="3" y="3" rx="2"></rect></svg><span aria-hidden="true" style="position: absolute; top: 9px; right: 9px; width: 8px; height: 8px; border-radius: 50%; background: #60a5fa; box-shadow: 0 0 0 2px #09090b;"></span></a>
+<div style="flex-grow: 1;"></div>
+<button aria-label="Settings" aria-current="page" style="width: 44px; height: 44px; border: 0; border-radius: 8px; background: #27272a; color: #fafafa; display: flex; align-items: center; justify-content: center; cursor: pointer;"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4"></line><line x1="10" x2="3" y1="4" y2="4"></line><line x1="21" x2="12" y1="12" y2="12"></line><line x1="8" x2="3" y1="12" y2="12"></line><line x1="21" x2="16" y1="20" y2="20"></line><line x1="12" x2="3" y1="20" y2="20"></line><line x1="14" x2="14" y1="2" y2="6"></line><line x1="8" x2="8" y1="10" y2="14"></line><line x1="16" x2="16" y1="18" y2="22"></line></svg></button>
+</nav>
+
+<aside aria-label="Settings sections" style="flex: 0 0 220px; box-sizing: border-box; border-right: 1px solid #27272a; padding: 0 8px;">
+<div style="height: 56px; display: flex; align-items: center; padding: 0 8px; border-bottom: 1px solid #27272a; margin: 0 -8px 8px; padding-left: 16px;"><h2 style="margin: 0; font-size: 14px; font-weight: 600; color: #fafafa;">Settings</h2></div>
+<div style="display: flex; flex-direction: column; gap: 2px;">
+<a href="Settings.dc.html" style="height: 36px; padding: 0 10px; display: flex; align-items: center; border-radius: 6px; color: #a1a1aa; font-size: 13px; text-decoration: none;">Plane</a>
+<a href="Settings.dc.html" style="height: 36px; padding: 0 10px; display: flex; align-items: center; border-radius: 6px; color: #a1a1aa; font-size: 13px; text-decoration: none;">Dev.to</a>
+<a href="Settings.dc.html" aria-current="page" style="height: 36px; padding: 0 10px; display: flex; align-items: center; border-radius: 6px; background: #18181b; box-shadow: inset 0 0 0 1px #27272a; color: #fafafa; font-size: 13px; font-weight: 500; text-decoration: none;">Terminal</a>
+<a href="Settings.dc.html" style="height: 36px; padding: 0 10px; display: flex; align-items: center; border-radius: 6px; color: #a1a1aa; font-size: 13px; text-decoration: none;">Appearance</a>
+<a href="Settings.dc.html" style="height: 36px; padding: 0 10px; display: flex; align-items: center; border-radius: 6px; color: #a1a1aa; font-size: 13px; text-decoration: none;">About</a>
+</div>
+</aside>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: 40px 24px 56px; box-sizing: border-box;">
+<div style="max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 36px;">
+
+<div>
+<h1 style="margin: 0 0 6px; font-size: 24px; font-weight: 600; color: #fafafa;">Terminal</h1>
+<p style="margin: 0; font-size: 14px; color: #a1a1aa;">Changes apply to new sessions. Running ones keep their settings.</p>
+</div>
+
+<section aria-labelledby="sec-shell" style="display: flex; flex-direction: column; gap: 16px;">
+<h2 id="sec-shell" style="margin: 0; font-size: 13px; font-weight: 600; color: #fafafa;">Shell</h2>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #d4d4d8;">Default shell
+<select style="height: 40px; padding: 0 10px; border-radius: 6px; border: 1px solid #27272a; background: #0c0c0e; color: #fafafa; font-family: 'Geist Mono', monospace; font-size: 13px;"><option>/bin/zsh</option><option>/bin/bash</option><option>/usr/bin/fish</option></select>
+</label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #d4d4d8;">Start new sessions in
+<select style="height: 40px; padding: 0 10px; border-radius: 6px; border: 1px solid #27272a; background: #0c0c0e; color: #fafafa; font-family: inherit; font-size: 13px;"><option>Folder of the focused pane</option><option>Home folder</option><option>A fixed folder…</option></select>
+</label>
+</div>
+</section>
+
+<section aria-labelledby="sec-int" style="display: flex; flex-direction: column; gap: 12px;">
+<div style="display: flex; align-items: center; gap: 16px;">
+<div style="flex: 1;">
+<h2 id="sec-int" style="margin: 0 0 4px; font-size: 13px; font-weight: 600; color: #fafafa;">Shell integration</h2>
+<p style="margin: 0; font-size: 13px; line-height: 1.5; color: #a1a1aa;">Needed for blocks. Relay loads a small init script at launch; your dotfiles are not edited.</p>
+</div>
+<button role="switch" aria-checked="{{inject}}" aria-label="Load integration automatically" onClick="{{toggleInject}}" style="{{injectTrack}}"><span style="{{injectKnob}}"></span></button>
+</div>
+<div style="border: 1px solid #27272a; border-radius: 8px; overflow: hidden;">
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid #1f1f23;">
+<span style="flex: 0 0 64px; font-family: 'Geist Mono', monospace; font-size: 13px; color: #fafafa;">zsh</span>
+<span style="flex: 1; font-size: 13px; color: #a1a1aa;">Marks seen in 3 sessions</span>
+<span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #4ade80;"><span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 50%; background: #4ade80;"></span>Active</span>
+</div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid #1f1f23;">
+<span style="flex: 0 0 64px; font-family: 'Geist Mono', monospace; font-size: 13px; color: #fafafa;">bash</span>
+<span style="flex: 1; font-size: 13px; color: #a1a1aa;">Not tested yet</span>
+<button style="height: 32px; padding: 0 12px; border: 1px solid #3f3f46; border-radius: 6px; background: transparent; color: #e4e4e7; font-family: inherit; font-size: 12px; cursor: pointer;">Test in new session</button>
+</div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px;">
+<span style="flex: 0 0 64px; font-family: 'Geist Mono', monospace; font-size: 13px; color: #fafafa;">fish</span>
+<span style="flex: 1; font-size: 13px; color: #a1a1aa;">Not installed on this machine</span>
+</div>
+</div>
+</section>
+
+<section aria-labelledby="sec-keys" style="display: flex; flex-direction: column; gap: 16px;">
+<h2 id="sec-keys" style="margin: 0; font-size: 13px; font-weight: 600; color: #fafafa;">Keys</h2>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px;">
+<div style="flex: 1 1 260px;">
+<div style="font-size: 13px; color: #d4d4d8; margin-bottom: 4px;">Prefix key</div>
+<div style="font-size: 13px; color: #a1a1aa;">Starts every split, focus and session command.</div>
+</div>
+<span style="height: 36px; padding: 0 14px; display: inline-flex; align-items: center; border-radius: 6px; border: 1px solid #3f3f46; background: #0c0c0e; font-family: 'Geist Mono', monospace; font-size: 14px; color: #fafafa;">⌃B</span>
+<button style="height: 36px; padding: 0 12px; border: 0; border-radius: 6px; background: transparent; color: #a1a1aa; font-family: inherit; font-size: 13px; cursor: pointer;">Record new</button>
+</div>
+<div style="display: flex; align-items: center; gap: 16px;">
+<div style="flex: 1; font-size: 13px; color: #d4d4d8;">Press the prefix twice to send it to the program</div>
+<button role="switch" aria-checked="{{literal}}" aria-label="Press the prefix twice to send it" onClick="{{toggleLiteral}}" style="{{literalTrack}}"><span style="{{literalKnob}}"></span></button>
+</div>
+<a href="Switcher.dc.html" style="align-self: flex-start; font-size: 13px; color: #d4d4d8;">View all key bindings</a>
+</section>
+
+<section aria-labelledby="sec-sess" style="display: flex; flex-direction: column; gap: 16px;">
+<h2 id="sec-sess" style="margin: 0; font-size: 13px; font-weight: 600; color: #fafafa;">Sessions</h2>
+<div style="display: flex; align-items: center; gap: 16px;">
+<div style="flex: 1;">
+<div style="font-size: 13px; color: #d4d4d8; margin-bottom: 4px;">Keep running when the window closes</div>
+<div style="font-size: 13px; color: #a1a1aa;">Relay stays in the tray while any session is alive.</div>
+</div>
+<button role="switch" aria-checked="{{keep}}" aria-label="Keep running when the window closes" onClick="{{toggleKeep}}" style="{{keepTrack}}"><span style="{{keepKnob}}"></span></button>
+</div>
+<fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px;">
+<legend style="padding: 0; margin-bottom: 8px; font-size: 13px; color: #d4d4d8;">When Relay quits</legend>
+<sc-for list="{{quitOpts}}" as="o" hint-placeholder-count="3">
+<button role="radio" aria-checked="{{o.on}}" onClick="{{o.pick}}" disabled="{{o.disabled}}" style="{{o.style}}">
+<span aria-hidden="true" style="{{o.dot}}"></span>
+<span style="flex: 1; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 13px; color: #fafafa;">{{o.label}}</span><span style="font-size: 12px; color: #a1a1aa;">{{o.hint}}</span></span>
+</button>
+</sc-for>
+</fieldset>
+<label style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; font-size: 13px; color: #d4d4d8;"><span style="flex: 1 1 260px;">Scrollback per session</span>
+<span style="display: inline-flex; align-items: center; gap: 8px;"><input type="number" value="10000" style="width: 110px; height: 36px; box-sizing: border-box; padding: 0 10px; border-radius: 6px; border: 1px solid #27272a; background: #0c0c0e; color: #fafafa; font-family: 'Geist Mono', monospace; font-size: 13px;"><span style="color: #a1a1aa;">lines</span></span>
+</label>
+</section>
+
+<section aria-labelledby="sec-look" style="display: flex; flex-direction: column; gap: 16px;">
+<h2 id="sec-look" style="margin: 0; font-size: 13px; font-weight: 600; color: #fafafa;">Look</h2>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #d4d4d8;">Font
+<select style="height: 40px; padding: 0 10px; border-radius: 6px; border: 1px solid #27272a; background: #0c0c0e; color: #fafafa; font-family: 'Geist Mono', monospace; font-size: 13px;"><option>Geist Mono · 13</option><option>JetBrains Mono · 13</option><option>System monospace · 13</option></select>
+</label>
+<div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #d4d4d8;">Cursor
+<div role="radiogroup" aria-label="Cursor style" style="display: flex; padding: 3px; gap: 2px; background: #27272a; border-radius: 8px; height: 40px; box-sizing: border-box;">
+<sc-for list="{{cursors}}" as="c" hint-placeholder-count="3">
+<button role="radio" aria-checked="{{c.on}}" onClick="{{c.pick}}" style="{{c.style}}">{{c.label}}</button>
+</sc-for>
+</div>
+</div>
+</div>
+</section>
+
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { inject: true, literal: true, keep: true, quit: 'ask', cursor: 'Bar' };
+}
+renderVals() {
+const s = this.state;
+const track = (on) => 'flex: 0 0 auto; width: 44px; height: 26px; padding: 3px; border: 0; border-radius: 999px; cursor: pointer; display: flex; box-sizing: border-box; background: ' + (on ? '#fafafa' : '#3f3f46') + '; justify-content: ' + (on ? 'flex-end' : 'flex-start') + ';';
+const knob = (on) => 'width: 20px; height: 20px; border-radius: 50%; background: ' + (on ? '#09090b' : '#a1a1aa') + ';';
+const flip = (k) => () => this.setState({ [k]: !s[k] });
+const quits = [
+{ id: 'ask', label: 'Ask if anything is running', hint: 'Lists running sessions before quitting' },
+{ id: 'kill', label: 'End all sessions', hint: 'Sends SIGHUP to every shell' },
+{ id: 'daemon', label: 'Keep sessions in a background service', hint: 'Survives quitting and restarts — later version', disabled: true }
+];
+return {
+inject: s.inject, literal: s.literal, keep: s.keep,
+injectTrack: track(s.inject), injectKnob: knob(s.inject), toggleInject: flip('inject'),
+literalTrack: track(s.literal), literalKnob: knob(s.literal), toggleLiteral: flip('literal'),
+keepTrack: track(s.keep), keepKnob: knob(s.keep), toggleKeep: flip('keep'),
+quitOpts: quits.map((o) => {
+const on = s.quit === o.id;
+return Object.assign({}, o, {
+on: on, disabled: !!o.disabled,
+pick: () => { if (!o.disabled) this.setState({ quit: o.id }); },
+style: 'display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; border: 1px solid ' + (on ? '#52525b' : '#27272a') + '; background: ' + (on ? '#18181b' : 'transparent') + '; font-family: inherit; text-align: left; cursor: ' + (o.disabled ? 'not-allowed' : 'pointer') + '; opacity: ' + (o.disabled ? '0.6' : '1') + ';',
+dot: 'flex: 0 0 16px; width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; border: ' + (on ? '5px solid #fafafa' : '1.5px solid #71717a') + ';'
+});
+}),
+cursors: ['Block', 'Bar', 'Underline'].map((c) => ({
+label: c, on: s.cursor === c,
+pick: () => this.setState({ cursor: c }),
+style: 'flex: 1; border: 0; border-radius: 6px; font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer; background: ' + (s.cursor === c ? '#09090b' : 'transparent') + '; color: ' + (s.cursor === c ? '#fafafa' : '#a1a1aa') + ';'
+}))
+};
+}
+}
+</script>
+</body>
+</html>

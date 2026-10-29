@@ -1,11 +1,12 @@
 # Relay
 
 Wails3 desktop workbench: a custom Plane (app.plane.so) kanban frontend via
-Plane OAuth + a Dev.to markdown editor/publisher.
+Plane OAuth + a Dev.to markdown editor/publisher + an embedded tmux-like
+terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
 
 ## Read first
 - `design/README.md` — full UI spec, behaviour decisions, design tokens, open questions.
-- `design/kanban/*.dc.html`, `design/editor/*.dc.html` — reference mockups
+- `design/kanban/*.dc.html`, `design/editor/*.dc.html`, `design/terminal/*.dc.html` — reference mockups
   (design-canvas format, not runnable; sample data lives in each file's
   `renderVals()`). Rebuild them, don't import them.
 - `Project.md` — intent + Dev.to article API reference.
@@ -23,3 +24,4 @@ Plane OAuth + a Dev.to markdown editor/publisher.
 - Dev.to: send as `published: false`; no image upload in v1 (insert `<INSERT IMAGE HERE: …>` placeholders).
 - Posts are local markdown files in the OS app-storage dir.
 - Never commit `config.toml` or log secrets.
+- Terminal: no tmux dependency; shell integration is injected at spawn, never written into the user's dotfiles; the PTY WebSocket binds 127.0.0.1 only and requires the per-launch token.

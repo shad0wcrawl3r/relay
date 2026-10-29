@@ -4,13 +4,16 @@
 import * as PlaneService from "./planeservice.js";
 import * as PostService from "./postservice.js";
 import * as SettingsService from "./settingsservice.js";
+import * as TerminalService from "./terminalservice.js";
 export {
     PlaneService,
     PostService,
-    SettingsService
+    SettingsService,
+    TerminalService
 };
 
 export type {
+    Endpoint,
     PostList,
     PostSummary,
     Settings,
