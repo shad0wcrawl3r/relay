@@ -11,6 +11,7 @@ import { Board, type BoardHandle } from "@/views/Board";
 import { Editor } from "@/views/editor/Editor";
 import { Settings } from "@/views/Settings";
 import { Terminal } from "@/views/terminal/Terminal";
+import { QuickTerminal } from "@/views/terminal/QuickTerminal";
 
 export type Route = { name: "attention" } | { name: "project"; projectId: string } | { name: "editor" } | { name: "terminal" } | { name: "settings" };
 
@@ -28,13 +29,31 @@ export default function App() {
   const [route, setRoute] = useState<Route>({ name: "attention" });
   const [drawer, setDrawer] = useState<OpenItem | null>(null);
   const [capture, setCapture] = useState(false);
+  const [quick, setQuick] = useState(false);
   const board = useRef<BoardHandle>(null);
   const pendingG = useRef(0);
 
   const go = useCallback((r: Route) => {
     setRoute(r);
     setDrawer(null);
+    // The Terminal view is the full version of the quick terminal.
+    if (r.name === "terminal") setQuick(false);
   }, []);
+
+  // ⌘/ or ⌃/ toggles the quick terminal anywhere but the Terminal view.
+  // Captured so it works while the quick terminal itself has focus (xterm
+  // would otherwise take ⌃/ as a keystroke).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey || (e.code !== "Slash" && e.key !== "/")) return;
+      if (route.name === "terminal") return;
+      e.preventDefault();
+      e.stopPropagation();
+      setQuick((v) => !v);
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [route.name]);
 
   const current = route.name === "project" ? project(route.projectId) : undefined;
   const drawerProject = drawer ? project(drawer.projectId) : undefined;
@@ -128,6 +147,15 @@ export default function App() {
           focusComposer={drawer.focusComposer}
           onNavigate={(itemId) => setDrawer({ projectId: drawer.projectId, itemId })}
           onClose={() => setDrawer(null)}
+        />
+      )}
+      {quick && route.name !== "terminal" && (
+        <QuickTerminal
+          key={route.name === "editor" ? "posts" : "home"}
+          kind={route.name === "editor" ? "posts" : "home"}
+          left={route.name === "editor" ? 56 : 220}
+          onClose={() => setQuick(false)}
+          onOpenInTerminal={() => go({ name: "terminal" })}
         />
       )}
       <Capture

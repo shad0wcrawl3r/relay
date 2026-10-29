@@ -42,8 +42,21 @@ const enc = new TextEncoder();
 
 type Ended = { code: number } | "gone" | null;
 
-export function Pane({ node, focused, zoomed }: { node: PaneNode; focused: boolean; zoomed: boolean }) {
-  const { endpoint, session, focusPane, closePane, restart, register, dragging, setDragging, movePane } = useTerminal();
+/** Outside the tab layout (quick terminal): no pane header, focus or drag;
+ *  close and restart go to the owner. */
+export interface Detached {
+  onClose: () => void;
+  onRestart: () => void;
+}
+
+export function Pane({ node, focused, zoomed, detached }: { node: PaneNode; focused: boolean; zoomed: boolean; detached?: Detached }) {
+  const store = useTerminal();
+  const { endpoint, session, register, movePane } = store;
+  const focusPane = detached ? () => {} : store.focusPane;
+  const closePane = detached ? () => detached.onClose() : store.closePane;
+  const restart = detached ? async () => detached.onRestart() : store.restart;
+  const dragging = detached ? null : store.dragging;
+  const setDragging = store.setDragging;
   const [edge, setEdge] = useState<Edge | null>(null);
   const info = session(node.sessionId);
   const host = useRef<HTMLDivElement>(null);
@@ -160,6 +173,7 @@ export function Pane({ node, focused, zoomed }: { node: PaneNode; focused: boole
       className={cn("flex h-full min-w-0 flex-col bg-[#0c0c0e]", focused && !zoomed && "shadow-[inset_0_0_0_1px_#3f3f46]")}
       onMouseDown={() => focusPane(node.id)}
     >
+      {!detached && (
       <div
         draggable={!renaming && !zoomed}
         title={zoomed ? undefined : "Drag to move this pane"}
@@ -211,6 +225,7 @@ export function Pane({ node, focused, zoomed }: { node: PaneNode; focused: boole
           <X className="size-[13px]" strokeWidth={2} />
         </button>
       </div>
+      )}
       <div className="relative min-h-0 flex-1 py-1.5 pl-3 pr-1">
         <div ref={host} className="size-full" />
         {dragging && dragging !== node.id && (

@@ -284,6 +284,11 @@ Terminal
   or leaf `{sessionId}`, rendered recursively with shadcn `Resizable`
   (react-resizable-panels). Split/close/focus/zoom are pure tree ops.
   Persist layout to the app config dir.
+- **Quick terminal**: `⌘/` or `⌃/` in any other view opens a bottom panel
+  (resizable, `⌘/` again hides it). From Plane views it resumes the last
+  quick session or starts one in the home folder; from the editor it uses
+  its own session in the posts folder. Sessions keep running when hidden;
+  "Terminal" moves one into a tab of the Terminal view.
 - **Prefix** defaults to `⌃B`; configurable. No global keydown hijacking
   outside the terminal view.
 - **Scope**: sessions survive closing/hiding the window (tray). Surviving

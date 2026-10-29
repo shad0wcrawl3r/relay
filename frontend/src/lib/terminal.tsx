@@ -53,7 +53,14 @@ interface TerminalStore {
   movePaneToTab: (src: string, tabId: string) => void;
   dragging: string | null;
   setDragging: (paneId: string | null) => void;
+  /** Session for the quick terminal: the previous one of this kind while
+   *  its shell lives, otherwise a new one in cwd. */
+  quickSession: (kind: QuickKind, cwd: string) => Promise<string>;
+  /** Shows a session in a new tab of the Terminal view. */
+  openInTab: (sessionId: string) => void;
 }
+
+export type QuickKind = "home" | "posts";
 
 const Ctx = createContext<TerminalStore | null>(null);
 
@@ -76,6 +83,11 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
   const [dragging, setDragging] = useState<string | null>(null);
   const started = useRef(false);
   const handles = useRef(new Map<string, PaneHandle>());
+  const quick = useRef<Partial<Record<QuickKind, string>>>({});
+  // Tabs opened before the Terminal view has loaded its layout.
+  const pendingTabs = useRef<L.Tab[]>([]);
+  const readyRef = useRef(false);
+  readyRef.current = ready;
   // Latest values for callbacks that must not go stale.
   const live = useRef({ tabs, activeId, sessions, endpoint });
   live.current = { tabs, activeId, sessions, endpoint };
@@ -148,13 +160,17 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
             restored.push({ ...t, root, zoom: undefined });
           }
         }
-        if (!restored.length) {
+        // A tab opened from the quick terminal counts as the first tab.
+        if (!restored.length && !pendingTabs.current.length) {
           const info = await TerminalService.Create({});
           const p = L.pane(info.id);
           restored = [{ id: L.uid(), name: info.name, root: p, focus: p.id }];
         }
+        restored.push(...pendingTabs.current);
+        const opened = pendingTabs.current[pendingTabs.current.length - 1]?.id;
+        pendingTabs.current = [];
         setTabs(restored);
-        setActiveId(restored.find((t) => t.id === saved?.active)?.id ?? restored[0].id);
+        setActiveId(opened ?? restored.find((t) => t.id === saved?.active)?.id ?? restored[0].id);
         setSessions(await TerminalService.List());
         setReady(true);
       } catch (err) {
@@ -450,6 +466,37 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const quickSession = useCallback(async (kind: QuickKind, cwd: string) => {
+    const prev = quick.current[kind];
+    const live = await TerminalService.List();
+    setSessions(live);
+    if (prev && live.some((s) => s.id === prev && s.status !== "exited")) return prev;
+    const info = await TerminalService.Create({ cwd, name: kind === "posts" ? "posts" : "quick" });
+    quick.current[kind] = info.id;
+    setSessions((s) => (s.some((x) => x.id === info.id) ? s : [...s, info]));
+    return info.id;
+  }, []);
+
+  const openInTab = useCallback(
+    (sessionId: string) => {
+      // It belongs to the Terminal view now; the quick terminal starts afresh.
+      for (const k of Object.keys(quick.current) as QuickKind[]) if (quick.current[k] === sessionId) delete quick.current[k];
+      const owner = live.current.tabs.find((t) => L.panes(t.root).some((p) => p.sessionId === sessionId));
+      if (owner) return attach(sessionId);
+      const p = L.pane(sessionId);
+      const s = live.current.sessions.find((x) => x.id === sessionId);
+      const tab: L.Tab = { id: L.uid(), name: s?.name || "shell", root: p, focus: p.id };
+      // Until the layout has loaded, start() would overwrite it; queue it.
+      if (!readyRef.current) {
+        pendingTabs.current.push(tab);
+        return;
+      }
+      setTabs((all) => [...all, tab]);
+      setActiveId(tab.id);
+    },
+    [attach],
+  );
+
   const session = useCallback((id: string) => sessions.find((s) => s.id === id), [sessions]);
 
   const value = useMemo<TerminalStore>(
@@ -486,6 +533,8 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
       movePaneToTab,
       dragging,
       setDragging,
+      quickSession,
+      openInTab,
     }),
     [
       endpoint,
@@ -518,6 +567,8 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
       movePane,
       movePaneToTab,
       dragging,
+      quickSession,
+      openInTab,
     ],
   );
 
