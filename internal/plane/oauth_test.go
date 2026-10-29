@@ -5,99 +5,80 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 
 	"github.com/shad0wcrawl3r/relay/internal/config"
 )
 
-func tokenServer(t *testing.T, acceptBasic, acceptBody bool, calls *int) *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		*calls++
+func TestBotTokenMatchesSample(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := r.ParseForm(); err != nil {
 			t.Fatal(err)
 		}
-		if r.PostForm.Get("code") != "the-code" {
-			t.Errorf("grant params lost: %v", r.PostForm)
+		user, pass, ok := r.BasicAuth()
+		if !ok || user != "id+1" || pass != "s/cret" {
+			t.Errorf("basic auth = %q %q %v", user, pass, ok)
 		}
-		user, pass, basic := r.BasicAuth()
-		basicOK := basic && user == "id%2B1" && pass == "s%2Fcret"
-		bodyOK := r.PostForm.Get("client_id") == "id+1" && r.PostForm.Get("client_secret") == "s/cret"
-		if (acceptBasic && basicOK) || (acceptBody && bodyOK) {
-			fmt.Fprint(w, `{"access_token":"at","refresh_token":"rt","expires_in":3600}`)
-			return
+		if _, ok := r.PostForm["client_secret"]; ok {
+			t.Error("secret leaked into the form body")
 		}
-		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprint(w, `{"error":"invalid_client"}`)
+		f := r.PostForm
+		if f.Get("grant_type") != "client_credentials" || f.Get("app_installation_id") != "inst-1" || f.Get("scope") != "read write" {
+			t.Errorf("form = %v", f)
+		}
+		fmt.Fprint(w, `{"access_token":"bot","expires_in":3600}`)
 	}))
-}
-
-func TestExchangeClientAuth(t *testing.T) {
-	grant := url.Values{"grant_type": {"authorization_code"}, "code": {"the-code"}}
-	for _, tc := range []struct {
-		name        string
-		basic, body bool
-		wantCalls   int
-		wantErr     bool
-	}{
-		{"body accepted (documented user flow)", false, true, 1, false},
-		{"basic only falls back", true, false, 2, false},
-		{"both rejected", false, false, 2, true},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			calls := 0
-			srv := tokenServer(t, tc.basic, tc.body, &calls)
-			defer srv.Close()
-			config.Override(func(c *config.Config) {
-				c.Plane.BaseURL = srv.URL
-				c.Plane.ClientID = " id+1 "
-				c.Plane.ClientSecret = "s/cret"
-			})
-			tok, err := exchange(context.Background(), config.GetConfig(), grant)
-			if (err != nil) != tc.wantErr {
-				t.Fatalf("err = %v", err)
-			}
-			if !tc.wantErr && tok.AccessToken != "at" {
-				t.Errorf("token = %+v", tok)
-			}
-			if calls != tc.wantCalls {
-				t.Errorf("calls = %d, want %d", calls, tc.wantCalls)
-			}
-		})
+	defer srv.Close()
+	config.Override(func(c *config.Config) {
+		c.Plane.BaseURL = srv.URL
+		c.Plane.ClientID, c.Plane.ClientSecret = " id+1 ", "s/cret"
+		c.Plane.Scope = "read write"
+	})
+	tok, err := botToken(context.Background(), config.GetConfig(), "inst-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tok.AccessToken != "bot" || tok.InstallationID != "inst-1" || tok.Expiry.IsZero() {
+		t.Errorf("token = %+v", tok)
 	}
 }
 
-func TestDiscoverWorkspaceFallsBackToBotToken(t *testing.T) {
-	var sawBotGrant bool
+func TestRefreshRemintsBotToken(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/auth/o/token/":
-			_ = r.ParseForm()
-			if _, _, ok := r.BasicAuth(); !ok || r.PostForm.Get("grant_type") != "client_credentials" || r.PostForm.Get("app_installation_id") != "inst-1" {
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-			sawBotGrant = true
-			fmt.Fprint(w, `{"access_token":"bot","expires_in":60}`)
-		case "/auth/o/app-installation/":
-			// Only the bot token may read installations here.
-			if r.Header.Get("Authorization") != "Bearer bot" || r.URL.Query().Get("id") != "inst-1" {
-				w.WriteHeader(http.StatusForbidden)
-				return
-			}
-			fmt.Fprint(w, `[{"id":"inst-1","workspace_detail":{"slug":"my-ws"}}]`)
+		_ = r.ParseForm()
+		if r.PostForm.Get("app_installation_id") != "inst-1" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
 		}
+		fmt.Fprint(w, `{"access_token":"fresh","expires_in":60}`)
 	}))
 	defer srv.Close()
 	config.Override(func(c *config.Config) {
 		c.Plane.BaseURL = srv.URL
 		c.Plane.ClientID, c.Plane.ClientSecret = "id", "secret"
 	})
-	slug, id, err := discoverWorkspace(context.Background(), config.GetConfig(), "user", "inst-1")
-	if err != nil {
-		t.Fatal(err)
+	// refresh itself writes to the keychain, so test the re-mint it relies on.
+	tok, err := botToken(context.Background(), config.GetConfig(), "inst-1")
+	if err != nil || tok.AccessToken != "fresh" {
+		t.Fatalf("tok=%+v err=%v", tok, err)
 	}
-	if slug != "my-ws" || id != "inst-1" || !sawBotGrant {
-		t.Errorf("slug=%q id=%q bot=%v", slug, id, sawBotGrant)
+	if _, err := (&auth{}).refresh(context.Background(), &Token{}); err != ErrNotConnected {
+		t.Errorf("refresh without installation = %v", err)
+	}
+}
+
+func TestInstallationReadsWorkspace(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer bot" || r.URL.Query().Get("id") != "inst-1" {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+		fmt.Fprint(w, `[{"id":"inst-1","workspace_detail":{"slug":"my-ws"}}]`)
+	}))
+	defer srv.Close()
+	config.Override(func(c *config.Config) { c.Plane.BaseURL = srv.URL })
+	slug, id, err := installation(context.Background(), config.GetConfig(), "bot", "inst-1")
+	if err != nil || slug != "my-ws" || id != "inst-1" {
+		t.Errorf("slug=%q id=%q err=%v", slug, id, err)
 	}
 }

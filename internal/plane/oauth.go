@@ -24,7 +24,7 @@ import (
 const keyringService = "relay"
 const keyringUser = "plane-oauth"
 
-// Token is the user token from Plane's authorization-code flow. It lives in
+// Token is the bot token for Relay's Plane app installation. It lives in
 // the OS keychain, never in config.toml.
 type Token struct {
 	AccessToken    string    `json:"access_token"`
@@ -97,8 +97,11 @@ func baseURL(cfg *config.Config) string {
 	return strings.TrimRight(cfg.Plane.BaseURL, "/")
 }
 
-// authorize runs the authorization-code flow: it opens Plane's consent page
-// and waits on a loopback listener for the redirect.
+// authorize runs Plane's app-installation flow, as in main.go.sample: it
+// opens authorize-app, waits on a loopback listener for the redirect carrying
+// app_installation_id, then mints a bot token for that installation. The
+// redirect's code is not used; the authorization_code grant is refused for
+// this app (unauthorized_client).
 func (a *auth) authorize(ctx context.Context, openURL func(string)) (*Token, error) {
 	cfg := config.GetConfig()
 	if cfg.Plane.ClientID == "" || cfg.Plane.ClientSecret == "" {
@@ -111,8 +114,8 @@ func (a *auth) authorize(ctx context.Context, openURL func(string)) (*Token, err
 	}
 
 	type result struct {
-		code, installation string
-		err                error
+		installation string
+		err          error
 	}
 	done := make(chan result, 1)
 	mux := http.NewServeMux()
@@ -121,8 +124,7 @@ func (a *auth) authorize(ctx context.Context, openURL func(string)) (*Token, err
 			log.Printf("plane <<< OAuth redirect: %s", r.URL.String())
 		}
 		q := r.URL.Query()
-		// app_installation_id arrives when consent also installs the app.
-		res := result{code: q.Get("code"), installation: q.Get("app_installation_id")}
+		res := result{installation: strings.TrimSpace(q.Get("app_installation_id"))}
 		switch {
 		case q.Get("error") != "":
 			msg := q.Get("error")
@@ -130,10 +132,11 @@ func (a *auth) authorize(ctx context.Context, openURL func(string)) (*Token, err
 				msg += ": " + d
 			}
 			res.err = fmt.Errorf("Plane refused the request (%s)", msg)
-		case q.Get("state") != state:
+		// Plane may not echo state on installs; reject only a wrong one.
+		case q.Get("state") != "" && q.Get("state") != state:
 			res.err = errors.New("OAuth state mismatch")
-		case res.code == "":
-			res.err = errors.New("no authorization code in redirect")
+		case res.installation == "":
+			res.err = errors.New("no app_installation_id in redirect")
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		if res.err != nil {
@@ -179,25 +182,17 @@ func (a *auth) authorize(ctx context.Context, openURL func(string)) (*Token, err
 		return nil, res.err
 	}
 
-	tok, err := exchange(ctx, cfg, url.Values{
-		"grant_type":   {"authorization_code"},
-		"code":         {res.code},
-		"redirect_uri": {redirectURI(cfg)},
-	})
+	tok, err := botToken(ctx, cfg, res.installation)
 	if err != nil {
 		return nil, err
 	}
-	tok.InstallationID = res.installation
-	tok.Workspace = cfg.Plane.Workspace
-	if tok.Workspace == "" {
-		slug, id, err := discoverWorkspace(ctx, cfg, tok.AccessToken, res.installation)
-		if err != nil {
-			return nil, fmt.Errorf("connected, but couldn't determine the workspace (%v); set the workspace slug in Settings", err)
-		}
-		tok.Workspace = slug
-		if tok.InstallationID == "" {
-			tok.InstallationID = id
-		}
+	slug, _, err := installation(ctx, cfg, tok.AccessToken, res.installation)
+	if err != nil {
+		return nil, fmt.Errorf("got a bot token, but couldn't verify the installation: %w", err)
+	}
+	tok.Workspace = slug
+	if cfg.Plane.Workspace != "" {
+		tok.Workspace = cfg.Plane.Workspace
 	}
 	if err := a.store(tok); err != nil {
 		return nil, fmt.Errorf("could not save token to the keychain: %w", err)
@@ -205,7 +200,7 @@ func (a *auth) authorize(ctx context.Context, openURL func(string)) (*Token, err
 	return tok, nil
 }
 
-// valid returns a non-expired token, refreshing it when needed.
+// valid returns a non-expired token, re-minting it when needed.
 func (a *auth) valid(ctx context.Context) (*Token, error) {
 	t, err := a.load()
 	if err != nil {
@@ -217,78 +212,42 @@ func (a *auth) valid(ctx context.Context) (*Token, error) {
 	return a.refresh(ctx, t)
 }
 
+// refresh mints a fresh bot token for the stored installation. Bot tokens
+// carry no refresh token; client_credentials is repeatable.
 func (a *auth) refresh(ctx context.Context, t *Token) (*Token, error) {
-	if t.RefreshToken == "" {
+	if t.InstallationID == "" {
 		return nil, ErrNotConnected
 	}
-	cfg := config.GetConfig()
-	next, err := exchange(ctx, cfg, url.Values{
-		"grant_type":    {"refresh_token"},
-		"refresh_token": {t.RefreshToken},
-	})
+	next, err := botToken(ctx, config.GetConfig(), t.InstallationID)
 	if err != nil {
 		return nil, fmt.Errorf("%w: refresh failed: %v", ErrNotConnected, err)
 	}
-	if next.RefreshToken == "" {
-		next.RefreshToken = t.RefreshToken
-	}
-	next.Workspace, next.InstallationID = t.Workspace, t.InstallationID
+	next.Workspace = t.Workspace
 	if err := a.store(next); err != nil {
 		return nil, err
 	}
 	return next, nil
 }
 
-// exchange calls the token endpoint the way Plane's Node and Python SDKs do
-// for user tokens: client credentials in the form body, no PKCE. If Plane
-// answers invalid_client it retries once with HTTP Basic; client
-// authentication runs before the code is checked, so the retry is safe.
-func exchange(ctx context.Context, cfg *config.Config, grant url.Values) (*Token, error) {
-	tok, err := tokenRequest(ctx, cfg, grant, bodyAuth(cfg))
-	var te *tokenError
-	if !errors.As(err, &te) || te.code != "invalid_client" {
-		return tok, err
-	}
-	return tokenRequest(ctx, cfg, grant, basicAuth(cfg))
-}
-
-// bodyAuth sends client credentials as form fields, as Plane documents for
-// the user-token flow (code exchange and refresh).
-func bodyAuth(cfg *config.Config) func(*http.Request, url.Values) {
-	return func(_ *http.Request, form url.Values) {
-		form.Set("client_id", strings.TrimSpace(cfg.Plane.ClientID))
-		form.Set("client_secret", strings.TrimSpace(cfg.Plane.ClientSecret))
-	}
-}
-
-// basicAuth sends client credentials as HTTP Basic, as Plane documents for
-// the bot-token flow.
-func basicAuth(cfg *config.Config) func(*http.Request, url.Values) {
-	return func(req *http.Request, _ url.Values) {
-		// RFC 6749 §2.3.1 form-encodes each part; django-oauth-toolkit decodes
-		// them, and Plane's alphanumeric credentials are unchanged by it.
-		req.SetBasicAuth(url.QueryEscape(strings.TrimSpace(cfg.Plane.ClientID)), url.QueryEscape(strings.TrimSpace(cfg.Plane.ClientSecret)))
-	}
-}
-
-// discoverWorkspace finds the workspace slug for a fresh user token. It asks
-// app-installation with the user token first; if that fails and the redirect
-// carried an installation id, it falls back to the documented bot path: a
-// client_credentials token, used only for this lookup and then dropped.
-// Relay itself keeps acting as the user, so writes are attributed to them.
-func discoverWorkspace(ctx context.Context, cfg *config.Config, userToken, installationID string) (slug, id string, err error) {
-	slug, id, err = installation(ctx, cfg, userToken, installationID)
-	if err == nil || installationID == "" {
-		return slug, id, err
-	}
-	bot, botErr := tokenRequest(ctx, cfg, url.Values{
+// botToken requests a client_credentials token for an app installation,
+// exactly as main.go.sample does: raw client_id:secret as HTTP Basic, and
+// grant_type, app_installation_id and scope in the form.
+func botToken(ctx context.Context, cfg *config.Config, installationID string) (*Token, error) {
+	grant := url.Values{
 		"grant_type":          {"client_credentials"},
 		"app_installation_id": {installationID},
-	}, basicAuth(cfg))
-	if botErr != nil {
-		return "", "", fmt.Errorf("%v; bot token: %v", err, botErr)
 	}
-	return installation(ctx, cfg, bot.AccessToken, installationID)
+	if cfg.Plane.Scope != "" {
+		grant.Set("scope", cfg.Plane.Scope)
+	}
+	tok, err := tokenRequest(ctx, cfg, grant, func(req *http.Request, _ url.Values) {
+		req.SetBasicAuth(strings.TrimSpace(cfg.Plane.ClientID), strings.TrimSpace(cfg.Plane.ClientSecret))
+	})
+	if err != nil {
+		return nil, err
+	}
+	tok.InstallationID = installationID
+	return tok, nil
 }
 
 type tokenError struct {
@@ -317,7 +276,6 @@ func tokenRequest(ctx context.Context, cfg *config.Config, grant url.Values, aut
 	req.ContentLength = int64(len(body))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Cache-Control", "no-cache")
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -349,6 +307,7 @@ func installation(ctx context.Context, cfg *config.Config, access, installationI
 		return "", "", err
 	}
 	req.Header.Set("Authorization", "Bearer "+access)
+	req.Header.Set("Accept", "application/json")
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return "", "", err
