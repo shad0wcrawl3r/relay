@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
+	"errors"
+	"maps"
 	"time"
 
 	"github.com/shad0wcrawl3r/relay/internal/ai"
 	"github.com/shad0wcrawl3r/relay/internal/config"
+	"github.com/shad0wcrawl3r/relay/internal/logs"
 )
 
 // AIService connects a model provider. Keys go to the keychain and never come
@@ -22,6 +25,10 @@ func NewAIService(posts *PostService) *AIService {
 type AIProvider struct {
 	ai.Provider
 	KeySet bool `json:"keySet"`
+	// Endpoint is the base URL in use; Custom says it isn't the default.
+	Endpoint        string `json:"endpoint"`
+	DefaultEndpoint string `json:"defaultEndpoint"`
+	Custom          bool   `json:"custom"`
 }
 
 type AIStatus struct {
@@ -40,10 +47,15 @@ func (s *AIService) Status() AIStatus {
 	c := config.GetConfig()
 	st := AIStatus{Providers: []AIProvider{}, Provider: c.AI.Provider, Model: c.AI.Model}
 	for _, p := range ai.Providers() {
-		st.Providers = append(st.Providers, AIProvider{Provider: p, KeySet: p.NeedsKey && ai.HasKey(p.ID)})
+		p.Local = s.client.Local(p.ID)
+		endpoint, fallback := s.client.Endpoint(p.ID), s.client.Default(p.ID)
+		st.Providers = append(st.Providers, AIProvider{
+			Provider: p, KeySet: ai.HasKey(p.ID),
+			Endpoint: endpoint, DefaultEndpoint: fallback, Custom: endpoint != fallback,
+		})
 	}
 	if p, ok := ai.Find(c.AI.Provider); ok && c.AI.Model != "" && (!p.NeedsKey || ai.HasKey(p.ID)) {
-		st.Ready, st.Local, st.Label = true, p.Local, p.Name+" · "+c.AI.Model
+		st.Ready, st.Local, st.Label = true, s.client.Local(p.ID), p.Name+" · "+c.AI.Model
 	}
 	return st
 }
@@ -66,6 +78,34 @@ func (s *AIService) ClearKey(provider string) (AIStatus, error) {
 	if err := ai.ClearKey(provider); err != nil {
 		return AIStatus{}, err
 	}
+	return s.Status(), nil
+}
+
+// SetEndpoint overrides a provider's base URL; empty restores the default.
+func (s *AIService) SetEndpoint(provider, endpoint string) (AIStatus, error) {
+	if _, ok := ai.Find(provider); !ok {
+		return AIStatus{}, errors.New("unknown provider")
+	}
+	endpoint, err := ai.NormaliseEndpoint(endpoint)
+	if err != nil {
+		return AIStatus{}, err
+	}
+	err = config.Update(func(c *config.Config) {
+		next := maps.Clone(c.AI.Endpoints)
+		if next == nil {
+			next = map[string]string{}
+		}
+		if endpoint == "" {
+			delete(next, provider)
+		} else {
+			next[provider] = endpoint
+		}
+		c.AI.Endpoints = next
+	})
+	if err != nil {
+		return AIStatus{}, err
+	}
+	logs.For("ai").Notice("endpoint changed", "provider", provider, "custom", endpoint != "")
 	return s.Status(), nil
 }
 

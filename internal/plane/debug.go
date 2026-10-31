@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/shad0wcrawl3r/relay/internal/logs"
 )
 
 // Temporary OAuth debugging. With RELAY_DEBUG_HTTP=1, /auth/o/ requests and
@@ -18,10 +20,10 @@ func debugHTTP() bool { return os.Getenv("RELAY_DEBUG_HTTP") != "" }
 
 func transport() http.RoundTripper {
 	if !debugHTTP() {
-		return http.DefaultTransport
+		return logs.Transport("plane", nil)
 	}
 	log.Println("plane: RELAY_DEBUG_HTTP is set; OAuth traffic is logged in full, including secrets")
-	return debugTransport{http.DefaultTransport}
+	return logs.Transport("plane", debugTransport{http.DefaultTransport})
 }
 
 type debugTransport struct{ next http.RoundTripper }

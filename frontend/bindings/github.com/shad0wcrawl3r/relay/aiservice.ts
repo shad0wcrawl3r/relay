@@ -33,6 +33,13 @@ export function Select(provider: string, model: string): $CancellablePromise<$mo
     return $Call.ByID(2281411591, provider, model);
 }
 
+/**
+ * SetEndpoint overrides a provider's base URL; empty restores the default.
+ */
+export function SetEndpoint(provider: string, endpoint: string): $CancellablePromise<$models.AIStatus> {
+    return $Call.ByID(2353860884, provider, endpoint);
+}
+
 export function SetKey(provider: string, key: string): $CancellablePromise<$models.AIStatus> {
     return $Call.ByID(3370039508, provider, key);
 }

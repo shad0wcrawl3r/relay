@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Dot } from "@/components/bits";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AISettings } from "@/components/AISettings";
+import { LogSettings } from "@/components/LogSettings";
 import { PlaneAppGuide } from "@/components/PlaneAppGuide";
 
 export function Settings() {
@@ -153,6 +154,7 @@ export function Settings() {
             <TabsTrigger value="terminal">Terminal</TabsTrigger>
             <TabsTrigger value="privacy">Privacy</TabsTrigger>
             <TabsTrigger value="storage">Storage</TabsTrigger>
+            <TabsTrigger value="logs">Logs</TabsTrigger>
           </TabsList>
 
           <TabsContent value="plane">
@@ -427,9 +429,13 @@ export function Settings() {
           </Row>
         </Section>
           </TabsContent>
+
+          <TabsContent value="logs">
+            <LogSettings />
+          </TabsContent>
         </Tabs>
 
-        {(dirty || (tab !== "ai" && tab !== "storage")) && (
+        {(dirty || !["ai", "storage", "logs"].includes(tab)) && (
           <div className="sticky bottom-0 -mx-8 flex justify-end gap-2 border-t border-hairline bg-background/95 px-8 py-3 backdrop-blur">
             <Button variant="outline" size="md" disabled={!dirty || saving} onClick={() => load(s)}>
               Discard

@@ -42,6 +42,7 @@ func init() {
 	// ("module:<id>"): hidden until the device owner unlocks them.
 	v.SetDefault("privacy.LOCKED", []string{"project:TEACH"})
 	v.SetDefault("privacy.AUTO_LOCK_MINUTES", 15)
+	v.SetDefault("logs.ENABLED", false)
 	if err := v.ReadInConfig(); err != nil {
 		// A missing file is fine: the user fills it in from Settings.
 		var notFound viper.ConfigFileNotFoundError
@@ -111,6 +112,9 @@ func Update(fn func(c *Config)) error {
 	v.Set("privacy.AUTO_LOCK_MINUTES", next.Privacy.AutoLockMinutes)
 	v.Set("ai.PROVIDER", next.AI.Provider)
 	v.Set("ai.MODEL", next.AI.Model)
+	v.Set("ai.ENDPOINTS", next.AI.Endpoints)
+	v.Set("logs.ENABLED", next.Logs.Enabled)
+	v.Set("logs.LEVELS", next.Logs.Levels)
 	path := Path()
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return err
@@ -162,6 +166,13 @@ type Config struct {
 		// Provider and Model are used for summaries; keys live in the keychain.
 		Provider string `mapstructure:"PROVIDER"`
 		Model    string `mapstructure:"MODEL"`
+		// Endpoints overrides a provider's base URL, keyed by provider ID.
+		Endpoints map[string]string `mapstructure:"ENDPOINTS"`
+	}
+	Logs struct {
+		Enabled bool `mapstructure:"ENABLED"`
+		// Levels maps a subsystem to its level, e.g. ai = "debug".
+		Levels map[string]string `mapstructure:"LEVELS"`
 	}
 	Privacy struct {
 		Locked          []string `mapstructure:"LOCKED"`

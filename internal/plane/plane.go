@@ -9,7 +9,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"sort"
@@ -18,6 +17,7 @@ import (
 	"time"
 
 	"github.com/shad0wcrawl3r/relay/internal/config"
+	"github.com/shad0wcrawl3r/relay/internal/logs"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -304,7 +304,7 @@ func (c *Client) Sync(ctx context.Context, force bool) (Snapshot, error) {
 	c.last = snap
 	c.mu.Unlock()
 	if err := saveCache(snap); err != nil {
-		log.Printf("plane: could not write display cache: %v", err)
+		logs.For("plane").Error("could not write the display cache", "error", err)
 	}
 	return snap, nil
 }

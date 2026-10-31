@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/shad0wcrawl3r/relay/internal/config"
+	"github.com/shad0wcrawl3r/relay/internal/logs"
 	"github.com/shad0wcrawl3r/relay/internal/plane"
 )
 
@@ -100,8 +101,10 @@ func (s *SettingsService) Save(in SettingsInput) (Settings, error) {
 		}
 	})
 	if err != nil {
+		logs.For("app").Error("settings save failed", "error", err)
 		return Settings{}, err
 	}
+	logs.For("app").Info("settings saved")
 	return s.Get(), nil
 }
 

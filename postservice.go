@@ -12,7 +12,13 @@ import (
 
 	"github.com/shad0wcrawl3r/relay/internal/config"
 	"github.com/shad0wcrawl3r/relay/internal/devto"
+	"github.com/shad0wcrawl3r/relay/internal/logs"
 	"github.com/shad0wcrawl3r/relay/internal/posts"
+)
+
+var (
+	postLog  = logs.For("posts")
+	devtoLog = logs.For("devto")
 )
 
 // PostService manages local markdown posts and mirrors them to Dev.to.
@@ -111,8 +117,10 @@ func (s *PostService) Sync(ctx context.Context) (PostList, error) {
 	arts, err := devto.Mine(ctx)
 	s.mu.Lock()
 	if err != nil {
+		devtoLog.Warn("sync failed", "error", err)
 		s.syncErr = err.Error()
 	} else {
+		devtoLog.Debug("synced", "articles", len(arts))
 		s.syncErr = ""
 		s.syncedAt = time.Now()
 		s.remote = map[int]devto.Article{}
@@ -149,6 +157,7 @@ func (s *PostService) Get(id string) (posts.Post, error) {
 	if p.CanonicalURL == a.URL {
 		p.CanonicalURL = ""
 	}
+	postLog.Info("imported from Dev.to", "devto_id", a.ID)
 	return s.store.Save(p)
 }
 
@@ -164,10 +173,17 @@ func (s *PostService) Save(p posts.Post) (posts.Post, error) {
 	if old, err := s.store.Get(p.ID); err == nil {
 		p.Promotions = old.Promotions
 	}
-	return s.store.Save(p)
+	saved, err := s.store.Save(p)
+	if err != nil {
+		postLog.Error("save failed", "id", p.ID, "error", err)
+		return saved, err
+	}
+	postLog.Debug("saved", "id", saved.ID, "chars", len(saved.Body))
+	return saved, nil
 }
 
 func (s *PostService) Delete(id string) error {
+	postLog.Info("deleted", "id", id)
 	return s.store.Delete(id)
 }
 
@@ -192,8 +208,10 @@ func (s *PostService) Send(ctx context.Context, id string) (posts.Post, error) {
 		a, err = devto.CreateDraft(ctx, payload)
 	}
 	if err != nil {
+		devtoLog.Warn("send failed", "id", id, "error", err)
 		return posts.Post{}, err
 	}
+	devtoLog.Notice("sent", "id", id, "devto_id", a.ID)
 	p.DevtoID, p.SentAt = a.ID, time.Now()
 	if a.URL != "" {
 		p.DevtoURL = a.URL
@@ -217,12 +235,15 @@ func (s *PostService) Publish(ctx context.Context, id string) (posts.Post, error
 	}
 	s.Sync(ctx)
 	if strings.Contains(s.articleBody(p), imagePlaceholder) {
+		devtoLog.Notice("publish refused: image placeholders remain", "id", id)
 		return posts.Post{}, errors.New("replace the image placeholders on Dev.to before publishing")
 	}
 	a, err := devto.Publish(ctx, p.DevtoID)
 	if err != nil {
+		devtoLog.Warn("publish failed", "id", id, "error", err)
 		return posts.Post{}, err
 	}
+	devtoLog.Notice("published", "id", id, "devto_id", a.ID)
 	if a.URL != "" {
 		p.DevtoURL = a.URL
 	}
