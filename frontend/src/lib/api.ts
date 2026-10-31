@@ -3,6 +3,7 @@
 // The generator types every Go slice as `T[] | null`. The Go side always
 // sends [], but the wrappers below normalise at the boundary anyway and the
 // exported types drop the nulls, so the UI never has to guard.
+import * as BufferBindings from "../../bindings/github.com/shad0wcrawl3r/relay/bufferservice";
 import * as PlaneBindings from "../../bindings/github.com/shad0wcrawl3r/relay/planeservice";
 import * as PostBindings from "../../bindings/github.com/shad0wcrawl3r/relay/postservice";
 import * as SettingsBindings from "../../bindings/github.com/shad0wcrawl3r/relay/settingsservice";
@@ -92,6 +93,14 @@ export const PostService = {
   Save: async (p: Post) => post(await PostBindings.Save(p as PostM.Post)),
   Delete: (id: string) => PostBindings.Delete(id),
   Send: async (id: string) => post(await PostBindings.Send(id)),
+};
+
+export type BufferStatus = M.BufferStatus;
+
+export const BufferService = {
+  Status: (): Promise<BufferStatus> => BufferBindings.Status(),
+  Connect: () => BufferBindings.Connect(),
+  Disconnect: () => BufferBindings.Disconnect(),
 };
 
 export const SettingsService = {
