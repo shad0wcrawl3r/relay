@@ -25,7 +25,8 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
 - Everything Relay writes to disk goes through `internal/vault` (AES-256-GCM, key in the OS keychain).
 - Locked projects/modules (`[privacy] LOCKED`, default TEACH) never reach the UI until unlocked via
   `internal/unlock` (Touch ID / login password); unlocks expire. Never log their data.
-- Dev.to: send as `published: false`; no image upload in v1 (insert `<INSERT IMAGE HERE: …>` placeholders).
+- Dev.to: send as `published: false`; publishing is a separate, confirmed user action, refused while image placeholders remain. No image upload in v1 (insert `<INSERT IMAGE HERE: …>` placeholders).
+- Buffer: promotions need a live Dev.to article; Go adds its public link, so one can never go out without it. Articles reach a model provider only when the user asks.
 - Posts are local markdown files in the OS app-storage dir.
 - Never commit `config.toml` or log secrets.
 - Terminal: no tmux dependency; shell integration is injected at spawn, never written into the user's dotfiles; the PTY WebSocket binds 127.0.0.1 only and requires the per-launch token.

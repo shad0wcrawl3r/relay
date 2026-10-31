@@ -27,7 +27,18 @@ type Meta struct {
 	DevtoID      int       `yaml:"devto_id,omitempty" json:"devtoId"`
 	DevtoURL     string    `yaml:"devto_url,omitempty" json:"devtoUrl"`
 	SentAt       time.Time `yaml:"sent_at,omitempty" json:"sentAt"`
-	UpdatedAt    time.Time `yaml:"updated_at" json:"updatedAt"`
+	// Promotions records what went to Buffer for this post.
+	Promotions []Promotion `yaml:"promotions,omitempty" json:"promotions"`
+	UpdatedAt  time.Time   `yaml:"updated_at" json:"updatedAt"`
+}
+
+// Promotion is one post sent to Buffer about this article.
+type Promotion struct {
+	BufferID string    `yaml:"buffer_id" json:"bufferId"`
+	Channel  string    `yaml:"channel" json:"channel"`
+	Timing   string    `yaml:"timing" json:"timing"`
+	DueAt    time.Time `yaml:"due_at,omitempty" json:"dueAt"`
+	At       time.Time `yaml:"at" json:"at"`
 }
 
 type Post struct {

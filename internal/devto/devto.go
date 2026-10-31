@@ -141,6 +141,14 @@ func CreateDraft(ctx context.Context, p Payload) (Article, error) {
 	return a, err
 }
 
+// Publish makes an article live as it stands on Dev.to, so edits made there
+// (like adding images) survive.
+func Publish(ctx context.Context, id int) (Article, error) {
+	var a Article
+	err := do(ctx, http.MethodPut, "/articles/"+strconv.Itoa(id), map[string]any{"article": map[string]bool{"published": true}}, &a)
+	return a, err
+}
+
 // Update edits an existing article without changing its published state.
 func Update(ctx context.Context, id int, p Payload) (Article, error) {
 	p.Published = nil

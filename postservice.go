@@ -48,6 +48,9 @@ type PostList struct {
 
 const remotePrefix = "devto-"
 
+// imagePlaceholder starts the token the editor inserts for an image.
+const imagePlaceholder = "<INSERT IMAGE HERE:"
+
 func NewPostService() (*PostService, error) {
 	store, err := posts.NewStore(filepath.Join(config.AppDir(), "posts"))
 	if err != nil {
@@ -157,11 +160,22 @@ func (s *PostService) Save(p posts.Post) (posts.Post, error) {
 	if len(p.Tags) > 4 {
 		p.Tags = p.Tags[:4]
 	}
+	// The editor autosaves its own copy, which may predate a promotion.
+	if old, err := s.store.Get(p.ID); err == nil {
+		p.Promotions = old.Promotions
+	}
 	return s.store.Save(p)
 }
 
 func (s *PostService) Delete(id string) error {
 	return s.store.Delete(id)
+}
+
+func payload(p posts.Post) devto.Payload {
+	return devto.Payload{
+		Title: p.Title, BodyMarkdown: p.Body, Series: p.Series,
+		CanonicalURL: p.CanonicalURL, Description: p.Description, Tags: strings.Join(p.Tags, ","),
+	}
 }
 
 // Send creates an unpublished Dev.to draft, or updates the existing article.
@@ -170,10 +184,7 @@ func (s *PostService) Send(ctx context.Context, id string) (posts.Post, error) {
 	if err != nil {
 		return posts.Post{}, err
 	}
-	payload := devto.Payload{
-		Title: p.Title, BodyMarkdown: p.Body, Series: p.Series,
-		CanonicalURL: p.CanonicalURL, Description: p.Description, Tags: strings.Join(p.Tags, ","),
-	}
+	payload := payload(p)
 	var a devto.Article
 	if p.DevtoID != 0 {
 		a, err = devto.Update(ctx, p.DevtoID, payload)
@@ -191,6 +202,98 @@ func (s *PostService) Send(ctx context.Context, id string) (posts.Post, error) {
 	s.remote[a.ID] = a
 	s.mu.Unlock()
 	return s.store.Save(p)
+}
+
+// Publish makes a post live on Dev.to. It only runs on the user's explicit
+// request. The article goes live as it stands there, so the placeholder check
+// reads Dev.to's copy: images are usually swapped in on Dev.to, not here.
+func (s *PostService) Publish(ctx context.Context, id string) (posts.Post, error) {
+	p, err := s.store.Get(id)
+	if err != nil {
+		return posts.Post{}, err
+	}
+	if p.DevtoID == 0 {
+		return posts.Post{}, errors.New("send this post to Dev.to first")
+	}
+	s.Sync(ctx)
+	if strings.Contains(s.articleBody(p), imagePlaceholder) {
+		return posts.Post{}, errors.New("replace the image placeholders on Dev.to before publishing")
+	}
+	a, err := devto.Publish(ctx, p.DevtoID)
+	if err != nil {
+		return posts.Post{}, err
+	}
+	if a.URL != "" {
+		p.DevtoURL = a.URL
+	}
+	s.mu.Lock()
+	s.remote[a.ID] = a
+	s.mu.Unlock()
+	return s.store.Save(p)
+}
+
+// articleBody is the article as Dev.to has it, falling back to the local copy.
+// The two differ once the user edits on Dev.to.
+func (s *PostService) articleBody(p posts.Post) string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if a, ok := s.remote[p.DevtoID]; ok && p.DevtoID != 0 && a.BodyMarkdown != "" {
+		return a.BodyMarkdown
+	}
+	return p.Body
+}
+
+// PublishedURL returns the live article's link, or an error if Dev.to hasn't
+// published it.
+func (s *PostService) PublishedURL(id string) (string, error) {
+	p, err := s.store.Get(id)
+	if err != nil {
+		return "", err
+	}
+	s.mu.Lock()
+	a, ok := s.remote[p.DevtoID]
+	s.mu.Unlock()
+	if !ok || p.DevtoID == 0 || !a.Published || a.URL == "" {
+		return "", errors.New("this post isn't published on Dev.to yet")
+	}
+	return a.URL, nil
+}
+
+// RecordPromotion notes a post sent to Buffer on the local article.
+func (s *PostService) RecordPromotion(id string, promo posts.Promotion) (posts.Post, error) {
+	p, err := s.store.Get(id)
+	if err != nil {
+		return posts.Post{}, err
+	}
+	p.Promotions = append(p.Promotions, promo)
+	return s.store.Save(p)
+}
+
+// Series lists the series already in use, across local posts and Dev.to.
+func (s *PostService) Series() ([]string, error) {
+	local, err := s.store.List()
+	if err != nil {
+		return nil, err
+	}
+	seen := map[string]bool{}
+	for _, p := range local {
+		if p.Series != "" {
+			seen[p.Series] = true
+		}
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, a := range s.remote {
+		if a.Series != nil && *a.Series != "" {
+			seen[*a.Series] = true
+		}
+	}
+	out := make([]string, 0, len(seen))
+	for name := range seen {
+		out = append(out, name)
+	}
+	sort.Strings(out)
+	return out, nil
 }
 
 func parseTime(s string) time.Time {

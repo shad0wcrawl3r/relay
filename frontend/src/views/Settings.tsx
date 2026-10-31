@@ -11,6 +11,8 @@ import { useToast } from "@/components/Toaster";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dot } from "@/components/bits";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AISettings } from "@/components/AISettings";
 import { PlaneAppGuide } from "@/components/PlaneAppGuide";
 
 export function Settings() {
@@ -24,6 +26,7 @@ export function Settings() {
   const bufferSignIn = useRef<CancellablePromise<BufferStatus> | null>(null);
   const [bufferConnecting, setBufferConnecting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [tab, setTab] = useState("plane");
   const [tmuxConf, setTmuxConf] = useState("");
   const { keymap, reloadKeymap } = useTerminal();
 
@@ -142,6 +145,17 @@ export function Settings() {
           <p className="mt-1 text-[13px] text-dim">Saved to {s.configPath}. Secrets are never shown again once saved.</p>
         </div>
 
+        <Tabs value={tab} onValueChange={setTab} className="flex flex-col gap-6">
+          <TabsList>
+            <TabsTrigger value="plane">Plane</TabsTrigger>
+            <TabsTrigger value="publishing">Publishing</TabsTrigger>
+            <TabsTrigger value="ai">AI</TabsTrigger>
+            <TabsTrigger value="terminal">Terminal</TabsTrigger>
+            <TabsTrigger value="privacy">Privacy</TabsTrigger>
+            <TabsTrigger value="storage">Storage</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="plane">
         <Section title="Plane" description="Relay connects as a Plane OAuth app that you create in your workspace.">
           <PlaneAppGuide
             redirectUri={s.redirectUri}
@@ -245,7 +259,10 @@ export function Settings() {
           </Row>
         </Section>
 
-        <Section title="Dev.to" description="Drafts are sent unpublished; you add images and publish on Dev.to.">
+          </TabsContent>
+
+          <TabsContent value="publishing">
+        <Section title="Dev.to" description="Posts go up as unpublished drafts. Publish from Relay or Dev.to when they're ready.">
           <Row
             label="API key"
             hint={
@@ -275,7 +292,7 @@ export function Settings() {
           </Row>
         </Section>
 
-        <Section title="Buffer" description="Turn your posts into social drafts. Nothing is sent until you review it.">
+        <Section title="Buffer" description="Promote published posts on LinkedIn. Nothing is sent until you review it.">
           <div className="flex items-center gap-3 rounded-[10px] border border-column-border bg-column px-4 py-3">
             <Dot color={buffer.connected ? "#46a758" : "#71717a"} />
             <div className="flex min-w-0 flex-1 flex-col">
@@ -304,6 +321,13 @@ export function Settings() {
           </div>
         </Section>
 
+          </TabsContent>
+
+          <TabsContent value="ai">
+            <AISettings />
+          </TabsContent>
+
+          <TabsContent value="privacy">
         <Section
           title="Privacy"
           description="Everything Relay stores on disk is encrypted with a key kept in your system keychain. Locked projects and modules stay hidden until you unlock them."
@@ -351,6 +375,9 @@ export function Settings() {
           </Row>
         </Section>
 
+          </TabsContent>
+
+          <TabsContent value="terminal">
         <Section title="Terminal" description="Sessions run in Relay itself; tmux isn't needed.">
           <Row
             label="tmux keybindings"
@@ -391,21 +418,28 @@ export function Settings() {
           </Row>
         </Section>
 
+          </TabsContent>
+
+          <TabsContent value="storage">
         <Section title="Storage">
           <Row label="Posts folder" hint="Each post is a markdown file. Plane data is never stored.">
             <Input readOnly value={s.postsDir} className="font-mono text-xs text-muted-foreground" />
           </Row>
         </Section>
+          </TabsContent>
+        </Tabs>
 
-        <div className="sticky bottom-0 -mx-8 flex justify-end gap-2 border-t border-hairline bg-background/95 px-8 py-3 backdrop-blur">
-          <Button variant="outline" size="md" disabled={!dirty || saving} onClick={() => load(s)}>
-            Discard
-          </Button>
-          <Button size="md" disabled={!dirty || saving} onClick={save}>
-            {saving && <Loader2 className="size-3.5 animate-spin" />}
-            Save settings
-          </Button>
-        </div>
+        {(dirty || (tab !== "ai" && tab !== "storage")) && (
+          <div className="sticky bottom-0 -mx-8 flex justify-end gap-2 border-t border-hairline bg-background/95 px-8 py-3 backdrop-blur">
+            <Button variant="outline" size="md" disabled={!dirty || saving} onClick={() => load(s)}>
+              Discard
+            </Button>
+            <Button size="md" disabled={!dirty || saving} onClick={save}>
+              {saving && <Loader2 className="size-3.5 animate-spin" />}
+              Save settings
+            </Button>
+          </div>
+        )}
       </div>
     </main>
   );
