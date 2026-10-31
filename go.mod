@@ -1,6 +1,6 @@
 module github.com/shad0wcrawl3r/relay
 
-go 1.26.0
+go 1.26.10
 
 require (
 	github.com/aymanbagabas/go-pty v0.2.3
@@ -9,7 +9,7 @@ require (
 	github.com/coder/websocket v1.8.15
 	github.com/gin-gonic/gin v1.12.0
 	github.com/spf13/viper v1.21.0
-	github.com/wailsapp/wails/v3 v3.0.0-beta.32
+	github.com/wailsapp/wails/v3 v3.0.0
 	github.com/zalando/go-keyring v0.2.8
 	go.yaml.in/yaml/v3 v3.0.5
 	golang.org/x/sync v0.24.0
