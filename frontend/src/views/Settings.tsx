@@ -49,6 +49,7 @@ export function Settings() {
   useEffect(() => {
     SettingsService.Get().then(load).catch(() => {});
     TerminalService.TmuxConfig().then(setTmuxConf).catch(() => {});
+    BufferService.Status().then(setBuffer).catch(() => {});
   }, []);
 
   if (!s || !form) return <main className="flex-1" />;
@@ -83,10 +84,6 @@ export function Settings() {
       setSaving(false);
     }
   };
-
-  useEffect(() => {
-    BufferService.Status().then(setBuffer, () => {});
-  }, []);
 
   const connectBuffer = async () => {
     setBufferConnecting(true);
