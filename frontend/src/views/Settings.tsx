@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import { Browser, Clipboard } from "@wailsio/runtime";
+import { useEffect, useRef, useState } from "react";
+import { Browser, CancelError, Clipboard, type CancellablePromise } from "@wailsio/runtime";
 import { Check, Copy, Loader2 } from "lucide-react";
-import { moduleKey, PlaneService, projectKey, SettingsService, TerminalService, type Settings as SettingsT, type SettingsInput } from "@/lib/api";
+import { BufferService, moduleKey, PlaneService, projectKey, SettingsService, TerminalService, type BufferStatus, type Settings as SettingsT, type SettingsInput } from "@/lib/api";
 import { useTerminal } from "@/lib/terminal";
 import { showKey } from "@/lib/keys";
 import { Switch } from "@/components/ui/switch";
@@ -20,6 +20,9 @@ export function Settings() {
   const [form, setForm] = useState<SettingsInput | null>(null);
   const [saving, setSaving] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [buffer, setBuffer] = useState<BufferStatus>({ connected: false, account: "" });
+  const bufferSignIn = useRef<CancellablePromise<BufferStatus> | null>(null);
+  const [bufferConnecting, setBufferConnecting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [tmuxConf, setTmuxConf] = useState("");
   const { keymap, reloadKeymap } = useTerminal();
@@ -46,6 +49,7 @@ export function Settings() {
   useEffect(() => {
     SettingsService.Get().then(load).catch(() => {});
     TerminalService.TmuxConfig().then(setTmuxConf).catch(() => {});
+    BufferService.Status().then(setBuffer).catch(() => {});
   }, []);
 
   if (!s || !form) return <main className="flex-1" />;
@@ -78,6 +82,30 @@ export function Settings() {
       return false;
     } finally {
       setSaving(false);
+    }
+  };
+
+  const connectBuffer = async () => {
+    setBufferConnecting(true);
+    const signIn = BufferService.Connect();
+    bufferSignIn.current = signIn;
+    try {
+      setBuffer(await signIn);
+      toast({ tone: "success", title: "Connected to Buffer" });
+    } catch (err) {
+      if (!(err instanceof CancelError)) toast({ tone: "error", title: "Couldn't connect to Buffer", body: errorMessage(err) });
+    } finally {
+      bufferSignIn.current = null;
+      setBufferConnecting(false);
+    }
+  };
+
+  const disconnectBuffer = async () => {
+    try {
+      await BufferService.Disconnect();
+      setBuffer({ connected: false, account: "" });
+    } catch (err) {
+      toast({ tone: "error", title: "Couldn't disconnect", body: errorMessage(err) });
     }
   };
 
@@ -245,6 +273,35 @@ export function Settings() {
               )}
             </div>
           </Row>
+        </Section>
+
+        <Section title="Buffer" description="Turn your posts into social drafts. Nothing is sent until you review it.">
+          <div className="flex items-center gap-3 rounded-[10px] border border-column-border bg-column px-4 py-3">
+            <Dot color={buffer.connected ? "#46a758" : "#71717a"} />
+            <div className="flex min-w-0 flex-1 flex-col">
+              <span className="text-[13px] text-strong">
+                {buffer.connected ? (buffer.account ? `Connected as ${buffer.account}` : "Connected") : "Not connected"}
+              </span>
+              <span className="text-xs text-dim">{buffer.connected ? "Token stored in the system keychain." : "You'll approve access in your browser."}</span>
+            </div>
+            {bufferConnecting ? (
+              <>
+                <span className="flex items-center gap-1.5 text-xs text-dim">
+                  <Loader2 className="size-3 animate-spin" />
+                  Waiting for browser…
+                </span>
+                <Button variant="outline" onClick={() => bufferSignIn.current?.cancel()}>
+                  Cancel
+                </Button>
+              </>
+            ) : buffer.connected ? (
+              <Button variant="destructive" onClick={disconnectBuffer}>
+                Disconnect
+              </Button>
+            ) : (
+              <Button onClick={connectBuffer}>Connect Buffer</Button>
+            )}
+          </div>
         </Section>
 
         <Section

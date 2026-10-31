@@ -47,6 +47,7 @@ func main() {
 		Services: []application.Service{
 			application.NewService(planeSvc),
 			application.NewService(postSvc),
+			application.NewService(NewBufferService()),
 			application.NewService(settingsSvc),
 			application.NewService(NewTerminalService()),
 		},
