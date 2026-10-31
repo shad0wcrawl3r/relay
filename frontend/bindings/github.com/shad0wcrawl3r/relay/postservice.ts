@@ -40,6 +40,30 @@ export function List(): $CancellablePromise<$models.PostList> {
     return $Call.ByID(891579411);
 }
 
+/**
+ * Publish makes a post live on Dev.to. It only runs on the user's explicit
+ * request. The article goes live as it stands there, so the placeholder check
+ * reads Dev.to's copy: images are usually swapped in on Dev.to, not here.
+ */
+export function Publish(id: string): $CancellablePromise<posts$0.Post> {
+    return $Call.ByID(4200943466, id);
+}
+
+/**
+ * PublishedURL returns the live article's link, or an error if Dev.to hasn't
+ * published it.
+ */
+export function PublishedURL(id: string): $CancellablePromise<string> {
+    return $Call.ByID(887657452, id);
+}
+
+/**
+ * RecordPromotion notes a post sent to Buffer on the local article.
+ */
+export function RecordPromotion(id: string, promo: posts$0.Promotion): $CancellablePromise<posts$0.Post> {
+    return $Call.ByID(688910619, id, promo);
+}
+
 export function Save(p: posts$0.Post): $CancellablePromise<posts$0.Post> {
     return $Call.ByID(2219860006, p);
 }
@@ -49,6 +73,13 @@ export function Save(p: posts$0.Post): $CancellablePromise<posts$0.Post> {
  */
 export function Send(id: string): $CancellablePromise<posts$0.Post> {
     return $Call.ByID(1736885549, id);
+}
+
+/**
+ * Series lists the series already in use, across local posts and Dev.to.
+ */
+export function Series(): $CancellablePromise<string[] | null> {
+    return $Call.ByID(2741428706);
 }
 
 /**

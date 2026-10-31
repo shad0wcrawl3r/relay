@@ -109,6 +109,8 @@ func Update(fn func(c *Config)) error {
 	v.Set("terminal.TMUX_KEYS", next.Terminal.TmuxKeys)
 	v.Set("privacy.LOCKED", next.Privacy.Locked)
 	v.Set("privacy.AUTO_LOCK_MINUTES", next.Privacy.AutoLockMinutes)
+	v.Set("ai.PROVIDER", next.AI.Provider)
+	v.Set("ai.MODEL", next.AI.Model)
 	path := Path()
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return err
@@ -155,6 +157,11 @@ type Config struct {
 		Scrollback int    `mapstructure:"SCROLLBACK"`
 		// TmuxKeys reads prefix and bindings from the user's tmux config.
 		TmuxKeys bool `mapstructure:"TMUX_KEYS"`
+	}
+	AI struct {
+		// Provider and Model are used for summaries; keys live in the keychain.
+		Provider string `mapstructure:"PROVIDER"`
+		Model    string `mapstructure:"MODEL"`
 	}
 	Privacy struct {
 		Locked          []string `mapstructure:"LOCKED"`

@@ -11,6 +11,22 @@ export interface Post {
     "devtoId": number;
     "devtoUrl": string;
     "sentAt": string;
+
+    /**
+     * Promotions records what went to Buffer for this post.
+     */
+    "promotions": Promotion[] | null;
     "updatedAt": string;
     "body": string;
+}
+
+/**
+ * Promotion is one post sent to Buffer about this article.
+ */
+export interface Promotion {
+    "bufferId": string;
+    "channel": string;
+    "timing": string;
+    "dueAt": string;
+    "at": string;
 }

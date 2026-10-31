@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Browser } from "@wailsio/runtime";
-import { ExternalLink, ImageIcon, Loader2, Send, X } from "lucide-react";
+import { ExternalLink, ImageIcon, Loader2, Megaphone, Rocket, Send, X } from "lucide-react";
 import { PostService, type Post, type PostList } from "@/lib/api";
 import { ago } from "@/lib/time";
 import { cn, errorMessage } from "@/lib/utils";
@@ -12,6 +12,9 @@ import { PostsSidebar } from "./PostsSidebar";
 import { MarkdownEditor, MoreButton, type EditorHandle } from "./MarkdownEditor";
 import { Preview } from "./Preview";
 import { ImageDialog } from "./ImageDialog";
+import { PromoteDialog } from "./PromoteDialog";
+import { PublishDialog } from "./PublishDialog";
+import { SeriesSelect } from "./SeriesSelect";
 import { countPlaceholders } from "./highlight";
 
 const MAX_TAGS = 4;
@@ -28,6 +31,8 @@ export function Editor() {
   const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [imageOpen, setImageOpen] = useState(false);
   const [sending, setSending] = useState(false);
+  const [publishOpen, setPublishOpen] = useState(false);
+  const [promoteOpen, setPromoteOpen] = useState(false);
   const [, tick] = useState(0);
   const editor = useRef<EditorHandle>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -136,6 +141,50 @@ export function Editor() {
   const images = post ? countPlaceholders(post.body) : 0;
   const url = summary?.url || post?.devtoUrl;
 
+  // A draft can go live on Dev.to at any time, so watch for it while one is
+  // open: every minute, and whenever the user comes back to Relay.
+  const awaitingPublish = sent && !published;
+  useEffect(() => {
+    if (!awaitingPublish) return;
+    const check = () => PostService.Sync().then(setList).catch(() => {});
+    const t = setInterval(check, 60000);
+    window.addEventListener("focus", check);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener("focus", check);
+    };
+  }, [awaitingPublish]);
+
+  const wasPublished = useRef<{ id: string; published: boolean } | null>(null);
+  useEffect(() => {
+    if (!post?.id || !summary) return;
+    const before = wasPublished.current;
+    wasPublished.current = { id: post.id, published };
+    if (before?.id === post.id && !before.published && published) {
+      toast({
+        tone: "success",
+        title: "Published on Dev.to",
+        body: "Ready to promote.",
+        actions: [
+          { label: "Promote on LinkedIn", primary: true, onClick: () => setPromoteOpen(true) },
+          { label: "Dismiss", onClick: () => {} },
+        ],
+      });
+    }
+  }, [post?.id, summary, published, toast]);
+
+  const publish = async () => {
+    if (!post) return;
+    try {
+      const result = await PostService.Publish(post.id);
+      setPost((cur) => (cur && cur.id === result.id ? { ...cur, devtoUrl: result.devtoUrl } : cur));
+      setPublishOpen(false);
+      await refreshList();
+    } catch (err) {
+      toast({ tone: "error", title: "Couldn't publish", body: errorMessage(err) });
+    }
+  };
+
   const send = async () => {
     if (!post) return;
     if (!post.title.trim()) {
@@ -232,6 +281,7 @@ export function Editor() {
                   </div>
                   <TitleInput value={post.title} onChange={(title) => change({ title })} onEnter={() => editor.current?.focus()} />
                   <TagInput tags={post.tags ?? []} onChange={(tags) => change({ tags })} />
+                  <SeriesSelect value={post.series} onChange={(series) => change({ series })} />
                   <MarkdownEditor
                     ref={editor}
                     value={post.body}
@@ -259,6 +309,12 @@ export function Editor() {
                   {images > 0 ? `${images} image${images === 1 ? "" : "s"} + cover to add on Dev.to` : "Cover to add on Dev.to"}
                 </span>
               )}
+              {post.promotions.length > 0 && (
+                <span className="inline-flex items-center gap-1.5">
+                  <Megaphone className="size-3.5" strokeWidth={1.9} />
+                  Promoted {post.promotions.length === 1 ? "once" : `${post.promotions.length} times`}
+                </span>
+              )}
               <span className="grow" />
               {sent ? (
                 <>
@@ -268,10 +324,21 @@ export function Editor() {
                       Open on Dev.to
                     </Button>
                   )}
-                  <Button size="md" disabled={sending} onClick={send}>
+                  <Button variant="outline" size="md" className="font-medium text-strong" disabled={sending} onClick={send}>
                     {sending ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
                     {published ? "Update article" : "Update draft"}
                   </Button>
+                  {published ? (
+                    <Button size="md" disabled={!url} onClick={() => setPromoteOpen(true)}>
+                      <Megaphone className="size-3.5" />
+                      Promote on LinkedIn
+                    </Button>
+                  ) : (
+                    <Button size="md" onClick={() => setPublishOpen(true)}>
+                      <Rocket className="size-3.5" />
+                      Publish
+                    </Button>
+                  )}
                 </>
               ) : (
                 <>
@@ -287,6 +354,16 @@ export function Editor() {
         )}
       </div>
       <ImageDialog open={imageOpen} onOpenChange={setImageOpen} onInsert={(t) => setTimeout(() => editor.current?.insertAtCursor(t), 0)} />
+      {post && <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} onPublish={publish} />}
+      {post && url && (
+        <PromoteDialog
+          open={promoteOpen}
+          onOpenChange={setPromoteOpen}
+          post={post}
+          url={url}
+          onPromoted={(updated) => setPost((cur) => (cur && cur.id === updated.id ? { ...cur, promotions: updated.promotions } : cur))}
+        />
+      )}
     </>
   );
 }
@@ -382,9 +459,6 @@ function MetaMenu({ post, onChange, onDelete }: { post: Post; onChange: (p: Part
         <MoreButton />
       </PopoverTrigger>
       <PopoverContent align="end" className="flex w-[340px] flex-col gap-3 p-4">
-        <Field label="Series">
-          <Input value={post.series} placeholder="Optional series name" onChange={(e) => onChange({ series: e.target.value })} />
-        </Field>
         <Field label="Canonical URL">
           <Input value={post.canonicalUrl} placeholder="https://… if published elsewhere first" onChange={(e) => onChange({ canonicalUrl: e.target.value })} />
         </Field>

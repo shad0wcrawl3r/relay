@@ -3,12 +3,14 @@
 // The generator types every Go slice as `T[] | null`. The Go side always
 // sends [], but the wrappers below normalise at the boundary anyway and the
 // exported types drop the nulls, so the UI never has to guard.
+import * as AIBindings from "../../bindings/github.com/shad0wcrawl3r/relay/aiservice";
 import * as BufferBindings from "../../bindings/github.com/shad0wcrawl3r/relay/bufferservice";
 import * as PlaneBindings from "../../bindings/github.com/shad0wcrawl3r/relay/planeservice";
 import * as PostBindings from "../../bindings/github.com/shad0wcrawl3r/relay/postservice";
 import * as SettingsBindings from "../../bindings/github.com/shad0wcrawl3r/relay/settingsservice";
 import * as TerminalBindings from "../../bindings/github.com/shad0wcrawl3r/relay/terminalservice";
 import type * as M from "../../bindings/github.com/shad0wcrawl3r/relay/models";
+import type * as BufferM from "../../bindings/github.com/shad0wcrawl3r/relay/internal/buffer/models";
 import type * as PM from "../../bindings/github.com/shad0wcrawl3r/relay/internal/plane/models";
 import type * as PostM from "../../bindings/github.com/shad0wcrawl3r/relay/internal/posts/models";
 import type * as TermM from "../../bindings/github.com/shad0wcrawl3r/relay/internal/term/models";
@@ -57,7 +59,7 @@ const snapshot = (s: PM.Snapshot): Snapshot => ({
   })),
 });
 
-const post = (p: PostM.Post): Post => ({ ...p, tags: arr(p.tags) });
+const post = (p: PostM.Post): Post => ({ ...p, tags: arr(p.tags), promotions: arr(p.promotions) });
 const postList = (l: M.PostList): PostList => ({ ...l, posts: arr(l.posts) });
 
 export const PlaneService = {
@@ -93,14 +95,33 @@ export const PostService = {
   Save: async (p: Post) => post(await PostBindings.Save(p as PostM.Post)),
   Delete: (id: string) => PostBindings.Delete(id),
   Send: async (id: string) => post(await PostBindings.Send(id)),
+  Publish: async (id: string) => post(await PostBindings.Publish(id)),
+  Series: async (): Promise<string[]> => arr(await PostBindings.Series()),
 };
 
 export type BufferStatus = M.BufferStatus;
+export type BufferChannel = Clean<BufferM.Channel>;
+export type BufferTiming = "queue" | "schedule" | "draft";
+export type AIStatus = Clean<M.AIStatus>;
 
 export const BufferService = {
   Status: (): Promise<BufferStatus> => BufferBindings.Status(),
   Connect: () => BufferBindings.Connect(),
   Disconnect: () => BufferBindings.Disconnect(),
+  Channels: async (): Promise<BufferChannel[]> => arr(await BufferBindings.Channels()),
+  Promote: async (p: { postId: string; channelId: string; channel: string; text: string; timing: BufferTiming; dueAt: string }) =>
+    post(await BufferBindings.Promote(p as M.Promotion)),
+};
+
+const aiStatus = (s: M.AIStatus): AIStatus => ({ ...s, providers: arr(s.providers) });
+
+export const AIService = {
+  Status: async () => aiStatus(await AIBindings.Status()),
+  Models: async (provider: string): Promise<string[]> => arr(await AIBindings.Models(provider)),
+  SetKey: async (provider: string, key: string) => aiStatus(await AIBindings.SetKey(provider, key)),
+  ClearKey: async (provider: string) => aiStatus(await AIBindings.ClearKey(provider)),
+  Select: async (provider: string, model: string) => aiStatus(await AIBindings.Select(provider, model)),
+  SummarizePost: (id: string) => AIBindings.SummarizePost(id),
 };
 
 export const SettingsService = {
