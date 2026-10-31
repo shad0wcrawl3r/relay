@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/shad0wcrawl3r/relay/internal/config"
+	"github.com/shad0wcrawl3r/relay/internal/logs"
 	"github.com/shad0wcrawl3r/relay/internal/term"
 	"github.com/shad0wcrawl3r/relay/internal/vault"
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -27,6 +28,9 @@ type Endpoint struct {
 	// Home lets the UI shorten folders to ~.
 	Home string `json:"home"`
 }
+
+// termLog records session lifecycle only, never commands or output.
+var termLog = logs.For("terminal")
 
 func NewTerminalService() *TerminalService {
 	return &TerminalService{}
@@ -77,12 +81,21 @@ func (s *TerminalService) Create(o term.Options) (term.Info, error) {
 			o.Cwd = ""
 		}
 	}
-	return s.m.Create(o)
+	info, err := s.m.Create(o)
+	if err != nil {
+		termLog.Warn("session failed to start", "error", err)
+		return info, err
+	}
+	termLog.Info("session started", "id", info.ID)
+	return info, nil
 }
 
 func (s *TerminalService) List() []term.Info { return s.m.List() }
 
-func (s *TerminalService) Kill(id string) error { return s.m.Kill(id) }
+func (s *TerminalService) Kill(id string) error {
+	termLog.Info("session killed", "id", id)
+	return s.m.Kill(id)
+}
 
 func (s *TerminalService) Resize(id string, cols, rows int) error {
 	sess, err := s.m.Get(id)

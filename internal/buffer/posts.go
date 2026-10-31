@@ -35,6 +35,7 @@ func (c *Client) Channels(ctx context.Context) ([]Channel, error) {
 		}
 		channels = append(channels, data.Channels...)
 	}
+	log.Debug("channels loaded", "organizations", len(account.Organizations), "channels", len(channels))
 	return channels, nil
 }
 
@@ -103,10 +104,12 @@ func (c *Client) CreatePost(ctx context.Context, p NewPost) (string, error) {
 		return "", err
 	}
 	if data.CreatePost.Post.ID == "" {
+		log.Warn("post refused", "channel", p.ChannelID, "timing", p.Timing, "reason", data.CreatePost.Message)
 		if data.CreatePost.Message != "" {
 			return "", fmt.Errorf("Buffer: %s", data.CreatePost.Message)
 		}
 		return "", errors.New("Buffer didn't confirm the post")
 	}
+	log.Notice("post created", "id", data.CreatePost.Post.ID, "channel", p.ChannelID, "timing", p.Timing, "chars", len(p.Text))
 	return data.CreatePost.Post.ID, nil
 }

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/shad0wcrawl3r/relay/internal/config"
 	"github.com/zalando/go-keyring"
 )
 
@@ -119,7 +120,7 @@ func TestMissingKeyAsksForIt(t *testing.T) {
 
 func TestErrorsAreFriendlyAndHideTheKey(t *testing.T) {
 	_ = SetKey("openai", "sk-secret")
-	for status, want := range map[int]string{401: "rejected", 429: "rate limit", 400: "model not found"} {
+	for status, want := range map[int]string{401: "rejected", 429: "rate limited", 400: "model not found"} {
 		c := clientFor(t, "openai", func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(status)
 			fmt.Fprint(w, `{"error":{"message":"model not found"}}`)
@@ -135,6 +136,118 @@ func TestEmptyReplyIsAnError(t *testing.T) {
 	c := clientFor(t, "ollama", func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, `{"choices":[]}`) })
 	if _, err := c.Complete(context.Background(), "ollama", "m", "s", "u"); err == nil {
 		t.Fatal("expected an error")
+	}
+}
+
+func TestRateLimitShowsTheUpstreamReason(t *testing.T) {
+	_ = SetKey("openrouter", "k")
+	c := clientFor(t, "openrouter", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Retry-After", "20")
+		w.WriteHeader(http.StatusTooManyRequests)
+		fmt.Fprint(w, `{"error":{"message":"Provider returned error","metadata":{"raw":"free model is rate-limited upstream"}}}`)
+	})
+	_, err := c.Complete(context.Background(), "openrouter", "m", "s", "u")
+	if err == nil || !strings.Contains(err.Error(), "rate-limited upstream") || !strings.Contains(err.Error(), "20s") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestErrorsInsideSuccessfulResponses(t *testing.T) {
+	_ = SetKey("openrouter", "k")
+	for name, body := range map[string]string{
+		"top level": `{"error":{"message":"upstream failed"}}`,
+		"in choice": `{"choices":[{"error":{"message":"upstream failed"},"finish_reason":"error"}]}`,
+	} {
+		c := clientFor(t, "openrouter", func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, body) })
+		_, err := c.Complete(context.Background(), "openrouter", "m", "s", "u")
+		if err == nil || !strings.Contains(err.Error(), "upstream failed") {
+			t.Errorf("%s: err = %v", name, err)
+		}
+	}
+}
+
+func TestEmptyReplySaysWhy(t *testing.T) {
+	_ = SetKey("openrouter", "k")
+	c := clientFor(t, "openrouter", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `{"choices":[{"message":{"content":null,"reasoning":"thinking hard"},"finish_reason":"length"}]}`)
+	})
+	_, err := c.Complete(context.Background(), "openrouter", "m", "s", "u")
+	if err == nil || !strings.Contains(err.Error(), "length") || !strings.Contains(err.Error(), "reasoning") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestContentCanBeAListOfParts(t *testing.T) {
+	c := clientFor(t, "ollama", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `{"choices":[{"message":{"content":[{"type":"text","text":"he"},{"type":"text","text":"llo"}]}}]}`)
+	})
+	if got, err := c.Complete(context.Background(), "ollama", "m", "s", "u"); err != nil || got != "hello" {
+		t.Fatalf("got %q, %v", got, err)
+	}
+}
+
+func TestCustomEndpointReplacesTheDefault(t *testing.T) {
+	_ = SetKey("openai", "custom-key")
+	used := false
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		used = r.URL.Path == "/proxy/v1/models" && r.Header.Get("Authorization") == "Bearer custom-key"
+		fmt.Fprint(w, `{"data":[{"id":"gpt-x"}]}`)
+	}))
+	defer srv.Close()
+	config.Override(func(c *config.Config) { c.AI.Endpoints = map[string]string{"openai": srv.URL + "/proxy/v1"} })
+	t.Cleanup(func() { config.Override(func(c *config.Config) { c.AI.Endpoints = nil }) })
+	if _, err := New().Models(context.Background(), "openai"); err != nil || !used {
+		t.Fatalf("used = %v, err = %v", used, err)
+	}
+}
+
+func TestStoredKeyIsSentToKeylessProviders(t *testing.T) {
+	_ = SetKey("lmstudio", "proxy-key")
+	t.Cleanup(func() { _ = ClearKey("lmstudio") })
+	c := clientFor(t, "lmstudio", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer proxy-key" {
+			t.Errorf("auth = %q", r.Header.Get("Authorization"))
+		}
+		fmt.Fprint(w, `{"data":[]}`)
+	})
+	if _, err := c.Models(context.Background(), "lmstudio"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestLocalFollowsTheEndpoint(t *testing.T) {
+	t.Cleanup(func() { config.Override(func(c *config.Config) { c.AI.Endpoints = nil }) })
+	c := New()
+	for endpoint, want := range map[string]bool{
+		"":                             true,
+		"http://localhost:11434/v1":    true,
+		"http://127.0.0.1:9000/v1":     true,
+		"http://[::1]:9000/v1":         true,
+		"http://192.168.1.20:11434":    false,
+		"https://ollama.example.com":   false,
+		"http://localhost.example.com": false,
+	} {
+		config.Override(func(cfg *config.Config) { cfg.AI.Endpoints = map[string]string{"ollama": endpoint} })
+		if got := c.Local("ollama"); got != want {
+			t.Errorf("%q: local = %v", endpoint, got)
+		}
+	}
+	config.Override(func(cfg *config.Config) { cfg.AI.Endpoints = map[string]string{"anthropic": "http://127.0.0.1:8000"} })
+	if !c.Local("anthropic") {
+		t.Error("a loopback proxy is local")
+	}
+}
+
+func TestNormaliseEndpoint(t *testing.T) {
+	for raw, want := range map[string]string{" https://x.io/v1/ ": "https://x.io/v1", "": "", "http://10.0.0.2:1234/v1": "http://10.0.0.2:1234/v1"} {
+		if got, err := NormaliseEndpoint(raw); err != nil || got != want {
+			t.Errorf("%q: got %q, %v", raw, got, err)
+		}
+	}
+	for _, bad := range []string{"x.io/v1", "ftp://x.io", "https://", "file:///etc/passwd"} {
+		if _, err := NormaliseEndpoint(bad); err == nil {
+			t.Errorf("%q accepted", bad)
+		}
 	}
 }
 

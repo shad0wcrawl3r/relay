@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/shad0wcrawl3r/relay/internal/config"
+	"github.com/shad0wcrawl3r/relay/internal/logs"
 	"github.com/zalando/go-keyring"
 )
 
@@ -163,7 +164,7 @@ func (a *auth) authorize(ctx context.Context, openURL func(string)) (*Token, err
 		q.Set("scope", cfg.Plane.Scope)
 	}
 	// Not secret, and the first thing to compare when Plane answers 400.
-	log.Printf("plane: opening consent page; redirect_uri=%s scope=%q", redirectURI(cfg), cfg.Plane.Scope)
+	logs.For("plane").Info("opening consent page", "redirect_uri", redirectURI(cfg), "scope", cfg.Plane.Scope)
 	consent := baseURL(cfg) + "/auth/o/authorize-app/?" + q.Encode()
 	if debugHTTP() {
 		log.Printf("plane >>> consent URL: %s", consent)

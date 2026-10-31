@@ -29,4 +29,5 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
 - Buffer: promotions need a live Dev.to article; Go adds its public link, so one can never go out without it. Articles reach a model provider only when the user asks.
 - Posts are local markdown files in the OS app-storage dir.
 - Never commit `config.toml` or log secrets.
+- Logs go through `internal/logs`: per-subsystem levels, in memory only. Never log locked project data, prompts, article text or terminal output.
 - Terminal: no tmux dependency; shell integration is injected at spawn, never written into the user's dotfiles; the PTY WebSocket binds 127.0.0.1 only and requires the per-launch token.

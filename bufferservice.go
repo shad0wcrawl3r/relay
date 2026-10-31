@@ -79,6 +79,15 @@ func withLink(text, url string) string {
 	return text + "\n\n" + url
 }
 
+// PreviewPromotion returns the exact text Promote would send.
+func (s *BufferService) PreviewPromotion(postID, text string) (string, error) {
+	url, err := s.posts.PublishedURL(postID)
+	if err != nil {
+		return "", err
+	}
+	return withLink(text, url), nil
+}
+
 // Promote sends a post about a published article to Buffer. The link comes from
 // Dev.to here, not the frontend, so a promotion can't go out without it.
 func (s *BufferService) Promote(ctx context.Context, in Promotion) (posts.Post, error) {

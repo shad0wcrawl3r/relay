@@ -5,12 +5,14 @@
 // exported types drop the nulls, so the UI never has to guard.
 import * as AIBindings from "../../bindings/github.com/shad0wcrawl3r/relay/aiservice";
 import * as BufferBindings from "../../bindings/github.com/shad0wcrawl3r/relay/bufferservice";
+import * as LogBindings from "../../bindings/github.com/shad0wcrawl3r/relay/logservice";
 import * as PlaneBindings from "../../bindings/github.com/shad0wcrawl3r/relay/planeservice";
 import * as PostBindings from "../../bindings/github.com/shad0wcrawl3r/relay/postservice";
 import * as SettingsBindings from "../../bindings/github.com/shad0wcrawl3r/relay/settingsservice";
 import * as TerminalBindings from "../../bindings/github.com/shad0wcrawl3r/relay/terminalservice";
 import type * as M from "../../bindings/github.com/shad0wcrawl3r/relay/models";
 import type * as BufferM from "../../bindings/github.com/shad0wcrawl3r/relay/internal/buffer/models";
+import type * as LogM from "../../bindings/github.com/shad0wcrawl3r/relay/internal/logs/models";
 import type * as PM from "../../bindings/github.com/shad0wcrawl3r/relay/internal/plane/models";
 import type * as PostM from "../../bindings/github.com/shad0wcrawl3r/relay/internal/posts/models";
 import type * as TermM from "../../bindings/github.com/shad0wcrawl3r/relay/internal/term/models";
@@ -99,6 +101,19 @@ export const PostService = {
   Series: async (): Promise<string[]> => arr(await PostBindings.Series()),
 };
 
+export type LogEntry = Clean<LogM.Entry>;
+export type LogStatus = Clean<M.LogStatus>;
+
+const logStatus = (s: M.LogStatus): LogStatus => ({ ...s, subsystems: arr(s.subsystems) });
+
+export const LogService = {
+  Status: async () => logStatus(await LogBindings.Status()),
+  SetEnabled: async (on: boolean) => logStatus(await LogBindings.SetEnabled(on)),
+  SetLevel: async (subsystem: string, level: string) => logStatus(await LogBindings.SetLevel(subsystem, level)),
+  Entries: async (after: number): Promise<LogEntry[]> => arr(await LogBindings.Entries(after)),
+  Clear: () => LogBindings.Clear(),
+};
+
 export type BufferStatus = M.BufferStatus;
 export type BufferChannel = Clean<BufferM.Channel>;
 export type BufferTiming = "queue" | "schedule" | "draft";
@@ -109,6 +124,7 @@ export const BufferService = {
   Connect: () => BufferBindings.Connect(),
   Disconnect: () => BufferBindings.Disconnect(),
   Channels: async (): Promise<BufferChannel[]> => arr(await BufferBindings.Channels()),
+  PreviewPromotion: (postId: string, text: string): Promise<string> => BufferBindings.PreviewPromotion(postId, text),
   Promote: async (p: { postId: string; channelId: string; channel: string; text: string; timing: BufferTiming; dueAt: string }) =>
     post(await BufferBindings.Promote(p as M.Promotion)),
 };
@@ -120,6 +136,7 @@ export const AIService = {
   Models: async (provider: string): Promise<string[]> => arr(await AIBindings.Models(provider)),
   SetKey: async (provider: string, key: string) => aiStatus(await AIBindings.SetKey(provider, key)),
   ClearKey: async (provider: string) => aiStatus(await AIBindings.ClearKey(provider)),
+  SetEndpoint: async (provider: string, endpoint: string) => aiStatus(await AIBindings.SetEndpoint(provider, endpoint)),
   Select: async (provider: string, model: string) => aiStatus(await AIBindings.Select(provider, model)),
   SummarizePost: (id: string) => AIBindings.SummarizePost(id),
 };

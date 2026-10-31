@@ -11,6 +11,13 @@ export interface AIProvider {
     "local": boolean;
     "needsKey": boolean;
     "keySet": boolean;
+
+    /**
+     * Endpoint is the base URL in use; Custom says it isn't the default.
+     */
+    "endpoint": string;
+    "defaultEndpoint": string;
+    "custom": boolean;
 }
 
 export interface AIStatus {
@@ -50,6 +57,17 @@ export interface Endpoint {
      * Home lets the UI shorten folders to ~.
      */
     "home": string;
+}
+
+export interface LogStatus {
+    "enabled": boolean;
+    "subsystems": LogSubsystem[] | null;
+}
+
+export interface LogSubsystem {
+    "id": string;
+    "name": string;
+    "level": string;
 }
 
 export interface PostList {

@@ -6,6 +6,8 @@ import (
 	"runtime"
 	"sync/atomic"
 
+	"github.com/shad0wcrawl3r/relay/internal/config"
+	"github.com/shad0wcrawl3r/relay/internal/logs"
 	"github.com/shad0wcrawl3r/relay/internal/plane"
 	"github.com/shad0wcrawl3r/relay/internal/term"
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -30,6 +32,10 @@ func init() {
 }
 
 func main() {
+	cfg := config.GetConfig()
+	logs.Configure(cfg.Logs.Enabled, cfg.Logs.Levels)
+	logs.For("app").Notice("started", "os", runtime.GOOS)
+
 	planeSvc := NewPlaneService()
 	postSvc, err := NewPostService()
 	if err != nil {
@@ -49,6 +55,7 @@ func main() {
 			application.NewService(postSvc),
 			application.NewService(NewBufferService(postSvc)),
 			application.NewService(NewAIService(postSvc)),
+			application.NewService(&LogService{}),
 			application.NewService(settingsSvc),
 			application.NewService(NewTerminalService()),
 		},
@@ -60,6 +67,7 @@ func main() {
 		},
 		// ⌘Q and the tray's Quit both end up here.
 		ShouldQuit: func() bool {
+			logs.For("app").Notice("quitting")
 			quitting.Store(true)
 			return true
 		},

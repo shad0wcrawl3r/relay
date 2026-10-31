@@ -44,6 +44,7 @@ func (c *Client) Connect(ctx context.Context, openURL func(string)) error {
 	}
 	state := fmt.Sprintf("%d.%s", ln.Addr().(*net.TCPAddr).Port, randomString())
 	verifier := randomString()
+	log.Info("sign-in started", "port", ln.Addr().(*net.TCPAddr).Port)
 
 	type result struct {
 		code string
@@ -57,6 +58,7 @@ func (c *Client) Connect(ctx context.Context, openURL func(string)) error {
 		// Anything on this machine can reach the port. Ignore a wrong state
 		// and keep waiting for the real redirect.
 		if subtle.ConstantTimeCompare([]byte(q.Get("state")), []byte(state)) != 1 {
+			log.Warn("ignored a redirect with the wrong state")
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprint(w, callbackPage("Relay couldn't connect to Buffer", "This sign-in link has expired. Start again from Relay."))
 			return
@@ -100,9 +102,11 @@ func (c *Client) Connect(ctx context.Context, openURL func(string)) error {
 	select {
 	case res = <-done:
 	case <-ctx.Done():
+		log.Notice("sign-in cancelled or timed out")
 		return errors.New("timed out waiting for Buffer sign-in")
 	}
 	if res.err != nil {
+		log.Warn("sign-in refused", "error", res.err)
 		return res.err
 	}
 
@@ -113,13 +117,16 @@ func (c *Client) Connect(ctx context.Context, openURL func(string)) error {
 		"code_verifier": {verifier},
 	})
 	if err != nil {
+		log.Warn("token exchange failed", "error", err)
 		return err
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if err := c.store(tok); err != nil {
+		log.Error("could not save the token", "error", err)
 		return fmt.Errorf("could not save the Buffer token to the keychain: %w", err)
 	}
+	log.Notice("signed in")
 	return nil
 }
 

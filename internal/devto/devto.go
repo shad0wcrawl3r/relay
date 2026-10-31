@@ -14,11 +14,12 @@ import (
 	"time"
 
 	"github.com/shad0wcrawl3r/relay/internal/config"
+	"github.com/shad0wcrawl3r/relay/internal/logs"
 )
 
 const baseURL = "https://dev.to/api"
 
-var httpClient = &http.Client{Timeout: 30 * time.Second}
+var httpClient = &http.Client{Timeout: 30 * time.Second, Transport: logs.Transport("devto", nil)}
 
 var ErrNoKey = errors.New("dev.to: no API key; add it in Settings")
 

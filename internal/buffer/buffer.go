@@ -8,15 +8,17 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/shad0wcrawl3r/relay/internal/logs"
 	"github.com/zalando/go-keyring"
 )
+
+var log = logs.For("buffer")
 
 const (
 	keyringService = "relay"
@@ -83,7 +85,7 @@ func New() *Client {
 		authURL:  "https://auth.buffer.com/auth",
 		tokenURL: "https://auth.buffer.com/token",
 		apiURL:   "https://api.buffer.com",
-		http:     &http.Client{Timeout: 30 * time.Second},
+		http:     &http.Client{Timeout: 30 * time.Second, Transport: logs.Transport("buffer", nil)},
 	}
 }
 
@@ -153,19 +155,22 @@ func (c *Client) valid(ctx context.Context) (*Token, error) {
 	})
 	var refused *oauthError
 	if errors.As(err, &refused) {
+		log.Warn("refresh refused, signing out", "error", err)
 		_ = c.clear()
 		return nil, ErrNotConnected
 	}
 	if err != nil {
+		log.Warn("refresh failed", "error", err)
 		return nil, err
 	}
+	log.Debug("token refreshed", "expires", next.Expiry.Format(time.RFC3339))
 	if next.RefreshToken == "" {
 		next.RefreshToken = t.RefreshToken
 	}
 	if err := c.store(next); err != nil {
 		// The old refresh token is spent, so keep this one in memory. The
 		// next launch will need a new sign-in.
-		log.Printf("buffer: could not save the refreshed token: %v", err)
+		log.Error("could not save the refreshed token", "error", err)
 	}
 	return next, nil
 }
@@ -227,6 +232,7 @@ func (c *Client) query(ctx context.Context, query string, out any) error {
 	switch resp.StatusCode {
 	case http.StatusUnauthorized:
 		// Buffer answers 401 once the user revokes access.
+		log.Warn("access revoked, signing out")
 		_ = c.Disconnect()
 		return ErrNotConnected
 	case http.StatusTooManyRequests:
@@ -242,6 +248,7 @@ func (c *Client) query(ctx context.Context, query string, out any) error {
 		return fmt.Errorf("unexpected reply from Buffer (HTTP %d)", resp.StatusCode)
 	}
 	if len(body.Errors) > 0 {
+		log.Warn("query failed", "error", body.Errors[0].Message)
 		return fmt.Errorf("Buffer: %s", body.Errors[0].Message)
 	}
 	return json.Unmarshal(body.Data, out)

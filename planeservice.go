@@ -9,9 +9,17 @@ import (
 	"time"
 
 	"github.com/shad0wcrawl3r/relay/internal/config"
+	"github.com/shad0wcrawl3r/relay/internal/logs"
 	"github.com/shad0wcrawl3r/relay/internal/plane"
 	"github.com/shad0wcrawl3r/relay/internal/unlock"
 	"github.com/wailsapp/wails/v3/pkg/application"
+)
+
+// Plane logs carry counts and errors only; project content, and lock names in
+// particular, never reach them.
+var (
+	planeLog   = logs.For("plane")
+	privacyLog = logs.For("privacy")
 )
 
 // PlaneService exposes the Plane workspace to the frontend. It polls on the
@@ -49,6 +57,7 @@ func (s *PlaneService) watchLocks(ctx context.Context) {
 			return
 		case <-t.C:
 			if s.locks.Expired() {
+				privacyLog.Info("unlock expired")
 				s.emit()
 			}
 		}
@@ -80,7 +89,12 @@ func (s *PlaneService) poll(ctx context.Context) {
 func (s *PlaneService) sync(ctx context.Context, force bool) plane.Snapshot {
 	s.syncMu.Lock()
 	defer s.syncMu.Unlock()
-	snap, _ := s.client.Sync(ctx, force)
+	snap, err := s.client.Sync(ctx, force)
+	if err != nil {
+		planeLog.Warn("sync failed", "error", err)
+	} else {
+		planeLog.Debug("synced", "forced", force)
+	}
 	snap = s.locks.Redact(snap)
 	if s.app != nil {
 		s.app.Event.Emit("plane:snapshot", snap)
@@ -105,8 +119,10 @@ func (s *PlaneService) SyncNow(ctx context.Context) plane.Snapshot {
 func (s *PlaneService) Connect(ctx context.Context) error {
 	err := s.client.Connect(ctx, func(u string) { _ = s.app.Browser.OpenURL(u) })
 	if err != nil {
+		planeLog.Warn("connect failed", "error", err)
 		return err
 	}
+	planeLog.Notice("connected")
 	go s.sync(context.Background(), true)
 	return nil
 }
@@ -183,8 +199,10 @@ func (s *PlaneService) Unlock(key string) error {
 		return nil
 	}
 	if err := unlock.Authenticate("show " + s.lockName(key)); err != nil {
+		privacyLog.Notice("unlock refused")
 		return err
 	}
+	privacyLog.Notice("unlocked")
 	s.locks.Unlock(key)
 	s.emit()
 	return nil
@@ -192,6 +210,7 @@ func (s *PlaneService) Unlock(key string) error {
 
 // Lock hides key again; an empty key locks everything.
 func (s *PlaneService) Lock(key string) {
+	privacyLog.Info("locked")
 	s.locks.Lock(key)
 	s.emit()
 }

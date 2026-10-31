@@ -3,6 +3,7 @@
 
 import * as AIService from "./aiservice.js";
 import * as BufferService from "./bufferservice.js";
+import * as LogService from "./logservice.js";
 import * as PlaneService from "./planeservice.js";
 import * as PostService from "./postservice.js";
 import * as SettingsService from "./settingsservice.js";
@@ -10,6 +11,7 @@ import * as TerminalService from "./terminalservice.js";
 export {
     AIService,
     BufferService,
+    LogService,
     PlaneService,
     PostService,
     SettingsService,
@@ -21,6 +23,8 @@ export type {
     AIStatus,
     BufferStatus,
     Endpoint,
+    LogStatus,
+    LogSubsystem,
     PostList,
     PostSummary,
     Promotion,
