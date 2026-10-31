@@ -19,6 +19,20 @@ func testService(t *testing.T) *PostService {
 	return &PostService{store: store, remote: map[int]devto.Article{}}
 }
 
+func TestPreviewMatchesWhatPromoteSends(t *testing.T) {
+	s := testService(t)
+	p, _ := s.store.Save(posts.Post{Meta: posts.Meta{Title: "T", DevtoID: 7}})
+	b := &BufferService{posts: s}
+	if _, err := b.PreviewPromotion(p.ID, "hello"); err == nil {
+		t.Error("previewed an unpublished post")
+	}
+	s.remote[7] = devto.Article{ID: 7, Published: true, URL: "https://dev.to/a/live"}
+	got, err := b.PreviewPromotion(p.ID, " hello ")
+	if err != nil || got != withLink("hello", "https://dev.to/a/live") {
+		t.Errorf("got %q, %v", got, err)
+	}
+}
+
 func TestWithLinkAddsItOnce(t *testing.T) {
 	const url = "https://dev.to/a/post"
 	if got := withLink(" hello \n", url); got != "hello\n\n"+url {

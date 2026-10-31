@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 
 const LINKEDIN_LIMIT = 3000;
+// LinkedIn folds long posts at around this point, and it varies by device.
+const SEE_MORE_AT = 210;
 
 const TIMINGS: { value: BufferTiming; label: string; done: string }[] = [
   { value: "queue", label: "Add to queue", done: "Added to your Buffer queue" },
@@ -59,6 +61,7 @@ export function PromoteDialog({
   const [summarizing, setSummarizing] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [review, setReview] = useState<string | null>(null);
   const summary = useRef<CancellablePromise<string> | null>(null);
 
   useEffect(() => {
@@ -66,6 +69,7 @@ export function PromoteDialog({
     let stale = false;
     setLoading(true);
     setError("");
+    setReview(null);
     setText(staticText(post));
     setTiming("queue");
     setDueAt(defaultTime());
@@ -114,6 +118,15 @@ export function PromoteDialog({
   const tooLong = length > LINKEDIN_LIMIT;
   const ready = connected && channel && text.trim() && !tooLong && !summarizing && (timing !== "schedule" || dueAt);
 
+  const startReview = async () => {
+    setError("");
+    try {
+      setReview(await BufferService.PreviewPromotion(post.id, text));
+    } catch (err) {
+      setError(errorMessage(err));
+    }
+  };
+
   const send = async () => {
     if (!channel) return;
     setSending(true);
@@ -141,11 +154,13 @@ export function PromoteDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-w-[560px] flex-col gap-4" onCloseAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle>Promote on LinkedIn</DialogTitle>
-          <DialogDescription>{post.series ? `${post.title} · ${post.series}` : post.title}</DialogDescription>
+          <DialogTitle>{review === null ? "Promote on LinkedIn" : "Review your post"}</DialogTitle>
+          <DialogDescription>{review === null ? (post.series ? `${post.title} · ${post.series}` : post.title) : whenText(timing, dueAt)}</DialogDescription>
         </DialogHeader>
 
-        {loading ? (
+        {review !== null && channel ? (
+          <LinkedInPreview channel={channel} text={review} url={url} />
+        ) : loading ? (
           <div className="flex h-24 items-center justify-center gap-2 text-[13px] text-dim">
             <Loader2 className="size-3.5 animate-spin" />
             Loading your channels…
@@ -229,17 +244,65 @@ export function PromoteDialog({
 
         {error && <p className="m-0 text-[13px] text-overdue">{error}</p>}
 
-        <DialogFooter>
-          <Button variant="outline" size="md" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button size="md" disabled={!ready || sending} onClick={send}>
-            {sending && <Loader2 className="size-3.5 animate-spin" />}
-            Send to Buffer
-          </Button>
-        </DialogFooter>
+        {review === null ? (
+          <DialogFooter>
+            <Button variant="outline" size="md" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button size="md" disabled={!ready} onClick={startReview}>
+              Review
+            </Button>
+          </DialogFooter>
+        ) : (
+          <DialogFooter>
+            <Button variant="outline" size="md" disabled={sending} onClick={() => setReview(null)}>
+              Back to editing
+            </Button>
+            <Button size="md" disabled={sending} onClick={send}>
+              {sending && <Loader2 className="size-3.5 animate-spin" />}
+              {timing === "draft" ? "Save to Buffer" : "Confirm and send"}
+            </Button>
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function whenText(timing: BufferTiming, dueAt: string) {
+  if (timing === "schedule") return `Buffer will post this on ${new Date(dueAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}.`;
+  if (timing === "draft") return "This saves a draft in Buffer. Nothing is posted.";
+  return "This joins your Buffer queue and posts at your next open slot.";
+}
+
+/** Roughly how LinkedIn lays out a post, including where "see more" falls. */
+function LinkedInPreview({ channel, text, url }: { channel: BufferChannel; text: string; url: string }) {
+  const folded = text.length > SEE_MORE_AT;
+  const [before, after] = folded ? [text.slice(0, SEE_MORE_AT), text.slice(SEE_MORE_AT)] : [text, ""];
+  const link = (part: string) =>
+    part.split(url).flatMap((piece, i) => (i === 0 ? [piece] : [<span key={i} className="text-[#71b7fb]">{url}</span>, piece]));
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="max-h-[52vh] overflow-y-auto rounded-[10px] border border-border bg-[#1b1f23] p-4">
+        <div className="mb-3 flex items-center gap-2.5">
+          {channel.avatar ? (
+            <img src={channel.avatar} alt="" className="size-10 rounded-full object-cover" />
+          ) : (
+            <span className="grid size-10 place-items-center rounded-full bg-[#38434f] text-sm font-semibold text-strong">{channel.name.slice(0, 1).toUpperCase()}</span>
+          )}
+          <div className="flex min-w-0 flex-col">
+            <span className="truncate text-sm font-semibold text-strong">{channel.name}</span>
+            <span className="text-xs text-dim">LinkedIn</span>
+          </div>
+        </div>
+        <p className="m-0 whitespace-pre-wrap break-words text-sm leading-[1.45] text-[#e4e4e7]">
+          {link(before)}
+          {folded && <span className="my-2 block border-t border-dashed border-border-strong pt-1 text-xs text-dim">Readers tap “see more” to read past this line</span>}
+          {folded && link(after)}
+        </p>
+      </div>
+      <p className="m-0 text-xs text-dim">An approximate preview: LinkedIn sets the final layout and link card.</p>
+    </div>
   );
 }
 

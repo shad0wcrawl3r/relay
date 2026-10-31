@@ -124,6 +124,7 @@ export const BufferService = {
   Connect: () => BufferBindings.Connect(),
   Disconnect: () => BufferBindings.Disconnect(),
   Channels: async (): Promise<BufferChannel[]> => arr(await BufferBindings.Channels()),
+  PreviewPromotion: (postId: string, text: string): Promise<string> => BufferBindings.PreviewPromotion(postId, text),
   Promote: async (p: { postId: string; channelId: string; channel: string; text: string; timing: BufferTiming; dueAt: string }) =>
     post(await BufferBindings.Promote(p as M.Promotion)),
 };

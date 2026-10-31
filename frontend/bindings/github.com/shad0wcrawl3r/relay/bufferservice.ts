@@ -35,6 +35,13 @@ export function Disconnect(): $CancellablePromise<void> {
 }
 
 /**
+ * PreviewPromotion returns the exact text Promote would send.
+ */
+export function PreviewPromotion(postID: string, text: string): $CancellablePromise<string> {
+    return $Call.ByID(446027946, postID, text);
+}
+
+/**
  * Promote sends a post about a published article to Buffer. The link comes from
  * Dev.to here, not the frontend, so a promotion can't go out without it.
  */
