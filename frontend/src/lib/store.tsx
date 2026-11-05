@@ -76,8 +76,9 @@ export function PlaneProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     PlaneService.Snapshot().then(receive).catch(() => {});
     const off = Events.On("plane:snapshot", (ev) => {
-      setSyncing(false);
-      receive(normaliseSnapshot(ev.data));
+      const s = normaliseSnapshot(ev.data);
+      setSyncing(!!s.syncing);
+      receive(s);
     });
     return () => off();
   }, [receive]);

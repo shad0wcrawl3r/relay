@@ -36,6 +36,9 @@ type Snapshot struct {
 	// Cached is set while showing the on-disk display cache, before the first
 	// live sync of this run. The UI must not write to Plane from it.
 	Cached bool `json:"cached"`
+	// Syncing marks a snapshot sent ahead of a sync that's still running,
+	// such as the one right after connecting.
+	Syncing bool `json:"syncing"`
 }
 
 type Member struct {
