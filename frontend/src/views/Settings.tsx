@@ -21,7 +21,7 @@ export type SettingsTab = "plane" | "publishing" | "ai" | "terminal" | "privacy"
 
 export function Settings({ route }: { route: Extract<Route, { name: "settings" }> }) {
   const toast = useToast();
-  const { syncNow, projects, setLockable, unlockMethod, disconnect: disconnectPlane } = usePlane();
+  const { projects, setLockable, unlockMethod, disconnect: disconnectPlane, snapshot } = usePlane();
   const [s, setS] = useState<SettingsT | null>(null);
   const [form, setForm] = useState<SettingsInput | null>(null);
   const [saving, setSaving] = useState(false);
@@ -64,6 +64,16 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
     TerminalService.TmuxConfig().then(setTmuxConf).catch(() => {});
     BufferService.Status().then(setBuffer).catch(() => {});
   }, []);
+
+  // Follow Plane's state from its snapshots too, so a connection finished
+  // behind this view (after a reload mid sign-in) shows without a revisit.
+  // Only these fields: reloading the form would drop unsaved edits.
+  const planeConnected = snapshot?.connected;
+  const planeWorkspace = snapshot?.workspace ?? "";
+  useEffect(() => {
+    if (planeConnected === undefined) return;
+    setS((prev) => (prev && prev.planeConnected !== planeConnected ? { ...prev, planeConnected, connectedSlug: planeWorkspace } : prev));
+  }, [planeConnected, planeWorkspace]);
 
   if (!s || !form) return <main className="flex-1" />;
 
@@ -126,10 +136,10 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
     if (dirty && !(await save())) return;
     setConnecting(true);
     try {
+      // Go starts the first sync itself.
       await PlaneService.Connect();
       load(await SettingsService.Get());
       toast({ tone: "success", title: "Connected to Plane" });
-      syncNow();
     } catch (err) {
       toast({ tone: "error", title: "Couldn't connect to Plane", body: errorMessage(err) });
     } finally {

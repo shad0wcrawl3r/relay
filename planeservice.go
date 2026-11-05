@@ -123,6 +123,13 @@ func (s *PlaneService) Connect(ctx context.Context) error {
 		return err
 	}
 	planeLog.Notice("connected")
+	// Tell every view now: the first full sync can take a while, and a view
+	// reloaded during sign-in (dev server) no longer holds this call.
+	if s.app != nil {
+		snap := s.Snapshot()
+		snap.Syncing = true
+		s.app.Event.Emit("plane:snapshot", snap)
+	}
 	go s.sync(context.Background(), true)
 	return nil
 }

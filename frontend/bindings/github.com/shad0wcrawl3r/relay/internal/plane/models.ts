@@ -165,6 +165,12 @@ export interface Snapshot {
      * live sync of this run. The UI must not write to Plane from it.
      */
     "cached": boolean;
+
+    /**
+     * Syncing marks a snapshot sent ahead of a sync that's still running,
+     * such as the one right after connecting.
+     */
+    "syncing": boolean;
 }
 
 export interface State {
