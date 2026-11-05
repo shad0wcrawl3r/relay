@@ -186,6 +186,8 @@ type Client struct {
 	threads map[string]thread
 	me      Member
 	last    Snapshot
+	// epoch counts disconnects; a sync that started before one is stale.
+	epoch uint64
 }
 
 func New() *Client {
@@ -224,6 +226,7 @@ func (c *Client) Connect(ctx context.Context, openURL func(string)) error {
 
 func (c *Client) Disconnect() error {
 	c.mu.Lock()
+	c.epoch++
 	c.meta = map[string]*meta{}
 	c.threads = map[string]thread{}
 	c.members = map[string]Member{}
@@ -259,6 +262,9 @@ func (c *Client) Last() Snapshot {
 // Sync fetches every project. Metadata (states, labels, modules, cycles and
 // their membership) is refreshed when older than metaTTL or when force is set.
 func (c *Client) Sync(ctx context.Context, force bool) (Snapshot, error) {
+	c.mu.Lock()
+	epoch := c.epoch
+	c.mu.Unlock()
 	snap := Snapshot{Connected: c.Connected(), Workspace: c.Workspace(), AppURL: AppURL()}
 	if !snap.Connected {
 		return snap, nil
@@ -301,6 +307,11 @@ func (c *Client) Sync(ctx context.Context, force bool) (Snapshot, error) {
 	snap.Projects = out
 	snap.SyncedAt = time.Now()
 	c.mu.Lock()
+	if c.epoch != epoch {
+		// Disconnected mid-sync: don't bring the old workspace back.
+		c.mu.Unlock()
+		return Snapshot{AppURL: AppURL(), Projects: []Project{}}, nil
+	}
 	c.last = snap
 	c.mu.Unlock()
 	if err := saveCache(snap); err != nil {

@@ -28,7 +28,7 @@ func TestPreviewMatchesWhatPromoteSends(t *testing.T) {
 	}
 	s.remote[7] = devto.Article{ID: 7, Published: true, URL: "https://dev.to/a/live"}
 	got, err := b.PreviewPromotion(p.ID, " hello ")
-	if err != nil || got != withLink("hello", "https://dev.to/a/live") {
+	if err != nil || got != "hello\n\nhttps://dev.to/a/live\n\n"+EvalNoteText {
 		t.Errorf("got %q, %v", got, err)
 	}
 }
@@ -113,5 +113,41 @@ func TestSeriesCombinesLocalAndRemote(t *testing.T) {
 	got, err := s.Series()
 	if err != nil || strings.Join(got, ",") != "Go Notes,Wails" {
 		t.Errorf("got %v, %v", got, err)
+	}
+}
+
+func TestPromotionURLFindsRelayPromotionsOnly(t *testing.T) {
+	s := testService(t)
+	_, _ = s.store.Save(posts.Post{Meta: posts.Meta{
+		Title: "T", DevtoID: 7, DevtoURL: "https://dev.to/a/saved",
+		Promotions: []posts.Promotion{{BufferID: "b1", Channel: "LinkedIn", At: time.Now()}},
+	}})
+	if got := s.PromotionURL("other"); got != "" {
+		t.Errorf("unrelated Buffer post got %q", got)
+	}
+	if got := s.PromotionURL(""); got != "" {
+		t.Errorf("empty ID got %q", got)
+	}
+	// Before a Dev.to sync, fall back to the saved link.
+	if got := s.PromotionURL("b1"); got != "https://dev.to/a/saved" {
+		t.Errorf("unsynced got %q", got)
+	}
+	s.remote[7] = devto.Article{ID: 7, Published: true, URL: "https://dev.to/a/live"}
+	if got := s.PromotionURL("b1"); got != "https://dev.to/a/live" {
+		t.Errorf("synced got %q", got)
+	}
+}
+
+func TestEvalNoteMarksTestPostsOnce(t *testing.T) {
+	const url = "https://dev.to/a/post"
+	got := promotionText("hello", url)
+	if !strings.HasSuffix(got, url+"\n\n"+EvalNoteText) {
+		t.Errorf("test runs must mark posts: %q", got)
+	}
+	if again := promotionText(got, url); again != got {
+		t.Errorf("marked twice: %q", again)
+	}
+	if (&BufferService{}).EvalNote() != EvalNoteText {
+		t.Error("the composer must be told about the note")
 	}
 }

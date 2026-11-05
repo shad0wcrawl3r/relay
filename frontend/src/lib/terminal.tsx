@@ -380,22 +380,23 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
     if (active) handles.current.get(active.focus)?.focus();
   }, [active?.id, active?.focus, active?.zoom]);
 
-  // A shell that exits closes its pane, unless it's the tab's last pane:
-  // that one stays, showing the exit, so the tab doesn't vanish.
+  // A shell that exits (`exit`, ⌃D) closes its pane, and a tab whose last
+  // pane exits closes with it, like a terminal app's window.
   useEffect(() => {
     const exited = new Set(sessions.filter((s) => s.status === "exited").map((s) => s.id));
     if (!exited.size) return;
     const dead: string[] = [];
-    const next = tabs.map((t) => {
-      let root: L.LayoutNode = t.root;
+    const next = tabs.flatMap((t) => {
+      let root: L.LayoutNode | null = t.root;
       for (const p of L.panes(t.root)) {
-        if (!exited.has(p.sessionId) || L.panes(root).length < 2) continue;
-        root = L.remove(root, p.id) ?? root;
+        if (!root || !exited.has(p.sessionId)) continue;
+        root = L.remove(root, p.id);
         dead.push(p.sessionId);
       }
-      if (root === t.root) return t;
+      if (root === t.root) return [t];
+      if (!root) return [];
       const left = L.panes(root);
-      return { ...t, root, focus: left.some((p) => p.id === t.focus) ? t.focus : left[left.length - 1].id, zoom: undefined };
+      return [{ ...t, root, focus: left.some((p) => p.id === t.focus) ? t.focus : left[left.length - 1].id, zoom: undefined }];
     });
     if (!dead.length) return;
     setTabs(next);

@@ -116,6 +116,20 @@ export const LogService = {
 
 export type BufferStatus = M.BufferStatus;
 export type BufferChannel = Clean<BufferM.Channel>;
+export type BufferOverview = Clean<M.BufferOverview>;
+export type BufferOrganization = Clean<BufferM.Organization>;
+export type BufferPost = Clean<BufferM.Post>;
+export type BufferPostPage = Clean<BufferM.PostPage>;
+export type BufferIdea = Clean<BufferM.Idea>;
+export type BufferIdeaGroup = Clean<BufferM.IdeaGroup>;
+export type BufferIdeaPage = Clean<BufferM.IdeaPage>;
+export type IdeaLink = Clean<M.IdeaLink>;
+export type BufferPostStatus = "scheduled" | "needs_approval" | "draft" | "sent" | "error" | "sending";
+
+const channel = (c: BufferM.Channel): BufferChannel =>
+  ({ ...c, postingSchedule: arr(c.postingSchedule).map((d) => ({ ...d, times: arr(d.times) })) }) as BufferChannel;
+const bufferPost = (p: BufferM.Post): BufferPost => ({ ...p, actions: arr(p.actions), tags: arr(p.tags), images: arr(p.images) });
+const idea = (i: BufferM.Idea): BufferIdea => ({ ...i, services: arr(i.services) });
 export type BufferTiming = "queue" | "schedule" | "draft";
 export type AIStatus = Clean<M.AIStatus>;
 
@@ -123,8 +137,37 @@ export const BufferService = {
   Status: (): Promise<BufferStatus> => BufferBindings.Status(),
   Connect: () => BufferBindings.Connect(),
   Disconnect: () => BufferBindings.Disconnect(),
-  Channels: async (): Promise<BufferChannel[]> => arr(await BufferBindings.Channels()),
+  Channels: async (): Promise<BufferChannel[]> => arr(await BufferBindings.Channels()).map(channel),
+  Overview: async (): Promise<BufferOverview> => {
+    const o = await BufferBindings.Overview();
+    return { ...o, organizations: arr(o.organizations), channels: arr(o.channels).map(channel) } as BufferOverview;
+  },
+  Posts: async (q: { organizationId: string; statuses: BufferPostStatus[]; channelIds: string[]; after: string }): Promise<BufferPostPage> => {
+    const p = await BufferBindings.Posts(q);
+    return { ...p, posts: arr(p.posts).map(bufferPost) };
+  },
+  DeletePost: (id: string) => BufferBindings.DeletePost(id),
+  /** dueAt is an ISO time, or "" to keep the current schedule. */
+  EditPost: async (id: string, text: string, dueAt: string): Promise<BufferPost> =>
+    bufferPost(await BufferBindings.EditPost({ id, text, dueAt: dueAt || "0001-01-01T00:00:00Z" } as BufferM.PostEdit)),
+  Ideas: async (orgId: string, after = ""): Promise<BufferIdeaPage> => {
+    const p = await BufferBindings.Ideas(orgId, after);
+    return { ...p, ideas: arr(p.ideas).map(idea), groups: arr(p.groups) };
+  },
+  CreateIdea: async (n: { organizationId: string; groupId: string; title: string; text: string }): Promise<BufferIdea> =>
+    idea(await BufferBindings.CreateIdea(n)),
+  Organizations: async (): Promise<BufferOrganization[]> => arr(await BufferBindings.Organizations()),
+  IdeaLinks: async (): Promise<Record<string, IdeaLink>> => {
+    const m = (await BufferBindings.IdeaLinks()) ?? {};
+    return Object.fromEntries(Object.entries(m).filter((e): e is [string, IdeaLink] => !!e[1]));
+  },
+  ItemToIdea: async (orgId: string, projectId: string, itemId: string): Promise<BufferIdea> =>
+    idea(await BufferBindings.ItemToIdea(orgId, projectId, itemId)),
+  IdeaToItem: async (n: { ideaId: string; title: string; text: string; projectId: string; stateId: string }): Promise<Item> =>
+    item(await BufferBindings.IdeaToItem(n)),
   PreviewPromotion: (postId: string, text: string): Promise<string> => BufferBindings.PreviewPromotion(postId, text),
+  // The note dev builds add to every post, or "" in release builds.
+  EvalNote: (): Promise<string> => BufferBindings.EvalNote(),
   Promote: async (p: { postId: string; channelId: string; channel: string; text: string; timing: BufferTiming; dueAt: string }) =>
     post(await BufferBindings.Promote(p as M.Promotion)),
 };
@@ -139,12 +182,14 @@ export const AIService = {
   SetEndpoint: async (provider: string, endpoint: string) => aiStatus(await AIBindings.SetEndpoint(provider, endpoint)),
   Select: async (provider: string, model: string) => aiStatus(await AIBindings.Select(provider, model)),
   SummarizePost: (id: string) => AIBindings.SummarizePost(id),
+  SummarizeText: (title: string, text: string) => AIBindings.SummarizeText(title, text),
 };
 
 export const SettingsService = {
   Get: async (): Promise<Settings> => SettingsBindings.Get(),
   Save: async (s: SettingsInput): Promise<Settings> => SettingsBindings.Save(s as M.SettingsInput),
   ClearDevtoKey: async (): Promise<Settings> => SettingsBindings.ClearDevtoKey(),
+  Integrations: (): Promise<M.Integrations> => SettingsBindings.Integrations(),
 };
 
 export const normaliseSessions = (l: TermM.Info[] | null | undefined): TermInfo[] => arr(l);

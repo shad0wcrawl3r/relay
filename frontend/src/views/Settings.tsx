@@ -14,11 +14,14 @@ import { Dot } from "@/components/bits";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AISettings } from "@/components/AISettings";
 import { LogSettings } from "@/components/LogSettings";
-import { PlaneAppGuide } from "@/components/PlaneAppGuide";
+import { PlaneAppGuide, planeIntegrationsUrl } from "@/components/PlaneAppGuide";
+import type { Route } from "@/App";
 
-export function Settings() {
+export type SettingsTab = "plane" | "publishing" | "ai" | "terminal" | "privacy" | "storage" | "logs";
+
+export function Settings({ route }: { route: Extract<Route, { name: "settings" }> }) {
   const toast = useToast();
-  const { syncNow, projects, setLockable, unlockMethod } = usePlane();
+  const { syncNow, projects, setLockable, unlockMethod, disconnect: disconnectPlane } = usePlane();
   const [s, setS] = useState<SettingsT | null>(null);
   const [form, setForm] = useState<SettingsInput | null>(null);
   const [saving, setSaving] = useState(false);
@@ -27,7 +30,13 @@ export function Settings() {
   const bufferSignIn = useRef<CancellablePromise<BufferStatus> | null>(null);
   const [bufferConnecting, setBufferConnecting] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [tab, setTab] = useState("plane");
+  const [tab, setTab] = useState<string>(route.tab ?? "plane");
+  // Links into Settings (Other integrations, Buffer's "Set up") pick a tab,
+  // even when Settings is already open. A new route object each click.
+  useEffect(() => {
+    if (route.tab) setTab(route.tab);
+  }, [route]);
+  const [planeHelp, setPlaneHelp] = useState(false);
   const [tmuxConf, setTmuxConf] = useState("");
   const { keymap, reloadKeymap } = useTerminal();
 
@@ -130,7 +139,7 @@ export function Settings() {
 
   const disconnect = async () => {
     try {
-      await PlaneService.Disconnect();
+      await disconnectPlane();
       load(await SettingsService.Get());
     } catch (err) {
       toast({ tone: "error", title: "Couldn't disconnect", body: errorMessage(err) });
@@ -158,13 +167,25 @@ export function Settings() {
           </TabsList>
 
           <TabsContent value="plane">
-        <Section title="Plane" description="Relay connects as a Plane OAuth app that you create in your workspace.">
-          <PlaneAppGuide
-            redirectUri={s.redirectUri}
-            appUrl={form.planeAppUrl || s.planeAppUrl}
-            workspace={s.connectedSlug || form.planeWorkspace}
-            defaultOpen={!s.planeConnected}
-          />
+        <Section
+          title="Plane"
+          description="Relay connects as a Plane OAuth app that you create in your workspace."
+          aside={
+            s.planeConnected && (
+              <button className="text-xs text-[#93c5fd] hover:underline" aria-expanded={planeHelp} onClick={() => setPlaneHelp((v) => !v)}>
+                {planeHelp ? "Hide help" : "Need help?"}
+              </button>
+            )
+          }
+        >
+          {(!s.planeConnected || planeHelp) && (
+            <PlaneAppGuide
+              redirectUri={s.redirectUri}
+              appUrl={form.planeAppUrl || s.planeAppUrl}
+              workspace={s.connectedSlug || form.planeWorkspace}
+              defaultOpen
+            />
+          )}
           <div className="flex items-center gap-3 rounded-[10px] border border-column-border bg-column px-4 py-3">
             <Dot color={s.planeConnected ? "#46a758" : "#71717a"} />
             <div className="flex min-w-0 flex-1 flex-col">
@@ -205,7 +226,26 @@ export function Settings() {
               </Button>
             </div>
           </Row>
-          <Row label="Client ID">
+          <Row
+            label="Client ID"
+            hint={(() => {
+              const url = planeIntegrationsUrl(form.planeAppUrl || s.planeAppUrl, s.connectedSlug || form.planeWorkspace);
+              const where = "Workspace settings → Integrations";
+              return (
+                <>
+                  Shown on your Plane app under{" "}
+                  {url ? (
+                    <button className="text-[#93c5fd] hover:underline" onClick={() => Browser.OpenURL(url)}>
+                      {where}
+                    </button>
+                  ) : (
+                    where
+                  )}{" "}
+                  in Plane.
+                </>
+              );
+            })()}
+          >
             <Input value={form.planeClientId} onChange={(e) => set({ planeClientId: e.target.value })} autoComplete="off" spellCheck={false} />
           </Row>
           <Row label="Client secret">
@@ -451,11 +491,14 @@ export function Settings() {
   );
 }
 
-function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
+function Section({ title, description, aside, children }: { title: string; description?: string; aside?: React.ReactNode; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-4">
       <div>
-        <h2 className="m-0 text-[15px] font-semibold text-strong">{title}</h2>
+        <div className="flex items-baseline gap-3">
+          <h2 className="m-0 text-[15px] font-semibold text-strong">{title}</h2>
+          {aside}
+        </div>
         {description && <p className="mt-1 text-[13px] text-dim">{description}</p>}
       </div>
       {children}

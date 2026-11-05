@@ -16,10 +16,15 @@ import (
 type BufferService struct {
 	client *buffer.Client
 	posts  *PostService
+	plane  *PlaneService
+	links  *ideaLinks
 }
 
-func NewBufferService(posts *PostService) *BufferService {
-	return &BufferService{client: buffer.New(), posts: posts}
+func NewBufferService(posts *PostService, plane *PlaneService) *BufferService {
+	s := &BufferService{client: buffer.New(), posts: posts, plane: plane, links: newIdeaLinks(ideaLinksPath())}
+	// Buffer can end the sign-in on its side (revoked, refresh refused).
+	s.client.OnSignOut = func() { integrationsChanged(s) }
+	return s
 }
 
 type BufferStatus struct {
@@ -49,11 +54,14 @@ func (s *BufferService) Connect(ctx context.Context) (BufferStatus, error) {
 	if err != nil {
 		return BufferStatus{}, err
 	}
+	integrationsChanged(s)
 	return s.Status(ctx), nil
 }
 
 func (s *BufferService) Disconnect() error {
-	return s.client.Disconnect()
+	err := s.client.Disconnect()
+	integrationsChanged(s)
+	return err
 }
 
 func (s *BufferService) Channels(ctx context.Context) ([]buffer.Channel, error) {
@@ -85,7 +93,7 @@ func (s *BufferService) PreviewPromotion(postID, text string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return withLink(text, url), nil
+	return promotionText(text, url), nil
 }
 
 // Promote sends a post about a published article to Buffer. The link comes from
@@ -99,7 +107,7 @@ func (s *BufferService) Promote(ctx context.Context, in Promotion) (posts.Post, 
 		return posts.Post{}, errors.New("the post is empty")
 	}
 	bufferID, err := s.client.CreatePost(ctx, buffer.NewPost{
-		ChannelID: in.ChannelID, Text: withLink(in.Text, url), Timing: in.Timing, DueAt: in.DueAt,
+		ChannelID: in.ChannelID, Text: promotionText(in.Text, url), Timing: in.Timing, DueAt: in.DueAt,
 	})
 	if err != nil {
 		return posts.Post{}, err
@@ -107,4 +115,70 @@ func (s *BufferService) Promote(ctx context.Context, in Promotion) (posts.Post, 
 	return s.posts.RecordPromotion(in.PostID, posts.Promotion{
 		BufferID: bufferID, Channel: in.Channel, Timing: string(in.Timing), DueAt: in.DueAt, At: time.Now(),
 	})
+}
+
+// BufferOverview is what the Buffer tab opens with: the account, its
+// organizations (with plan limits) and every channel.
+type BufferOverview struct {
+	Account       string                `json:"account"`
+	Organizations []buffer.Organization `json:"organizations"`
+	Channels      []buffer.Channel      `json:"channels"`
+}
+
+func (s *BufferService) Overview(ctx context.Context) (BufferOverview, error) {
+	a, err := s.client.Account(ctx)
+	if err != nil {
+		return BufferOverview{}, err
+	}
+	channels, err := s.client.ChannelsIn(ctx, a.Organizations)
+	if err != nil {
+		return BufferOverview{}, err
+	}
+	name := a.Name
+	if name == "" {
+		name = a.Email
+	}
+	orgs := a.Organizations
+	if orgs == nil {
+		orgs = []buffer.Organization{}
+	}
+	return BufferOverview{Account: name, Organizations: orgs, Channels: channels}, nil
+}
+
+func (s *BufferService) Posts(ctx context.Context, q buffer.PostQuery) (buffer.PostPage, error) {
+	return s.client.Posts(ctx, q)
+}
+
+func (s *BufferService) DeletePost(ctx context.Context, id string) error {
+	return s.client.DeletePost(ctx, id)
+}
+
+// EditPost changes a post in Buffer. A post Relay sent about an article keeps
+// that article's link, however the text is edited.
+func (s *BufferService) EditPost(ctx context.Context, e buffer.PostEdit) (buffer.Post, error) {
+	if url := s.posts.PromotionURL(e.ID); url != "" {
+		e.Text = promotionText(e.Text, url)
+	}
+	return s.client.EditPost(ctx, e)
+}
+
+// Organizations lists the account's organizations, for views that only
+// need to know which one to read.
+func (s *BufferService) Organizations(ctx context.Context) ([]buffer.Organization, error) {
+	a, err := s.client.Account(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if a.Organizations == nil {
+		return []buffer.Organization{}, nil
+	}
+	return a.Organizations, nil
+}
+
+func (s *BufferService) Ideas(ctx context.Context, orgID, after string) (buffer.IdeaPage, error) {
+	return s.client.Ideas(ctx, orgID, after)
+}
+
+func (s *BufferService) CreateIdea(ctx context.Context, n buffer.NewIdea) (buffer.Idea, error) {
+	return s.client.CreateIdea(ctx, n)
 }

@@ -9,6 +9,11 @@ import type {} from "../github.com/wailsapp/wails/v3/internal/eventdata.js";
 import "../github.com/wailsapp/wails/v3/internal/eventcreate.js";
 
 /**
+ * Name of the custom event "integrations:changed".
+ */
+export const IntegrationsChanged = "integrations:changed";
+
+/**
  * Name of the custom event "plane:snapshot".
  */
 export const PlaneSnapshot = "plane:snapshot";

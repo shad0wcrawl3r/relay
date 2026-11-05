@@ -49,7 +49,9 @@ type PostList struct {
 	Posts    []PostSummary `json:"posts"`
 	SyncedAt time.Time     `json:"syncedAt"`
 	Error    string        `json:"error"`
-	Dir      string        `json:"dir"`
+	// NoKey is set when there's no Dev.to key: writing still works locally.
+	NoKey bool   `json:"noKey"`
+	Dir   string `json:"dir"`
 }
 
 const remotePrefix = "devto-"
@@ -73,7 +75,7 @@ func (s *PostService) List() (PostList, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	out := PostList{Posts: []PostSummary{}, SyncedAt: s.syncedAt, Error: s.syncErr, Dir: s.store.Dir}
+	out := PostList{Posts: []PostSummary{}, SyncedAt: s.syncedAt, Error: s.syncErr, NoKey: config.GetConfig().DevTo.APIKey == "", Dir: s.store.Dir}
 	seen := map[int]bool{}
 	for _, p := range local {
 		row := PostSummary{
@@ -116,7 +118,10 @@ func (s *PostService) List() (PostList, error) {
 func (s *PostService) Sync(ctx context.Context) (PostList, error) {
 	arts, err := devto.Mine(ctx)
 	s.mu.Lock()
-	if err != nil {
+	if errors.Is(err, devto.ErrNoKey) {
+		// Not an error: Relay works without Dev.to until the user sends a post.
+		s.syncErr = ""
+	} else if err != nil {
 		devtoLog.Warn("sync failed", "error", err)
 		s.syncErr = err.Error()
 	} else {
@@ -278,6 +283,31 @@ func (s *PostService) PublishedURL(id string) (string, error) {
 		return "", errors.New("this post isn't published on Dev.to yet")
 	}
 	return a.URL, nil
+}
+
+// PromotionURL returns the article link of the local post that promoted
+// bufferID, or "" when Relay didn't send that Buffer post.
+func (s *PostService) PromotionURL(bufferID string) string {
+	if bufferID == "" {
+		return ""
+	}
+	local, err := s.store.List()
+	if err != nil {
+		postLog.Warn("could not list posts", "error", err)
+		return ""
+	}
+	for _, p := range local {
+		for _, pr := range p.Promotions {
+			if pr.BufferID != bufferID {
+				continue
+			}
+			if url, err := s.PublishedURL(p.ID); err == nil {
+				return url
+			}
+			return p.DevtoURL
+		}
+	}
+	return ""
 }
 
 // RecordPromotion notes a post sent to Buffer on the local article.

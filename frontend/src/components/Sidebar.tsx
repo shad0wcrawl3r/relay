@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { Bell, Lock, LockOpen, PenLine, RefreshCw, SlidersHorizontal, SquareTerminal } from "lucide-react";
+import { Bell, Kanban, Lock, LockOpen, PenLine, RefreshCw, SlidersHorizontal, SquareTerminal } from "lucide-react";
+import { BufferLogo } from "@/components/icons/BufferLogo";
 import { usePlane } from "@/lib/store";
+import { useIntegrations } from "@/lib/integrations";
 import { useTerminal } from "@/lib/terminal";
 import { attentionRows, openCount } from "@/lib/plane";
 import { syncedAgo } from "@/lib/time";
@@ -20,6 +22,15 @@ function useNow(ms = 5000) {
 
 export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => void; rail: boolean }) {
   const { projects, snapshot, syncing, syncNow, readOnly, lock } = usePlane();
+  const planeOn = !!snapshot?.connected;
+  const { buffer, devto } = useIntegrations();
+  // Unknown counts as on, so nothing jumps sections while loading.
+  const bufferOn = buffer !== false;
+  const others = [
+    !planeOn && { label: "Plane", icon: <Kanban className="size-[15px]" strokeWidth={1.8} />, onClick: () => go({ name: "settings", tab: "plane" }), active: false },
+    !bufferOn && { label: "Buffer", icon: <BufferLogo className="size-[14px]" />, onClick: () => go({ name: "buffer" }), active: route.name === "buffer" },
+    devto === false && { label: "Dev.to", icon: <PenLine className="size-[15px]" strokeWidth={1.8} />, onClick: () => go({ name: "settings", tab: "publishing" }), active: false },
+  ].filter((o) => !!o);
   const anyUnlocked = projects.some((p) => (p.private && !p.locked) || p.modules.some((m) => m.private && !m.locked));
   const { sessions } = useTerminal();
   // Blue dot on the Terminal entry while a session runs out of view.
@@ -94,42 +105,45 @@ export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => v
         {!rail && <span>Relay</span>}
       </div>
 
-      <div className="flex flex-col gap-0.5">
-        <Item
-          active={route.name === "attention"}
-          onClick={() => go({ name: "attention" })}
-          icon={<Bell className="size-[15px]" strokeWidth={1.8} />}
-          label="Attention"
-          badge={attention > 0 && <span className="ml-auto rounded-full bg-[#4a1d35] px-[7px] py-px text-[11px] text-[#fbcfe8]">{attention}</span>}
-        />
-      </div>
+      {planeOn && (
+        <>
+          <div className="flex flex-col gap-0.5">
+            <Item
+              active={route.name === "attention"}
+              onClick={() => go({ name: "attention" })}
+              icon={<Bell className="size-[15px]" strokeWidth={1.8} />}
+              label="Attention"
+              badge={attention > 0 && <span className="ml-auto rounded-full bg-[#4a1d35] px-[7px] py-px text-[11px] text-[#fbcfe8]">{attention}</span>}
+            />
+          </div>
 
-      <div className="flex flex-col gap-0.5">
-        {!rail && <div className="px-2.5 pb-1.5 text-[11px] font-medium uppercase tracking-[.06em] text-dim">Plane projects</div>}
-        {projects.map((p) => (
-          <Item
-            key={p.id}
-            active={route.name === "project" && route.projectId === p.id}
-            onClick={() => go({ name: "project", projectId: p.id })}
-            icon={<ProjectGlyph project={p} />}
-            label={p.name}
-            badge={
-              <span className="ml-auto text-[11px] text-dim" title={p.private ? (p.locked ? "Locked: unlock to see items" : "Unlocked: locks again automatically") : undefined}>
-                {p.private ? p.locked ? <PrivateLock /> : <LockOpen className="size-[13px] text-[#5eead4]" strokeWidth={1.9} aria-label="Unlocked" /> : openCount(p)}
-              </span>
-            }
-          />
-        ))}
-        {!rail && projects.length === 0 && (
-          <button className="no-drag px-2.5 text-left text-xs text-dim hover:text-strong" onClick={() => go({ name: "settings" })}>
-            {snapshot?.connected ? "Loading projects…" : "Connect Plane in Settings"}
-          </button>
-        )}
-      </div>
+          <div className="flex flex-col gap-0.5">
+            {!rail && <div className="px-2.5 pb-1.5 text-[11px] font-medium uppercase tracking-[.06em] text-dim">Plane projects</div>}
+            {projects.map((p) => (
+              <Item
+                key={p.id}
+                active={route.name === "project" && route.projectId === p.id}
+                onClick={() => go({ name: "project", projectId: p.id })}
+                icon={<ProjectGlyph project={p} />}
+                label={p.name}
+                badge={
+                  <span className="ml-auto text-[11px] text-dim" title={p.private ? (p.locked ? "Locked: unlock to see items" : "Unlocked: locks again automatically") : undefined}>
+                    {p.private ? p.locked ? <PrivateLock /> : <LockOpen className="size-[13px] text-[#5eead4]" strokeWidth={1.9} aria-label="Unlocked" /> : openCount(p)}
+                  </span>
+                }
+              />
+            ))}
+            {!rail && projects.length === 0 && <span className="px-2.5 text-xs text-dim">Loading projects…</span>}
+          </div>
+        </>
+      )}
 
       <div className="flex flex-col gap-0.5">
         {!rail && <div className="px-2.5 pb-1.5 text-[11px] font-medium uppercase tracking-[.06em] text-dim">Write</div>}
         <Item active={route.name === "editor"} onClick={() => go({ name: "editor" })} icon={<PenLine className="size-[15px]" strokeWidth={1.8} />} label="Dev.to editor" />
+        {bufferOn && (
+          <Item active={route.name === "buffer"} onClick={() => go({ name: "buffer" })} icon={<BufferLogo className="size-[14px]" />} label="Buffer" />
+        )}
       </div>
 
       <div className="flex flex-col gap-0.5">
@@ -146,7 +160,16 @@ export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => v
 
       <div className="flex-1" />
 
-      {rail ? (
+      {others.length > 0 && (
+        <div className="flex flex-col gap-0.5">
+          {!rail && <div className="px-2.5 pb-1.5 text-[11px] font-medium uppercase tracking-[.06em] text-dim">Other integrations</div>}
+          {others.map((o) => (
+            <Item key={o.label} active={o.active} onClick={o.onClick} icon={o.icon} label={o.label} badge={<span className="ml-auto text-[11px] text-dim">Set up</span>} />
+          ))}
+        </div>
+      )}
+
+      {!planeOn ? null : rail ? (
         <Tooltip label={syncLabel} side="right">
           <button aria-label="Sync now" className={item(false)} onClick={syncNow}>
             <RefreshCw className={cn("size-[15px]", syncing && "animate-spin")} strokeWidth={1.8} />

@@ -78,6 +78,16 @@ type Client struct {
 	token *Token
 
 	signIn sync.Mutex
+
+	// OnSignOut runs when Buffer ends the sign-in (revoked access or a
+	// refused refresh), not when the user disconnects.
+	OnSignOut func()
+}
+
+func (c *Client) signedOut() {
+	if c.OnSignOut != nil {
+		go c.OnSignOut()
+	}
 }
 
 func New() *Client {
@@ -157,6 +167,7 @@ func (c *Client) valid(ctx context.Context) (*Token, error) {
 	if errors.As(err, &refused) {
 		log.Warn("refresh refused, signing out", "error", err)
 		_ = c.clear()
+		c.signedOut()
 		return nil, ErrNotConnected
 	}
 	if err != nil {
@@ -210,11 +221,21 @@ func (c *Client) redeem(ctx context.Context, form url.Values) (*Token, error) {
 
 // query runs a GraphQL query and decodes its data into out.
 func (c *Client) query(ctx context.Context, query string, out any) error {
+	return c.queryVars(ctx, query, nil, out)
+}
+
+// queryVars runs a GraphQL query with variables, so user text never has to
+// be spliced into the query itself.
+func (c *Client) queryVars(ctx context.Context, query string, vars map[string]any, out any) error {
 	t, err := c.valid(ctx)
 	if err != nil {
 		return err
 	}
-	payload, err := json.Marshal(map[string]string{"query": query})
+	reqBody := map[string]any{"query": query}
+	if vars != nil {
+		reqBody["variables"] = vars
+	}
+	payload, err := json.Marshal(reqBody)
 	if err != nil {
 		return err
 	}
@@ -234,6 +255,7 @@ func (c *Client) query(ctx context.Context, query string, out any) error {
 		// Buffer answers 401 once the user revokes access.
 		log.Warn("access revoked, signing out")
 		_ = c.Disconnect()
+		c.signedOut()
 		return ErrNotConnected
 	case http.StatusTooManyRequests:
 		return fmt.Errorf("Buffer's rate limit was reached; try again in %s seconds", resp.Header.Get("Retry-After"))
@@ -255,8 +277,10 @@ func (c *Client) query(ctx context.Context, query string, out any) error {
 }
 
 type Organization struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID           string `json:"id"`
+	Name         string `json:"name"`
+	ChannelCount int    `json:"channelCount"`
+	Limits       Limits `json:"limits"`
 }
 
 type Account struct {
@@ -270,6 +294,6 @@ func (c *Client) Account(ctx context.Context) (Account, error) {
 	var data struct {
 		Account Account `json:"account"`
 	}
-	err := c.query(ctx, `query { account { name email organizations { id name } } }`, &data)
+	err := c.query(ctx, `query { account { name email organizations { id name channelCount limits { channels scheduledPosts ideas tags } } } }`, &data)
 	return data.Account, err
 }

@@ -16,6 +16,9 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
 import * as buffer$0 from "./internal/buffer/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as plane$0 from "./internal/plane/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as posts$0 from "./internal/posts/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -30,8 +33,74 @@ export function Connect(): $CancellablePromise<$models.BufferStatus> {
     return $Call.ByID(4086719047);
 }
 
+export function CreateIdea(n: buffer$0.NewIdea): $CancellablePromise<buffer$0.Idea> {
+    return $Call.ByID(1984216784, n);
+}
+
+export function DeletePost(id: string): $CancellablePromise<void> {
+    return $Call.ByID(1419905978, id);
+}
+
 export function Disconnect(): $CancellablePromise<void> {
     return $Call.ByID(2908012889);
+}
+
+/**
+ * EditPost changes a post in Buffer. A post Relay sent about an article keeps
+ * that article's link, however the text is edited.
+ */
+export function EditPost(e: buffer$0.PostEdit): $CancellablePromise<buffer$0.Post> {
+    return $Call.ByID(411497569, e);
+}
+
+/**
+ * EvalNote is the note dev builds add to posts, or "" in release builds, so
+ * the composer can count it.
+ */
+export function EvalNote(): $CancellablePromise<string> {
+    return $Call.ByID(3376683817);
+}
+
+/**
+ * IdeaLinks lists which ideas are tied to work items, keyed by idea ID.
+ */
+export function IdeaLinks(): $CancellablePromise<{ [_ in string]?: $models.IdeaLink } | null> {
+    return $Call.ByID(458355705);
+}
+
+/**
+ * IdeaToItem makes a work item from a Buffer idea, once.
+ */
+export function IdeaToItem($in: $models.IdeaToItemInput): $CancellablePromise<plane$0.Item> {
+    return $Call.ByID(3700952674, $in);
+}
+
+export function Ideas(orgID: string, after: string): $CancellablePromise<buffer$0.IdeaPage> {
+    return $Call.ByID(2561747881, orgID, after);
+}
+
+/**
+ * ItemToIdea saves a work item as a Buffer idea: its name as the title and
+ * its description as the text.
+ */
+export function ItemToIdea(orgID: string, projectID: string, itemID: string): $CancellablePromise<buffer$0.Idea> {
+    return $Call.ByID(3706216194, orgID, projectID, itemID);
+}
+
+/**
+ * Organizations lists the account's organizations, for views that only
+ * need to know which one to read.
+ */
+export function Organizations(): $CancellablePromise<buffer$0.Organization[] | null> {
+    return $Call.ByID(780005077);
+}
+
+export function Overview(): $CancellablePromise<$models.BufferOverview> {
+    return $Call.ByID(159039820);
+}
+
+export function Posts(q: buffer$0.PostQuery): $CancellablePromise<buffer$0.PostPage> {
+    return $Call.ByID(360456402, q);
 }
 
 /**

@@ -60,10 +60,14 @@ interface Props {
   defaultOpen: boolean;
 }
 
+/** Plane's Integrations page, where the OAuth app lives; "" without a workspace. */
+export const planeIntegrationsUrl = (appUrl: string, workspace: string) =>
+  workspace ? `${appUrl.replace(/\/+$/, "")}/${workspace}/settings/integrations/` : "";
+
 /** How to register Relay as an OAuth app in Plane. */
 export function PlaneAppGuide({ redirectUri, appUrl, workspace, defaultOpen }: Props) {
   const [open, setOpen] = useState(defaultOpen);
-  const integrations = workspace ? `${appUrl}/${workspace}/settings/integrations/` : "";
+  const integrations = planeIntegrationsUrl(appUrl, workspace);
 
   const steps: { title: string; body: React.ReactNode }[] = [
     {

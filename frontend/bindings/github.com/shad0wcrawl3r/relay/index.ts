@@ -21,8 +21,12 @@ export {
 export type {
     AIProvider,
     AIStatus,
+    BufferOverview,
     BufferStatus,
     Endpoint,
+    IdeaLink,
+    IdeaToItemInput,
+    Integrations,
     LogStatus,
     LogSubsystem,
     PostList,

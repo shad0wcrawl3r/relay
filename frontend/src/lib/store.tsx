@@ -18,6 +18,8 @@ interface PlaneStore {
   projects: Project[];
   project: (id: string) => Project | undefined;
   syncNow: () => Promise<void>;
+  /** Signs out of Plane and clears every Plane view straight away. */
+  disconnect: () => Promise<void>;
   update: (item: Item, patch: Partial<ItemPatch>, okMessage?: string) => Promise<boolean>;
   create: (projectId: string, name: string, stateId?: string) => Promise<Item | null>;
   comment: (item: Item, html: string) => Promise<boolean>;
@@ -99,6 +101,14 @@ export function PlaneProvider({ children }: { children: ReactNode }) {
       setSyncing(false);
     }
   }, [receive]);
+
+  const disconnect = useCallback(async () => {
+    await PlaneService.Disconnect();
+    pending.current.clear();
+    pendingAt.current.clear();
+    lastError.current = "";
+    setSnapshot((s) => ({ ...(s ?? ({} as Snapshot)), connected: false, cached: false, error: "", workspace: "", projects: [] }));
+  }, []);
 
   const readOnly = !!snapshot?.cached;
   const [unlockMethod, setUnlockMethod] = useState<UnlockMethod | null>(null);
@@ -208,8 +218,8 @@ export function PlaneProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ snapshot, syncing, readOnly, unlockMethod, unlock, lock, setLockable, projects, project, syncNow, update, create, comment }),
-    [snapshot, syncing, readOnly, unlockMethod, unlock, lock, setLockable, projects, project, syncNow, update, create, comment],
+    () => ({ snapshot, syncing, readOnly, unlockMethod, unlock, lock, setLockable, projects, project, syncNow, disconnect, update, create, comment }),
+    [snapshot, syncing, readOnly, unlockMethod, unlock, lock, setLockable, projects, project, syncNow, disconnect, update, create, comment],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -55,3 +55,12 @@ export function Status(): $CancellablePromise<$models.AIStatus> {
 export function SummarizePost(id: string): $CancellablePromise<string> {
     return $Call.ByID(3635707062, id);
 }
+
+/**
+ * SummarizeText drafts a social post from pasted text, for when there's no
+ * local article (no Dev.to account, or writing that lives elsewhere). It only
+ * runs when the user asks.
+ */
+export function SummarizeText(title: string, text: string): $CancellablePromise<string> {
+    return $Call.ByID(3941173339, title, text);
+}

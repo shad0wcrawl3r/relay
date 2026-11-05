@@ -9,11 +9,12 @@ import { ItemDrawer } from "@/components/ItemDrawer";
 import { Attention } from "@/views/Attention";
 import { Board, type BoardHandle } from "@/views/Board";
 import { Editor } from "@/views/editor/Editor";
-import { Settings } from "@/views/Settings";
+import { Settings, type SettingsTab } from "@/views/Settings";
+import { Buffer } from "@/views/buffer/Buffer";
 import { Terminal } from "@/views/terminal/Terminal";
 import { QuickTerminal } from "@/views/terminal/QuickTerminal";
 
-export type Route = { name: "attention" } | { name: "project"; projectId: string } | { name: "editor" } | { name: "terminal" } | { name: "settings" };
+export type Route = { name: "attention" } | { name: "project"; projectId: string } | { name: "editor" } | { name: "buffer" } | { name: "terminal" } | { name: "settings"; tab?: SettingsTab };
 
 export interface OpenItem {
   projectId: string;
@@ -25,7 +26,7 @@ const isTyping = (el: EventTarget | null) =>
   el instanceof HTMLElement && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName));
 
 export default function App() {
-  const { projects, project, syncNow } = usePlane();
+  const { projects, project, syncNow, snapshot } = usePlane();
   const [route, setRoute] = useState<Route>({ name: "attention" });
   const [drawer, setDrawer] = useState<OpenItem | null>(null);
   const [capture, setCapture] = useState(false);
@@ -62,6 +63,13 @@ export default function App() {
     if (drawer && drawerProject && !drawerProject.items.some((it) => it.id === drawer.itemId)) setDrawer(null);
   }, [drawer, drawerProject]);
 
+  // Plane is optional. Without it there's no Attention or boards, so open on
+  // the editor, and leave Plane views if it's disconnected later.
+  const planeOn = !!snapshot?.connected;
+  useEffect(() => {
+    if (snapshot && !planeOn && (route.name === "attention" || route.name === "project")) setRoute({ name: "editor" });
+  }, [snapshot, planeOn, route.name]);
+
   // If a project disappears (disconnect, permissions), fall back home.
   useEffect(() => {
     if (route.name === "project" && projects.length && !current) setRoute({ name: "attention" });
@@ -78,7 +86,7 @@ export default function App() {
       }
       if (mod && k === "r") {
         e.preventDefault();
-        syncNow();
+        if (planeOn) syncNow();
         return;
       }
       if (mod && k === ",") {
@@ -96,7 +104,7 @@ export default function App() {
         pendingG.current = Date.now();
         return;
       }
-      if (k === "a" && Date.now() - pendingG.current < 1000) {
+      if (k === "a" && planeOn && Date.now() - pendingG.current < 1000) {
         go({ name: "attention" });
         return;
       }
@@ -105,11 +113,12 @@ export default function App() {
         return;
       }
       if (k === "e") go({ name: "editor" });
+      if (k === "b") go({ name: "buffer" });
       if (k === "t") go({ name: "terminal" });
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [route, projects, capture, go, syncNow]);
+  }, [route, projects, capture, go, syncNow, planeOn]);
 
   // Prev/next in the drawer follows board order: states in sequence.
   const siblings = useMemo(() => {
@@ -136,8 +145,9 @@ export default function App() {
         </div>
       )}
       {route.name === "editor" && <Editor />}
+      {route.name === "buffer" && <Buffer goSettings={() => go({ name: "settings", tab: "publishing" })} />}
       {route.name === "terminal" && <Terminal />}
-      {route.name === "settings" && <Settings />}
+      {route.name === "settings" && <Settings route={route} />}
 
       {drawer && drawerProject && (
         <ItemDrawer

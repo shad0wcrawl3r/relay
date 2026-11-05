@@ -41,6 +41,16 @@ export interface AIStatus {
     "local": boolean;
 }
 
+/**
+ * BufferOverview is what the Buffer tab opens with: the account, its
+ * organizations (with plan limits) and every channel.
+ */
+export interface BufferOverview {
+    "account": string;
+    "organizations": buffer$0.Organization[] | null;
+    "channels": buffer$0.Channel[] | null;
+}
+
 export interface BufferStatus {
     "connected": boolean;
     "account": string;
@@ -59,6 +69,38 @@ export interface Endpoint {
     "home": string;
 }
 
+/**
+ * IdeaLink ties a Buffer idea to the work item made from it, or made into it.
+ */
+export interface IdeaLink {
+    "ideaId": string;
+    "projectId": string;
+    "itemId": string;
+    "key": string;
+    "at": string;
+}
+
+/**
+ * IdeaToItemInput is an idea dropped on a board column. Buffer has no
+ * single-idea query, so the frontend passes the content it already shows.
+ */
+export interface IdeaToItemInput {
+    "ideaId": string;
+    "title": string;
+    "text": string;
+    "projectId": string;
+    "stateId": string;
+}
+
+/**
+ * Integrations says which services are set up, without any network calls.
+ * Plane's state comes with its snapshot.
+ */
+export interface Integrations {
+    "buffer": boolean;
+    "devto": boolean;
+}
+
 export interface LogStatus {
     "enabled": boolean;
     "subsystems": LogSubsystem[] | null;
@@ -74,6 +116,11 @@ export interface PostList {
     "posts": PostSummary[] | null;
     "syncedAt": string;
     "error": string;
+
+    /**
+     * NoKey is set when there's no Dev.to key: writing still works locally.
+     */
+    "noKey": boolean;
     "dir": string;
 }
 

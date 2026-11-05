@@ -6,5 +6,18 @@ export {
 } from "./models.js";
 
 export type {
-    Channel
+    Channel,
+    Idea,
+    IdeaGroup,
+    IdeaPage,
+    Limits,
+    NewIdea,
+    Organization,
+    Post,
+    PostEdit,
+    PostPage,
+    PostQuery,
+    PostingGoal,
+    ScheduleDay,
+    Tag
 } from "./models.js";

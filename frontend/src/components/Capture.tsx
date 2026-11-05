@@ -25,7 +25,8 @@ interface Option {
 }
 
 export function Capture({ open, onOpenChange, defaultProjectId, go, openItem }: Props) {
-  const { projects, create, syncNow } = usePlane();
+  const { projects, create, syncNow, snapshot } = usePlane();
+  const planeOn = !!snapshot?.connected;
   const [text, setText] = useState("");
   const [targetId, setTargetId] = useState<string>("");
   const [queue, setQueue] = useState(false);
@@ -78,7 +79,7 @@ export function Capture({ open, onOpenChange, defaultProjectId, go, openItem }: 
       });
     }
     const nav: Option[] = [
-      { id: "attention", icon: "!", label: "Attention", keys: ["G", "A"], run: () => (go({ name: "attention" }), close()) },
+      ...(planeOn ? [{ id: "attention", icon: "!", label: "Attention", keys: ["G", "A"], run: () => (go({ name: "attention" }), close()) }] : []),
       ...projects.slice(0, 9).map((p, i) => ({
         id: `p-${p.id}`,
         icon: glyphFor(p).letter,
@@ -87,12 +88,14 @@ export function Capture({ open, onOpenChange, defaultProjectId, go, openItem }: 
         run: () => (go({ name: "project", projectId: p.id }), close()),
       })),
       { id: "editor", icon: "E", label: "Dev.to editor", keys: ["E"], run: () => (go({ name: "editor" }), close()) },
+      { id: "buffer", icon: "B", label: "Buffer", keys: ["B"], run: () => (go({ name: "buffer" }), close()) },
+      { id: "terminal", icon: "T", label: "Terminal", keys: ["T"], run: () => (go({ name: "terminal" }), close()) },
       { id: "settings", icon: ",", label: "Settings", keys: ["⌘", ","], run: () => (go({ name: "settings" }), close()) },
-      { id: "sync", icon: "↻", label: "Sync now", keys: ["⌘", "R"], run: () => (syncNow(), close()) },
+      ...(planeOn ? [{ id: "sync", icon: "↻", label: "Sync now", keys: ["⌘", "R"], run: () => (syncNow(), close()) }] : []),
     ];
     const matched = q ? nav.filter((o) => String(o.label).toLowerCase().includes(q)) : nav;
     return [...opts, ...matched];
-  }, [text, target, targetState, projects, isLab, busy]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [text, target, targetState, projects, isLab, busy, planeOn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => setActive(0), [text]);
 
@@ -140,7 +143,7 @@ export function Capture({ open, onOpenChange, defaultProjectId, go, openItem }: 
               autoFocus
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="Capture an idea or run a command"
+              placeholder={projects.length ? "Capture an idea or run a command" : "Go to…"}
               className="min-w-0 flex-1 bg-transparent text-base text-strong outline-none placeholder:text-dim"
             />
             <Kbd>esc</Kbd>
@@ -182,7 +185,7 @@ export function Capture({ open, onOpenChange, defaultProjectId, go, openItem }: 
             })}
           </div>
 
-          <div className="flex flex-wrap items-center gap-4 border-t border-hairline bg-[#0d0d10] px-4 py-2.5 text-[11px] text-dim">
+          {projects.length > 0 && <div className="flex flex-wrap items-center gap-4 border-t border-hairline bg-[#0d0d10] px-4 py-2.5 text-[11px] text-dim">
             <span className="inline-flex items-center gap-1.5">
               <Kbd>↵</Kbd>create
             </span>
@@ -195,7 +198,7 @@ export function Capture({ open, onOpenChange, defaultProjectId, go, openItem }: 
             <span className="inline-flex items-center gap-1.5">
               <Kbd>⌘K</Kbd>open from anywhere
             </span>
-          </div>
+          </div>}
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
