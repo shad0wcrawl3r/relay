@@ -8,16 +8,16 @@
     !define INFO_PROJECTNAME "relay"
 !endif
 !ifndef INFO_COMPANYNAME
-    !define INFO_COMPANYNAME "My Company"
+    !define INFO_COMPANYNAME "shadowcrawler"
 !endif
 !ifndef INFO_PRODUCTNAME
-    !define INFO_PRODUCTNAME "My Product"
+    !define INFO_PRODUCTNAME "Relay"
 !endif
 !ifndef INFO_PRODUCTVERSION
-    !define INFO_PRODUCTVERSION "0.1.0"
+    !define INFO_PRODUCTVERSION "0.0.2"
 !endif
 !ifndef INFO_COPYRIGHT
-    !define INFO_COPYRIGHT "© 2026, My Company"
+    !define INFO_COPYRIGHT "© 2026, Ashwin Belbase"
 !endif
 !ifndef PRODUCT_EXECUTABLE
     !define PRODUCT_EXECUTABLE "${INFO_PROJECTNAME}.exe"
@@ -170,6 +170,7 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
 # Install webview2 by launching the bootstrapper
 # See https://docs.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution#online-only-deployment
 !macro wails.webview2runtime
+    !ifndef WAILS_SKIP_WEBVIEW2
     !ifndef WAILS_INSTALL_WEBVIEW_DETAILPRINT
         !define WAILS_INSTALL_WEBVIEW_DETAILPRINT "Installing: WebView2 Runtime"
     !endif
@@ -201,6 +202,7 @@ RequestExecutionLevel "${REQUEST_EXECUTION_LEVEL}"
     
     SetDetailsPrint both
     ok:
+    !endif
 !macroend
 
 # Copy of APP_ASSOCIATE and APP_UNASSOCIATE macros from here https://gist.github.com/nikku/281d0ef126dbc215dd58bfd5b3a5cd5b

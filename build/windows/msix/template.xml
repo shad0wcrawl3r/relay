@@ -10,15 +10,15 @@
     <Installer
         Path="relay"
         Arguments=""
-        InstallLocation="C:\Program Files\My Company\My Product">
+        InstallLocation="C:\Program Files\shadowcrawler\Relay">
     </Installer>
     <PackageInformation
-        PackageName="My Product"
-        PackageDisplayName="My Product"
-        PublisherName="CN=My Company"
-        PublisherDisplayName="My Company"
-        Version="0.1.0.0"
-        PackageDescription="A relay application">
+        PackageName="Relay"
+        PackageDisplayName="Relay"
+        PublisherName="CN=shadowcrawler"
+        PublisherDisplayName="shadowcrawler"
+        Version="0.0.2.0"
+        PackageDescription="Desktop workbench for Plane, Dev.to writing, Buffer and terminals">
         <Capabilities>
             <Capability Name="runFullTrust" />
             
@@ -26,8 +26,8 @@
         <Applications>
             <Application
                 Id="dev.shadowcrawler.relay"
-                Description="A relay application"
-                DisplayName="My Product"
+                Description="Desktop workbench for Plane, Dev.to writing, Buffer and terminals"
+                DisplayName="Relay"
                 ExecutableName="relay"
                 EntryPoint="Windows.FullTrustApplication">
                 
@@ -41,9 +41,9 @@
         </Dependencies>
         <Properties>
             <Framework>false</Framework>
-            <DisplayName>My Product</DisplayName>
-            <PublisherDisplayName>My Company</PublisherDisplayName>
-            <Description>A relay application</Description>
+            <DisplayName>Relay</DisplayName>
+            <PublisherDisplayName>shadowcrawler</PublisherDisplayName>
+            <Description>Desktop workbench for Plane, Dev.to writing, Buffer and terminals</Description>
             <Logo>Assets\AppIcon.png</Logo>
         </Properties>
     </PackageInformation>

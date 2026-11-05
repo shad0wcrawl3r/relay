@@ -23,6 +23,8 @@ frontend. Runs on macOS, Windows and Linux.
   - Markdown editor with preview and image placeholders
   - Sends to Dev.to as an unpublished draft, and syncs your articles back
   - Publishing is a separate, confirmed step
+  - Spots edits made on Dev.to: Update draft shows a diff (unified or side by
+    side) and asks whether to keep Dev.to's version or replace it
 - **Promotion**
   - Buffer sign-in with OAuth, with tokens kept in the OS keychain
   - Turns a Dev.to post into social drafts per channel. AI summaries are optional
@@ -56,7 +58,6 @@ frontend. Runs on macOS, Windows and Linux.
 
 For the Buffer Commit contest:
 
-- Stop "Update draft" from overwriting edits made on Dev.to
 - Keep locked project data away from cloud AI providers
 - Ship log: turn finished Plane work into Buffer drafts
 - Public releases, with steps for opening unsigned builds

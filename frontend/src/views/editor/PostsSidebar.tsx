@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, RefreshCw, Search } from "lucide-react";
+import { Plus, RefreshCw, Search, TriangleAlert } from "lucide-react";
 import type { PostList, PostSummary } from "@/lib/api";
 import { ago, compactNumber, shortDate } from "@/lib/time";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,7 @@ export function PostsSidebar({
   onOpen,
   onNew,
   onSync,
+  onAddKey,
 }: {
   list: PostList | null;
   activeId?: string;
@@ -27,6 +28,8 @@ export function PostsSidebar({
   onOpen: (id: string) => void;
   onNew: () => void;
   onSync: () => void;
+  /** Opens Settings where the Dev.to key goes. */
+  onAddKey: () => void;
 }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -77,6 +80,20 @@ export function PostsSidebar({
         </button>
       </div>
       <div className="flex flex-col gap-2.5 p-3">
+        {/* Without a key nothing reaches Dev.to; say so first, under the
+            title bar so it stays clear of the window controls. */}
+        {list?.noKey && (
+          <button
+            onClick={onAddKey}
+            className="flex items-start gap-2 rounded-md border border-[rgba(245,158,11,.3)] bg-[rgba(245,158,11,.08)] px-2.5 py-2 text-left text-xs leading-snug text-[#fbbf24] hover:bg-[rgba(245,158,11,.14)]"
+          >
+            <TriangleAlert className="mt-px size-3.5 shrink-0" />
+            <span className="grow">
+              Writing locally. Posts can't reach Dev.to until you add an API key.
+              <span className="mt-1 block font-medium underline underline-offset-2">Add Dev.to key</span>
+            </span>
+          </button>
+        )}
         <div className="relative">
           <Search className="absolute left-2.5 top-[11px] size-[15px] text-dim-2" strokeWidth={1.9} />
           <input
@@ -119,7 +136,7 @@ export function PostsSidebar({
           {syncing
             ? "Syncing with Dev.to…"
             : list?.noKey
-              ? "Writing locally · add a Dev.to key in Settings to send"
+              ? "Not connected to Dev.to"
               : list?.error
               ? list.error
               : list?.syncedAt && !list.syncedAt.startsWith("0001")

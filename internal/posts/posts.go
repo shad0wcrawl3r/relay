@@ -27,6 +27,9 @@ type Meta struct {
 	DevtoID      int       `yaml:"devto_id,omitempty" json:"devtoId"`
 	DevtoURL     string    `yaml:"devto_url,omitempty" json:"devtoUrl"`
 	SentAt       time.Time `yaml:"sent_at,omitempty" json:"sentAt"`
+	// DevtoHash fingerprints Dev.to's copy (title and body) as of the last
+	// send or pull, so edits made on Dev.to since then can be spotted.
+	DevtoHash string `yaml:"devto_hash,omitempty" json:"devtoHash"`
 	// Promotions records what went to Buffer for this post.
 	Promotions []Promotion `yaml:"promotions,omitempty" json:"promotions"`
 	UpdatedAt  time.Time   `yaml:"updated_at" json:"updatedAt"`

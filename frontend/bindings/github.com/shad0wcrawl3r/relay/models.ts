@@ -4,6 +4,9 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as buffer$0 from "./internal/buffer/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as posts$0 from "./internal/posts/models.js";
 
 export interface AIProvider {
     "id": string;
@@ -62,6 +65,23 @@ export interface BufferStatus {
 export interface DevtoKeyCheck {
     "username": string;
     "name": string;
+}
+
+/**
+ * Drift is Dev.to's copy of a post next to Relay's, when they disagree.
+ */
+export interface Drift {
+    "remoteTitle": string;
+    "remoteBody": string;
+    "localTitle": string;
+    "localBody": string;
+    "editedAt": string;
+
+    /**
+     * Known is false for posts sent before Relay kept fingerprints: then it
+     * can't tell which side changed, only that they differ.
+     */
+    "known": boolean;
 }
 
 /**
@@ -153,6 +173,11 @@ export interface PostSummary {
     "url": string;
     "updatedAt": string;
     "sentAt": string;
+
+    /**
+     * RemoteChanged: edited on Dev.to since Relay last sent or pulled it.
+     */
+    "remoteChanged": boolean;
 }
 
 /**
@@ -165,6 +190,19 @@ export interface Promotion {
     "text": string;
     "timing": buffer$0.Timing;
     "dueAt": string;
+}
+
+/**
+ * SendResult is a send, or the drift that stopped it.
+ */
+export interface SendResult {
+    "post": posts$0.Post;
+
+    /**
+     * Drift is set, and nothing sent, when Dev.to's copy changed since
+     * Relay last sent or pulled it.
+     */
+    "drift": Drift | null;
 }
 
 export interface Settings {

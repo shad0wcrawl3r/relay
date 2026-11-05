@@ -27,6 +27,13 @@ export function Delete(id: string): $CancellablePromise<void> {
 }
 
 /**
+ * Drift reports how Dev.to's copy differs from Relay's, or nil if it doesn't.
+ */
+export function Drift(id: string): $CancellablePromise<$models.Drift | null> {
+    return $Call.ByID(3671186126, id);
+}
+
+/**
  * Get loads a post; a Dev.to-only article is imported into a local file first.
  */
 export function Get(id: string): $CancellablePromise<posts$0.Post> {
@@ -66,6 +73,13 @@ export function PublishedURL(id: string): $CancellablePromise<string> {
 }
 
 /**
+ * PullDevto replaces Relay's title and body with Dev.to's copy.
+ */
+export function PullDevto(id: string): $CancellablePromise<posts$0.Post> {
+    return $Call.ByID(3703202294, id);
+}
+
+/**
  * RecordPromotion notes a post sent to Buffer on the local article.
  */
 export function RecordPromotion(id: string, promo: posts$0.Promotion): $CancellablePromise<posts$0.Post> {
@@ -78,9 +92,12 @@ export function Save(p: posts$0.Post): $CancellablePromise<posts$0.Post> {
 
 /**
  * Send creates an unpublished Dev.to draft, or updates the existing article.
+ * An update first checks Dev.to's copy: if it was edited there since the
+ * last send, nothing is sent and the drift comes back for the user to
+ * resolve, unless overwrite is set.
  */
-export function Send(id: string): $CancellablePromise<posts$0.Post> {
-    return $Call.ByID(1736885549, id);
+export function Send(id: string, overwrite: boolean): $CancellablePromise<$models.SendResult> {
+    return $Call.ByID(1736885549, id, overwrite);
 }
 
 /**

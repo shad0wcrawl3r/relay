@@ -155,7 +155,7 @@ export default function App() {
           )}
         </div>
       )}
-      {route.name === "editor" && <Editor />}
+      {route.name === "editor" && <Editor goSettings={() => go({ name: "settings", tab: "publishing" })} />}
       {route.name === "buffer" && <Buffer goSettings={() => go({ name: "settings", tab: "publishing" })} />}
       {route.name === "terminal" && <Terminal />}
       {route.name === "settings" && <Settings route={route} />}

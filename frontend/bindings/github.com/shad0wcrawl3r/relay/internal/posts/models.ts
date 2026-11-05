@@ -13,6 +13,12 @@ export interface Post {
     "sentAt": string;
 
     /**
+     * DevtoHash fingerprints Dev.to's copy (title and body) as of the last
+     * send or pull, so edits made on Dev.to since then can be spotted.
+     */
+    "devtoHash": string;
+
+    /**
      * Promotions records what went to Buffer for this post.
      */
     "promotions": Promotion[] | null;

@@ -43,6 +43,8 @@ type PostSummary struct {
 	URL         string    `json:"url"`
 	UpdatedAt   time.Time `json:"updatedAt"`
 	SentAt      time.Time `json:"sentAt"`
+	// RemoteChanged: edited on Dev.to since Relay last sent or pulled it.
+	RemoteChanged bool `json:"remoteChanged"`
 }
 
 type PostList struct {
@@ -85,6 +87,7 @@ func (s *PostService) List() (PostList, error) {
 		if a, ok := s.remote[p.DevtoID]; ok && p.DevtoID != 0 {
 			seen[p.DevtoID] = true
 			row.Published, row.PublishedAt, row.Views = a.Published, a.PublishedAt, a.PageViewsCount
+			row.RemoteChanged, _ = remoteChanged(p, a)
 			if a.URL != "" {
 				row.URL = a.URL
 			}
@@ -155,6 +158,7 @@ func (s *PostService) Get(id string) (posts.Post, error) {
 	p := posts.Post{Body: a.BodyMarkdown, Meta: posts.Meta{
 		Title: a.Title, Tags: a.TagList, Description: a.Description, CanonicalURL: a.CanonicalURL,
 		DevtoID: a.ID, DevtoURL: a.URL, SentAt: parseTime(a.CreatedAt),
+		DevtoHash: fingerprint(a.Title, a.BodyMarkdown),
 	}}
 	if a.Series != nil {
 		p.Series = *a.Series
@@ -174,9 +178,11 @@ func (s *PostService) Save(p posts.Post) (posts.Post, error) {
 	if len(p.Tags) > 4 {
 		p.Tags = p.Tags[:4]
 	}
-	// The editor autosaves its own copy, which may predate a promotion.
+	// The editor autosaves its own copy, which may predate a promotion or a
+	// send; Go owns those fields.
 	if old, err := s.store.Get(p.ID); err == nil {
 		p.Promotions = old.Promotions
+		p.DevtoHash = old.DevtoHash
 	}
 	saved, err := s.store.Save(p)
 	if err != nil {
@@ -199,11 +205,32 @@ func payload(p posts.Post) devto.Payload {
 	}
 }
 
+// SendResult is a send, or the drift that stopped it.
+type SendResult struct {
+	Post posts.Post `json:"post"`
+	// Drift is set, and nothing sent, when Dev.to's copy changed since
+	// Relay last sent or pulled it.
+	Drift *Drift `json:"drift"`
+}
+
 // Send creates an unpublished Dev.to draft, or updates the existing article.
-func (s *PostService) Send(ctx context.Context, id string) (posts.Post, error) {
+// An update first checks Dev.to's copy: if it was edited there since the
+// last send, nothing is sent and the drift comes back for the user to
+// resolve, unless overwrite is set.
+func (s *PostService) Send(ctx context.Context, id string, overwrite bool) (SendResult, error) {
 	p, err := s.store.Get(id)
 	if err != nil {
-		return posts.Post{}, err
+		return SendResult{}, err
+	}
+	if p.DevtoID != 0 && !overwrite {
+		d, err := s.drift(ctx, p)
+		if err != nil {
+			return SendResult{}, err
+		}
+		if d != nil {
+			devtoLog.Notice("send held: changed on Dev.to", "id", id, "devto_id", p.DevtoID)
+			return SendResult{Post: p, Drift: d}, nil
+		}
 	}
 	payload := payload(p)
 	var a devto.Article
@@ -214,17 +241,20 @@ func (s *PostService) Send(ctx context.Context, id string) (posts.Post, error) {
 	}
 	if err != nil {
 		devtoLog.Warn("send failed", "id", id, "error", err)
-		return posts.Post{}, err
+		return SendResult{}, err
 	}
-	devtoLog.Notice("sent", "id", id, "devto_id", a.ID)
+	devtoLog.Notice("sent", "id", id, "devto_id", a.ID, "overwrite", overwrite)
 	p.DevtoID, p.SentAt = a.ID, time.Now()
 	if a.URL != "" {
 		p.DevtoURL = a.URL
 	}
+	// What Dev.to now holds, as it reports it (it may normalise the text).
+	p.DevtoHash = fingerprint(a.Title, firstNonEmpty(a.BodyMarkdown, payload.BodyMarkdown))
 	s.mu.Lock()
 	s.remote[a.ID] = a
 	s.mu.Unlock()
-	return s.store.Save(p)
+	saved, err := s.store.Save(p)
+	return SendResult{Post: saved}, err
 }
 
 // Publish makes a post live on Dev.to. It only runs on the user's explicit
