@@ -7,6 +7,9 @@ import type { Events } from "@wailsio/runtime";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import type * as main$0 from "../../../../shad0wcrawl3r/relay/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import type * as plane$0 from "../../../../shad0wcrawl3r/relay/internal/plane/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -15,6 +18,7 @@ import type * as term$0 from "../../../../shad0wcrawl3r/relay/internal/term/mode
 declare module "@wailsio/runtime" {
     namespace Events {
         interface CustomEvents {
+            "integrations:changed": main$0.Integrations;
             "plane:snapshot": plane$0.Snapshot;
             "term:sessions": term$0.Info[] | null;
         }

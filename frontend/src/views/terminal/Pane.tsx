@@ -115,6 +115,9 @@ export function Pane({ node, focused, zoomed, detached }: { node: PaneNode; focu
         const exit = /^exit (-?\d+)$/.exec(ev.reason);
         if (exit) {
           const code = Number(exit[1]);
+          // An exited shell closes its terminal. In tabs the store does that
+          // from the session list; the quick terminal closes itself.
+          if (detached) return void detached.onClose();
           setEnded({ code });
           term.write(`\r\n\x1b[2m[process exited${code ? ` with code ${code}` : ""} · ⏎ restart · ⌃B x close]\x1b[0m\r\n`);
         } else if (opened) {

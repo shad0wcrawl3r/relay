@@ -7,13 +7,38 @@ import (
 	"github.com/shad0wcrawl3r/relay/internal/config"
 	"github.com/shad0wcrawl3r/relay/internal/logs"
 	"github.com/shad0wcrawl3r/relay/internal/plane"
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 // SettingsService reads and writes config.toml. Secrets are never sent to the
 // frontend: it only learns whether they are set, and blank inputs keep them.
 type SettingsService struct {
-	plane *PlaneService
-	posts *PostService
+	plane  *PlaneService
+	posts  *PostService
+	buffer *BufferService
+}
+
+// Integrations says which services are set up, without any network calls.
+// Plane's state comes with its snapshot.
+type Integrations struct {
+	Buffer bool `json:"buffer"`
+	Devto  bool `json:"devto"`
+}
+
+func (s *SettingsService) Integrations() Integrations {
+	return currentIntegrations(s.buffer)
+}
+
+func currentIntegrations(b *BufferService) Integrations {
+	return Integrations{Buffer: b != nil && b.client.Connected(), Devto: config.GetConfig().DevTo.APIKey != ""}
+}
+
+// integrationsChanged tells the frontend to move integrations between the
+// sidebar's main sections and "Other integrations".
+func integrationsChanged(b *BufferService) {
+	if app := application.Get(); app != nil {
+		app.Event.Emit("integrations:changed", currentIntegrations(b))
+	}
 }
 
 type Settings struct {
@@ -105,11 +130,13 @@ func (s *SettingsService) Save(in SettingsInput) (Settings, error) {
 		return Settings{}, err
 	}
 	logs.For("app").Info("settings saved")
+	integrationsChanged(s.buffer)
 	return s.Get(), nil
 }
 
 // ClearDevtoKey removes the stored Dev.to key.
 func (s *SettingsService) ClearDevtoKey() (Settings, error) {
 	err := config.Update(func(c *config.Config) { c.DevTo.APIKey = "" })
+	integrationsChanged(s.buffer)
 	return s.Get(), err
 }

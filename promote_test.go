@@ -28,7 +28,7 @@ func TestPreviewMatchesWhatPromoteSends(t *testing.T) {
 	}
 	s.remote[7] = devto.Article{ID: 7, Published: true, URL: "https://dev.to/a/live"}
 	got, err := b.PreviewPromotion(p.ID, " hello ")
-	if err != nil || got != withLink("hello", "https://dev.to/a/live") {
+	if err != nil || got != "hello\n\nhttps://dev.to/a/live\n\n"+EvalNoteText {
 		t.Errorf("got %q, %v", got, err)
 	}
 }
@@ -135,5 +135,19 @@ func TestPromotionURLFindsRelayPromotionsOnly(t *testing.T) {
 	s.remote[7] = devto.Article{ID: 7, Published: true, URL: "https://dev.to/a/live"}
 	if got := s.PromotionURL("b1"); got != "https://dev.to/a/live" {
 		t.Errorf("synced got %q", got)
+	}
+}
+
+func TestEvalNoteMarksTestPostsOnce(t *testing.T) {
+	const url = "https://dev.to/a/post"
+	got := promotionText("hello", url)
+	if !strings.HasSuffix(got, url+"\n\n"+EvalNoteText) {
+		t.Errorf("test runs must mark posts: %q", got)
+	}
+	if again := promotionText(got, url); again != got {
+		t.Errorf("marked twice: %q", again)
+	}
+	if (&BufferService{}).EvalNote() != EvalNoteText {
+		t.Error("the composer must be told about the note")
 	}
 }
