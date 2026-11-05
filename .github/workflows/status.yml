@@ -1,0 +1,55 @@
+name: Publish status
+
+on:
+  workflow_run:
+    workflows: [Build]
+    types: [completed]
+    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: status
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Collect status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          run=$(gh run list -R "$REPO" -w Build -b main -L 20 --json databaseId,status,headSha,updatedAt \
+            --jq 'map(select(.status == "completed"))[0]')
+          id=$(jq -r .databaseId <<<"$run")
+          version=$(gh api "repos/$REPO/releases/latest" --jq .tag_name 2>/dev/null || true)
+          gh api "repos/$REPO/actions/runs/$id/jobs" --jq '.jobs' \
+            | jq --argjson run "$run" --arg version "$version" '{
+                updated_at: $run.updatedAt,
+                commit: $run.headSha[0:7],
+                version: (if $version == "" then null else $version end),
+                platforms: map({name: (.name | split(" ")[0]), conclusion})
+              }' > status.json
+          cat status.json
+
+      - name: Push to relay-status
+        env:
+          DEPLOY_KEY: ${{ secrets.STATUS_DEPLOY_KEY }}
+        run: |
+          install -m 700 -d ~/.ssh
+          (umask 077 && printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/status_key)
+          ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/status_key -o IdentitiesOnly=yes"
+          git clone --depth 1 git@github.com:shad0wcrawl3r/relay-status.git site
+          cp status.json site/site/status.json
+          cd site
+          git config user.name "relay-status"
+          git config user.email "relay-status@users.noreply.github.com"
+          git add site/status.json
+          git diff --cached --quiet || { git commit -m "Update status" && git push; }
