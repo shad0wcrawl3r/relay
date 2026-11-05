@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/Toaster";
 
-export function AISettings() {
+export function AISettings({ compact = false, onChange }: { compact?: boolean; onChange?: (s: AIStatus) => void } = {}) {
+  // Narrow windows (the setup guide) stack labels above fields.
+  const row = compact ? "flex flex-col gap-2" : "grid grid-cols-[160px_minmax(0,1fr)] items-start gap-4";
   const toast = useToast();
   const [status, setStatus] = useState<AIStatus | null>(null);
   const [picked, setPicked] = useState("");
@@ -18,6 +20,9 @@ export function AISettings() {
   const [endpoint, setEndpoint] = useState("");
 
   const provider = status?.providers.find((p) => p.id === picked);
+  useEffect(() => {
+    if (status) onChange?.(status);
+  }, [status, onChange]);
 
   const loadModels = useCallback(async (id: string) => {
     setLoading(true);
@@ -125,7 +130,7 @@ export function AISettings() {
         ))}
       </div>
 
-      <div className="grid grid-cols-[160px_minmax(0,1fr)] items-start gap-4">
+      <div className={row}>
         <span className="pt-2.5 text-[13px] text-muted-foreground">Endpoint</span>
         <div className="flex flex-col gap-1.5">
           <form
@@ -160,7 +165,7 @@ export function AISettings() {
       </div>
 
       {(provider.needsKey || provider.custom) && (
-        <div className="grid grid-cols-[160px_minmax(0,1fr)] items-start gap-4">
+        <div className={row}>
           <span className="pt-2.5 text-[13px] text-muted-foreground">API key</span>
           <div className="flex flex-col gap-1.5">
             <form
@@ -198,7 +203,7 @@ export function AISettings() {
       )}
 
       {(!provider.needsKey || provider.keySet) && (
-        <div className="grid grid-cols-[160px_minmax(0,1fr)] items-start gap-4">
+        <div className={row}>
           <span className="pt-2.5 text-[13px] text-muted-foreground">Model</span>
           <div className="flex flex-col gap-1.5">
             {loading ? (

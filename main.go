@@ -30,9 +30,12 @@ func init() {
 	application.RegisterEvent[plane.Snapshot]("plane:snapshot")
 	application.RegisterEvent[[]term.Info]("term:sessions")
 	application.RegisterEvent[Integrations]("integrations:changed")
+	application.RegisterEvent[string]("guide:show")
 }
 
 func main() {
+	// Before anything reads a secret; also moves old ones out of config.toml.
+	config.LoadSecrets()
 	cfg := config.GetConfig()
 	logs.Configure(cfg.Logs.Enabled, cfg.Logs.Levels)
 	logs.For("app").Notice("started", "os", runtime.GOOS)
@@ -43,6 +46,7 @@ func main() {
 		log.Fatal(err)
 	}
 	bufferSvc := NewBufferService(postSvc, planeSvc)
+	guide := &GuideService{}
 	settingsSvc := &SettingsService{plane: planeSvc, posts: postSvc, buffer: bufferSvc}
 
 	// Closing the window hides Relay to the tray; only Quit ends it (and
@@ -60,6 +64,7 @@ func main() {
 			application.NewService(&LogService{}),
 			application.NewService(settingsSvc),
 			application.NewService(NewTerminalService()),
+			application.NewService(guide),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
@@ -78,6 +83,7 @@ func main() {
 	// The designs assume 1280–1440 wide; 1100 is the narrowest the board and
 	// editor still lay out cleanly.
 	window := app.Window.NewWithOptions(application.WebviewWindowOptions{
+		Name:      "main",
 		Title:     "Relay",
 		Width:     1440,
 		Height:    900,
@@ -140,6 +146,14 @@ func main() {
 		tray.SetIcon(trayColor)
 	}
 	tray.SetMenu(menu)
+
+	// First run: the setup guide floats beside the main window until it's
+	// finished or skipped.
+	app.Event.OnApplicationEvent(events.Common.ApplicationStarted, func(*application.ApplicationEvent) {
+		if !guide.Status().Done {
+			guide.Open()
+		}
+	})
 
 	if err := app.Run(); err != nil {
 		log.Fatal(err)

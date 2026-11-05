@@ -10,7 +10,8 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
-// SettingsService reads and writes config.toml. Secrets are never sent to the
+// SettingsService reads and writes settings: config.toml, and the keychain for
+// secrets (internal/config/secrets.go). Secrets are never sent to the
 // frontend: it only learns whether they are set, and blank inputs keep them.
 type SettingsService struct {
 	plane  *PlaneService
@@ -137,6 +138,38 @@ func (s *SettingsService) Save(in SettingsInput) (Settings, error) {
 // ClearDevtoKey removes the stored Dev.to key.
 func (s *SettingsService) ClearDevtoKey() (Settings, error) {
 	err := config.Update(func(c *config.Config) { c.DevTo.APIKey = "" })
+	integrationsChanged(s.buffer)
+	return s.Get(), err
+}
+
+// SavePlaneApp stores the Plane OAuth app's credentials, for the setup guide.
+// A blank secret keeps the saved one.
+func (s *SettingsService) SavePlaneApp(clientID, secret, workspace string) (Settings, error) {
+	err := config.Update(func(c *config.Config) {
+		c.Plane.ClientID = strings.TrimSpace(clientID)
+		if secret = strings.TrimSpace(secret); secret != "" {
+			c.Plane.ClientSecret = secret
+		}
+		if workspace = strings.TrimSpace(workspace); workspace != "" {
+			c.Plane.Workspace = workspace
+		}
+	})
+	if err != nil {
+		logs.For("app").Error("could not save the Plane app", "error", err)
+	}
+	return s.Get(), err
+}
+
+// SaveDevtoKey stores the Dev.to API key, for the setup guide.
+func (s *SettingsService) SaveDevtoKey(key string) (Settings, error) {
+	key = strings.TrimSpace(key)
+	if key == "" {
+		return s.Get(), nil
+	}
+	err := config.Update(func(c *config.Config) { c.DevTo.APIKey = key })
+	if err != nil {
+		logs.For("app").Error("could not save the Dev.to key", "error", err)
+	}
 	integrationsChanged(s.buffer)
 	return s.Get(), err
 }

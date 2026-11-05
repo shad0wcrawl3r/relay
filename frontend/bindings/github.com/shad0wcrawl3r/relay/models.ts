@@ -70,6 +70,13 @@ export interface Endpoint {
 }
 
 /**
+ * GuideStatus is whether the user has finished or skipped the guide.
+ */
+export interface GuideStatus {
+    "done": boolean;
+}
+
+/**
  * IdeaLink ties a Buffer idea to the work item made from it, or made into it.
  */
 export interface IdeaLink {
