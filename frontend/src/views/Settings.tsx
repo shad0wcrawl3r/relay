@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Browser, CancelError, Clipboard, type CancellablePromise } from "@wailsio/runtime";
-import { Check, Copy, Loader2 } from "lucide-react";
+import { Check, Copy, ExternalLink, Loader2 } from "lucide-react";
 import { BufferService, moduleKey, PlaneService, projectKey, SettingsService, TerminalService, type BufferStatus, type Settings as SettingsT, type SettingsInput } from "@/lib/api";
 import { useTerminal } from "@/lib/terminal";
 import { showKey } from "@/lib/keys";
@@ -153,6 +153,17 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
         <div>
           <h1 className="m-0 text-[22px] font-semibold tracking-[-.01em] text-strong">Settings</h1>
           <p className="mt-1 text-[13px] text-dim">Saved to {s.configPath}. Secrets are never shown again once saved.</p>
+          <div className="mt-2 flex gap-4 text-xs">
+            {[
+              { label: "Source on GitHub", url: "https://github.com/shad0wcrawl3r/relay" },
+              { label: "Status", url: "https://relay.shadowcrawler.dev" },
+            ].map((l) => (
+              <button key={l.url} className="inline-flex items-center gap-1 text-[#93c5fd] hover:underline" onClick={() => Browser.OpenURL(l.url)}>
+                <ExternalLink className="size-3" />
+                {l.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <Tabs value={tab} onValueChange={setTab} className="flex flex-col gap-6">
