@@ -1,15 +1,17 @@
 {
 	"fixed": {
-		"file_version": "0.1.0"
+		"file_version": "0.0.2",
+		"product_version": "0.0.2"
 	},
 	"info": {
 		"0409": {
-			"ProductVersion": "0.1.0",
-			"CompanyName": "My Company",
-			"FileDescription": "A relay application",
-			"LegalCopyright": "© 2026, My Company",
-			"ProductName": "My Product",
-			"Comments": "This is a comment"
+			"FileVersion": "0.0.2",
+			"ProductVersion": "0.0.2",
+			"CompanyName": "shadowcrawler",
+			"FileDescription": "Desktop workbench for Plane, Dev.to writing, Buffer and terminals",
+			"LegalCopyright": "© 2026, Ashwin Belbase",
+			"ProductName": "Relay",
+			"Comments": "https://relay.shadowcrawler.dev"
 		}
 	}
 }
