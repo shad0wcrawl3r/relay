@@ -31,12 +31,15 @@ frontend. Runs on macOS, Windows and Linux.
   - Buffer tab: channels with posting schedules and weekly goals; the queue,
     drafts, approvals, sent and failed posts; edit, reschedule and delete;
     ideas, drafted with AI from any pasted text
+  - Buffer column on Plane boards: drag work items in to save them as Buffer
+    ideas, or drag ideas out to make work items (never for private projects)
   - AI providers: Anthropic, OpenAI, OpenRouter, Ollama and LM Studio, with
     custom endpoints and model search
 - **Terminal**
   - Background sessions owned by Go, with detach and reattach
   - Panes, tabs, splits and zoom, with tmux-style keybindings
   - Quick terminal (⌘/) over any view
+  - ⌘T opens a tab; `exit` closes the pane, or the tab if it was the last one
 - **Privacy and app**
   - Everything written to disk is encrypted (AES-256-GCM), with the key in the
     OS keychain

@@ -1,10 +1,15 @@
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
-import { ChevronDown, Columns3, ListFilter, Lock, Plus, Rows3, Search } from "lucide-react";
-import { moduleKey, projectKey, type Item, type Project, type State } from "@/lib/api";
+import { ChevronDown, Columns3, Lightbulb, ListFilter, Lock, Plus, RefreshCw, Rows3, Search } from "lucide-react";
+import { BufferService, moduleKey, projectKey, type Item, type Project, type State } from "@/lib/api";
+import { useIntegrations } from "@/lib/integrations";
+import { addIdea, addLink, loadIdeas, loadMoreIdeas, useIdeas } from "@/lib/ideas";
+import { useToast } from "@/components/Toaster";
+import { IdeaDialog } from "@/components/IdeaDialog";
+import { SyncNote } from "@/components/SyncNote";
 import { UnlockButton } from "@/components/LockScreen";
 import { usePlane } from "@/lib/store";
 import { collapsedByDefault, isDoneGroup, isOverdue, PRIORITIES, priorityLabel, stateById, stateColor } from "@/lib/plane";
-import { cn } from "@/lib/utils";
+import { cn, errorMessage } from "@/lib/utils";
 import { Dot, Kbd, PriorityIcon, PrivateLock, ProjectGlyph } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import {
@@ -65,13 +70,17 @@ function toggle(set: Set<string>, v: string): Set<string> {
   return next;
 }
 
-function useDrop(onDrop: (id: string) => void) {
+const IDEA_MIME = "application/x-relay-idea";
+type DroppedIdea = { id: string; title: string; text: string };
+
+function useDrop(onDrop: ((id: string) => void) | null, onIdea?: (idea: DroppedIdea) => void) {
   const [over, setOver] = useState(false);
+  const accepts = (t: readonly string[]) => (!!onDrop && t.includes(DRAG_MIME)) || (!!onIdea && t.includes(IDEA_MIME));
   return {
     over,
     props: {
       onDragOver: (e: React.DragEvent) => {
-        if (!e.dataTransfer.types.includes(DRAG_MIME)) return;
+        if (!accepts(e.dataTransfer.types)) return;
         e.preventDefault();
         e.dataTransfer.dropEffect = "move";
         setOver(true);
@@ -81,7 +90,12 @@ function useDrop(onDrop: (id: string) => void) {
       },
       onDrop: (e: React.DragEvent) => {
         setOver(false);
-        const raw = e.dataTransfer.getData(DRAG_MIME);
+        const idea = onIdea && e.dataTransfer.getData(IDEA_MIME);
+        if (idea) {
+          e.preventDefault();
+          return onIdea(JSON.parse(idea));
+        }
+        const raw = onDrop && e.dataTransfer.getData(DRAG_MIME);
         if (!raw) return;
         e.preventDefault();
         onDrop(JSON.parse(raw).id);
@@ -103,7 +117,9 @@ interface BoardProps {
 }
 
 export const Board = forwardRef<BoardHandle, BoardProps>(function Board({ project, openItem, selectedId, onNewItem }, ref) {
-  const { update, lock } = usePlane();
+  const { update, lock, readOnly } = usePlane();
+  const toast = useToast();
+  const { buffer } = useIntegrations();
   const [view, setView] = useState<"board" | "lanes">(() => viewMemory.get(project.id) ?? "board");
   const [collapsed, setCollapsed] = useState<Set<string>>(
     () => collapsedMemory.get(project.id) ?? new Set(project.states.filter(collapsedByDefault).map((s) => s.id)),
@@ -130,12 +146,25 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board({ projec
     setView(v);
   };
 
+  // Ideas sync with Buffer, but never for private projects (Go refuses too).
+  const showIdeas = buffer === true && !project.private && view === "board";
+
   const byState = stateById(project);
   const items = useMemo(() => project.items.filter((it) => matches(it, byState.get(it.stateId), filters)), [project, filters]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const moveTo = (state: State) => (id: string) => {
     const it = project.items.find((i) => i.id === id);
     if (it && it.stateId !== state.id) update(it, { stateId: state.id });
+  };
+
+  const ideaTo = (state: State) => async (idea: DroppedIdea) => {
+    try {
+      const it = await BufferService.IdeaToItem({ ideaId: idea.id, title: idea.title, text: idea.text, projectId: project.id, stateId: state.id });
+      addLink({ ideaId: idea.id, projectId: project.id, itemId: it.id, key: it.key, at: new Date().toISOString() });
+      toast({ tone: "success", title: `Created ${it.key} from a Buffer idea`, body: "The idea stays in Buffer." });
+    } catch (err) {
+      toast({ tone: "error", title: "Couldn't add the idea to Plane", body: errorMessage(err) });
+    }
   };
 
   const activeFilters = filters.modules.size + filters.labels.size + filters.priorities.size + filters.cycles.size + +filters.agentOnly + +filters.overdueOnly;
@@ -285,9 +314,17 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board({ projec
 
       {view === "board" ? (
         <div className="flex flex-1 items-start gap-3 overflow-x-auto px-5 pb-6 pt-4">
+          {showIdeas && <BufferColumn project={project} readOnly={readOnly} openItem={openItem} />}
           {project.states.map((s) =>
             collapsed.has(s.id) ? (
-              <CollapsedColumn key={s.id} state={s} count={items.filter((i) => i.stateId === s.id).length} onExpand={() => setCollapsedFor(toggle(collapsed, s.id))} onDrop={moveTo(s)} />
+              <CollapsedColumn
+                key={s.id}
+                state={s}
+                count={items.filter((i) => i.stateId === s.id).length}
+                onExpand={() => setCollapsedFor(toggle(collapsed, s.id))}
+                onDrop={moveTo(s)}
+                onIdea={showIdeas && !readOnly ? ideaTo(s) : undefined}
+              />
             ) : (
               <Column
                 key={s.id}
@@ -298,6 +335,7 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board({ projec
                 openItem={openItem}
                 onCollapse={() => setCollapsedFor(toggle(collapsed, s.id))}
                 onDrop={moveTo(s)}
+                onIdea={showIdeas && !readOnly ? ideaTo(s) : undefined}
               />
             ),
           )}
@@ -317,8 +355,20 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board({ projec
   );
 });
 
-function CollapsedColumn({ state, count, onExpand, onDrop }: { state: State; count: number; onExpand: () => void; onDrop: (id: string) => void }) {
-  const drop = useDrop(onDrop);
+function CollapsedColumn({
+  state,
+  count,
+  onExpand,
+  onDrop,
+  onIdea,
+}: {
+  state: State;
+  count: number;
+  onExpand: () => void;
+  onDrop: (id: string) => void;
+  onIdea?: (idea: DroppedIdea) => void;
+}) {
+  const drop = useDrop(onDrop, onIdea);
   return (
     <button
       {...drop.props}
@@ -344,6 +394,7 @@ function Column({
   openItem,
   onCollapse,
   onDrop,
+  onIdea,
 }: {
   project: Project;
   state: State;
@@ -352,8 +403,9 @@ function Column({
   openItem: (o: OpenItem) => void;
   onCollapse: () => void;
   onDrop: (id: string) => void;
+  onIdea?: (idea: DroppedIdea) => void;
 }) {
-  const drop = useDrop(onDrop);
+  const drop = useDrop(onDrop, onIdea);
   const [adding, setAdding] = useState(false);
   return (
     <section aria-label={state.name} className="flex max-h-full w-[264px] shrink-0 flex-col gap-2">
@@ -399,6 +451,105 @@ function Column({
           )
         )}
       </div>
+    </section>
+  );
+}
+
+/** Buffer's ideas, kept in sync with Buffer (see SyncNote for the rules). */
+function BufferColumn({ project, readOnly, openItem }: { project: Project; readOnly: boolean; openItem: (o: OpenItem) => void }) {
+  const toast = useToast();
+  const { ideas, groups, links, orgId, loading, error, more } = useIdeas(true);
+  const [composing, setComposing] = useState(false);
+  const drop = useDrop(readOnly ? null : async (itemId: string) => {
+    const it = project.items.find((i) => i.id === itemId);
+    try {
+      const idea = await BufferService.ItemToIdea(orgId, project.id, itemId);
+      addIdea(idea, { ideaId: idea.id, projectId: project.id, itemId, key: it?.key ?? "", at: new Date().toISOString() });
+      toast({ tone: "success", title: `Saved ${it?.key ?? "the item"} as a Buffer idea`, body: "The work item stays where it is." });
+    } catch (err) {
+      toast({ tone: "error", title: "Couldn't save it as a Buffer idea", body: errorMessage(err) });
+    }
+  });
+  return (
+    <section aria-label="Buffer ideas" className="flex max-h-full w-[264px] shrink-0 flex-col gap-2">
+      <div className="flex h-7 items-center gap-2 px-1 text-xs font-medium text-[#d4d4d8]">
+        <Lightbulb className="size-3.5 text-[#93c5fd]" strokeWidth={2} />
+        <span>Buffer</span>
+        <span className="font-normal text-dim">{ideas.length}{more ? "+" : ""}</span>
+        <SyncNote compact />
+        <button
+          aria-label="Reload Buffer ideas"
+          onClick={() => loadIdeas(undefined, true)}
+          className="ml-auto grid size-7 place-items-center rounded-md text-muted-foreground hover:bg-[#18181b] hover:text-strong"
+        >
+          <RefreshCw className={cn("size-[13px]", loading && "animate-spin")} strokeWidth={2} />
+        </button>
+        <button
+          aria-label="New Buffer idea"
+          onClick={() => setComposing(true)}
+          disabled={!orgId}
+          className="grid size-7 place-items-center rounded-md text-muted-foreground hover:bg-[#18181b] hover:text-strong disabled:opacity-40"
+        >
+          <Plus className="size-[13px]" strokeWidth={2} />
+        </button>
+      </div>
+      <div
+        {...drop.props}
+        className={cn(
+          "flex min-h-[60px] flex-col gap-2 overflow-y-auto rounded-[10px] border border-dashed border-[#1e3a5f] bg-[#0b111a] p-2",
+          drop.over && "border-[#3b82f6] bg-[#0e1726]",
+        )}
+      >
+        {error && <p className="m-0 px-1 text-xs text-overdue">{error}</p>}
+        {ideas.map((i) => {
+          const link = links[i.id];
+          return (
+            <div
+              key={i.id}
+              draggable={!link && !readOnly}
+              onDragStart={(e) => {
+                e.dataTransfer.setData(IDEA_MIME, JSON.stringify({ id: i.id, title: i.title, text: i.text }));
+                e.dataTransfer.effectAllowed = "copy";
+              }}
+              title={link ? undefined : "Drag onto a column to make it a work item"}
+              className={cn(
+                "flex flex-col gap-1 rounded-[7px] border border-card-border bg-card px-2.5 py-2",
+                !link && !readOnly && "cursor-grab hover:border-card-hover active:cursor-grabbing",
+              )}
+            >
+              {i.title && <span className="text-[13px] leading-snug text-[#f4f4f5]">{i.title}</span>}
+              {i.text && <span className={cn("line-clamp-3 whitespace-pre-wrap text-xs leading-snug", i.title ? "text-dim" : "text-[#f4f4f5]")}>{i.text}</span>}
+              {link && (
+                <button
+                  className="self-start text-[11px] text-[#93c5fd] hover:underline disabled:no-underline"
+                  disabled={link.projectId !== project.id}
+                  onClick={() => openItem({ projectId: link.projectId, itemId: link.itemId })}
+                >
+                  In Plane as {link.key}
+                </button>
+              )}
+            </div>
+          );
+        })}
+        {more && (
+          <button onClick={loadMoreIdeas} className="h-7 rounded-md px-1.5 text-left text-xs text-dim hover:bg-[#141417] hover:text-strong">
+            Load more ideas
+          </button>
+        )}
+        {!loading && !error && ideas.length === 0 && <p className="m-0 px-1 text-xs text-dim">No ideas yet. Drop a work item here to save it as one.</p>}
+      </div>
+      {composing && (
+        <IdeaDialog
+          orgId={orgId}
+          groups={groups.filter((g) => !g.isLocked)}
+          onClose={() => setComposing(false)}
+          onCreated={(i) => {
+            addIdea(i);
+            setComposing(false);
+            toast({ tone: "success", title: "Idea saved in Buffer" });
+          }}
+        />
+      )}
     </section>
   );
 }

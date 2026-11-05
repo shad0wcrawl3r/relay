@@ -1,12 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Browser } from "@wailsio/runtime";
-import { AlertTriangle, ExternalLink, Lightbulb, Loader2, Pause, Pencil, RefreshCw, Sparkles, Trash2, Unplug } from "lucide-react";
+import { AlertTriangle, ExternalLink, Lightbulb, Loader2, Pause, Pencil, RefreshCw, Trash2, Unplug } from "lucide-react";
 import {
-  AIService,
   BufferService,
   type BufferChannel,
-  type BufferIdea,
-  type BufferIdeaGroup,
   type BufferOverview,
   type BufferPost,
   type BufferPostStatus,
@@ -18,6 +15,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { IdeaDialog } from "@/components/IdeaDialog";
+import { SyncNote } from "@/components/SyncNote";
+import { addIdea, loadIdeas, loadMoreIdeas, useIdeas } from "@/lib/ideas";
 
 type TabId = "queue" | "approval" | "drafts" | "sent" | "failed" | "ideas";
 
@@ -534,44 +534,21 @@ function EditDialog({ post, onClose, onSaved }: { post: BufferPost; onClose: () 
 
 function Ideas({ orgId }: { orgId: string }) {
   const toast = useToast();
-  const [ideas, setIdeas] = useState<BufferIdea[]>([]);
-  const [groups, setGroups] = useState<BufferIdeaGroup[]>([]);
-  const [cursor, setCursor] = useState("");
-  const [more, setMore] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const { ideas, groups, links, more, loading, error, orgId: loadedOrg } = useIdeas(true, orgId);
   const [composing, setComposing] = useState(false);
+  const current = loadedOrg === orgId;
 
-  const fetchPage = useCallback(
-    async (after: string) => {
-      setLoading(true);
-      setError("");
-      try {
-        const page = await BufferService.Ideas(orgId, after);
-        setIdeas((cur) => (after ? [...cur, ...page.ideas] : page.ideas));
-        if (!after) setGroups(page.groups);
-        setCursor(page.cursor);
-        setMore(page.more);
-      } catch (err) {
-        setError(errorMessage(err));
-      } finally {
-        setLoading(false);
-      }
-    },
-    [orgId],
-  );
-
-  useEffect(() => {
-    fetchPage("");
-  }, [fetchPage]);
-
-  const groupName = (id: string) => groups.find((g) => g.id === id)?.name ?? "";
   const sections = useMemo(() => {
+    const name = (id: string) => groups.find((g) => g.id === id)?.name ?? "Other";
     const order = ["", ...groups.map((g) => g.id)];
-    return order
-      .map((id) => ({ id, name: id ? groupName(id) : "Unassigned", ideas: ideas.filter((i) => (i.groupId || "") === id) }))
+    const known = new Set(order);
+    return [...order, "?"]
+      .map((id) => ({
+        id,
+        name: id === "" ? "Unassigned" : id === "?" ? "Other groups" : name(id),
+        ideas: ideas.filter((i) => (id === "?" ? !known.has(i.groupId || "") : (i.groupId || "") === id)),
+      }))
       .filter((s) => s.ideas.length > 0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ideas, groups]);
 
   return (
@@ -580,36 +557,42 @@ function Ideas({ orgId }: { orgId: string }) {
         <Button onClick={() => setComposing(true)}>
           <Lightbulb className="size-3.5" /> New idea
         </Button>
-        <span className="text-xs text-dim">Ideas are saved in Buffer to turn into posts later. Paste any text and draft one with AI.</span>
+        <SyncNote />
+        <Button variant="ghost" size="icon" aria-label="Reload ideas" onClick={() => loadIdeas(orgId, true)} disabled={loading}>
+          <RefreshCw className={cn("size-3.5", loading && "animate-spin")} />
+        </Button>
       </div>
       {error && <p className="text-xs text-overdue">{error}</p>}
-      {!loading && !error && ideas.length === 0 && <p className="px-1 text-[13px] text-dim">No ideas yet.</p>}
-      {sections.map((s) => (
-        <section key={s.id} aria-label={s.name}>
-          <div className="mb-2 px-1 text-xs font-medium text-[#d4d4d8]">
-            {s.name} <span className="font-normal text-dim">{s.ideas.length}</span>
-          </div>
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-2.5">
-            {s.ideas.map((i) => (
-              <div key={i.id} className="flex flex-col gap-1.5 rounded-[10px] border border-column-border bg-column p-3">
-                {i.title && <div className="text-[13px] font-medium text-[#f4f4f5]">{i.title}</div>}
-                {i.text && <p className="m-0 line-clamp-5 whitespace-pre-wrap text-xs leading-snug text-[#d4d4d8]">{i.text}</p>}
-                <div className="mt-auto flex flex-wrap gap-x-2 text-[11px] text-dim">
-                  {i.createdAt > 0 && <span>{ago(new Date(i.createdAt > 1e12 ? i.createdAt : i.createdAt * 1000))}</span>}
-                  {i.services.length > 0 && <span>· {i.services.map(serviceName).join(", ")}</span>}
+      {current && !loading && !error && ideas.length === 0 && <p className="px-1 text-[13px] text-dim">No ideas yet.</p>}
+      {current &&
+        sections.map((s) => (
+          <section key={s.id} aria-label={s.name}>
+            <div className="mb-2 px-1 text-xs font-medium text-[#d4d4d8]">
+              {s.name} <span className="font-normal text-dim">{s.ideas.length}</span>
+            </div>
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-2.5">
+              {s.ideas.map((i) => (
+                <div key={i.id} className="flex flex-col gap-1.5 rounded-[10px] border border-column-border bg-column p-3">
+                  {i.title && <div className="text-[13px] font-medium text-[#f4f4f5]">{i.title}</div>}
+                  {i.text && <p className="m-0 line-clamp-5 whitespace-pre-wrap text-xs leading-snug text-[#d4d4d8]">{i.text}</p>}
+                  <div className="mt-auto flex flex-wrap gap-x-2 text-[11px] text-dim">
+                    {i.createdAt > 0 && <span>{ago(new Date(i.createdAt > 1e12 ? i.createdAt : i.createdAt * 1000))}</span>}
+                    {i.services.length > 0 && <span>· {i.services.map(serviceName).join(", ")}</span>}
+                    {links[i.id] && <span className="text-[#93c5fd]">· In Plane as {links[i.id].key}</span>}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      ))}
+              ))}
+            </div>
+          </section>
+        ))}
       {loading ? (
         <p className="flex items-center gap-2 px-1 text-xs text-dim">
           <Loader2 className="size-3.5 animate-spin" /> Loading ideas…
         </p>
       ) : (
-        more && (
-          <Button variant="outline" className="self-start" onClick={() => fetchPage(cursor)}>
+        more &&
+        current && (
+          <Button variant="outline" className="self-start" onClick={loadMoreIdeas}>
             Load more
           </Button>
         )
@@ -620,129 +603,12 @@ function Ideas({ orgId }: { orgId: string }) {
           groups={groups.filter((g) => !g.isLocked)}
           onClose={() => setComposing(false)}
           onCreated={(i) => {
-            setIdeas((cur) => [i, ...cur]);
+            addIdea(i);
             setComposing(false);
             toast({ tone: "success", title: "Idea saved in Buffer" });
           }}
         />
       )}
     </div>
-  );
-}
-
-function IdeaDialog({
-  orgId,
-  groups,
-  onClose,
-  onCreated,
-}: {
-  orgId: string;
-  groups: BufferIdeaGroup[];
-  onClose: () => void;
-  onCreated: (i: BufferIdea) => void;
-}) {
-  const toast = useToast();
-  const [title, setTitle] = useState("");
-  const [text, setText] = useState("");
-  const [groupId, setGroupId] = useState("");
-  const [source, setSource] = useState("");
-  const [drafting, setDrafting] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [aiReady, setAiReady] = useState(false);
-
-  useEffect(() => {
-    AIService.Status()
-      .then((s) => setAiReady(s.ready))
-      .catch(() => {});
-  }, []);
-
-  const draft = async () => {
-    setDrafting(true);
-    try {
-      setText(await AIService.SummarizeText(title, source));
-    } catch (err) {
-      toast({ tone: "error", title: "Couldn't draft the idea", body: errorMessage(err) });
-    } finally {
-      setDrafting(false);
-    }
-  };
-
-  const save = async () => {
-    setSaving(true);
-    try {
-      onCreated(await BufferService.CreateIdea({ organizationId: orgId, groupId, title, text }));
-    } catch (err) {
-      toast({ tone: "error", title: "Couldn't save the idea", body: errorMessage(err) });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="flex max-w-[600px] flex-col gap-4">
-        <DialogHeader>
-          <DialogTitle>New idea</DialogTitle>
-          <DialogDescription>Saved to Buffer's Ideas. Nothing is posted.</DialogDescription>
-        </DialogHeader>
-        <Input aria-label="Title" placeholder="Title (optional)" value={title} onChange={(e) => setTitle(e.target.value)} />
-        <details className="rounded-md border border-border p-3 text-xs text-muted-foreground" open={!!source}>
-          <summary className="cursor-pointer select-none">
-            <Sparkles className="mr-1 inline size-3.5" /> Draft from pasted text with AI
-          </summary>
-          <div className="mt-3 flex flex-col gap-2">
-            <textarea
-              aria-label="Text to summarise"
-              placeholder="Paste an article, notes or a README. It's sent to your AI provider only when you press Draft."
-              value={source}
-              onChange={(e) => setSource(e.target.value)}
-              rows={6}
-              className="w-full resize-y rounded-md border border-border bg-[#0f0f11] p-2.5 text-xs text-[#f4f4f5] outline-none focus:border-border-strong"
-            />
-            <div className="flex items-center gap-2">
-              <Button variant="teal" onClick={draft} disabled={!aiReady || drafting || !source.trim()}>
-                {drafting ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
-                Draft
-              </Button>
-              {!aiReady && <span>Set up an AI provider in Settings to draft.</span>}
-            </div>
-          </div>
-        </details>
-        <textarea
-          aria-label="Idea text"
-          placeholder="What's the idea?"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          rows={7}
-          className="w-full resize-y rounded-md border border-border bg-[#0f0f11] p-3 text-[13px] leading-snug text-[#f4f4f5] outline-none focus:border-border-strong"
-        />
-        {groups.length > 0 && (
-          <label className="flex items-center gap-3 text-xs text-muted-foreground">
-            Group
-            <select
-              value={groupId}
-              onChange={(e) => setGroupId(e.target.value)}
-              className="h-[30px] rounded-md border border-border bg-[#111113] px-2 text-xs text-[#d4d4d8]"
-            >
-              <option value="">Unassigned</option>
-              {groups.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={save} disabled={saving || (!text.trim() && !title.trim())}>
-            {saving && <Loader2 className="size-3.5 animate-spin" />}
-            Save idea
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }

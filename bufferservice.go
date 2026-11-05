@@ -16,10 +16,12 @@ import (
 type BufferService struct {
 	client *buffer.Client
 	posts  *PostService
+	plane  *PlaneService
+	links  *ideaLinks
 }
 
-func NewBufferService(posts *PostService) *BufferService {
-	s := &BufferService{client: buffer.New(), posts: posts}
+func NewBufferService(posts *PostService, plane *PlaneService) *BufferService {
+	s := &BufferService{client: buffer.New(), posts: posts, plane: plane, links: newIdeaLinks(ideaLinksPath())}
 	// Buffer can end the sign-in on its side (revoked, refresh refused).
 	s.client.OnSignOut = func() { integrationsChanged(s) }
 	return s
@@ -158,6 +160,19 @@ func (s *BufferService) EditPost(ctx context.Context, e buffer.PostEdit) (buffer
 		e.Text = withLink(e.Text, url)
 	}
 	return s.client.EditPost(ctx, e)
+}
+
+// Organizations lists the account's organizations, for views that only
+// need to know which one to read.
+func (s *BufferService) Organizations(ctx context.Context) ([]buffer.Organization, error) {
+	a, err := s.client.Account(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if a.Organizations == nil {
+		return []buffer.Organization{}, nil
+	}
+	return a.Organizations, nil
 }
 
 func (s *BufferService) Ideas(ctx context.Context, orgID, after string) (buffer.IdeaPage, error) {

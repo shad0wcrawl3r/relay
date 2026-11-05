@@ -123,6 +123,7 @@ export type BufferPostPage = Clean<BufferM.PostPage>;
 export type BufferIdea = Clean<BufferM.Idea>;
 export type BufferIdeaGroup = Clean<BufferM.IdeaGroup>;
 export type BufferIdeaPage = Clean<BufferM.IdeaPage>;
+export type IdeaLink = Clean<M.IdeaLink>;
 export type BufferPostStatus = "scheduled" | "needs_approval" | "draft" | "sent" | "error" | "sending";
 
 const channel = (c: BufferM.Channel): BufferChannel =>
@@ -155,6 +156,15 @@ export const BufferService = {
   },
   CreateIdea: async (n: { organizationId: string; groupId: string; title: string; text: string }): Promise<BufferIdea> =>
     idea(await BufferBindings.CreateIdea(n)),
+  Organizations: async (): Promise<BufferOrganization[]> => arr(await BufferBindings.Organizations()),
+  IdeaLinks: async (): Promise<Record<string, IdeaLink>> => {
+    const m = (await BufferBindings.IdeaLinks()) ?? {};
+    return Object.fromEntries(Object.entries(m).filter((e): e is [string, IdeaLink] => !!e[1]));
+  },
+  ItemToIdea: async (orgId: string, projectId: string, itemId: string): Promise<BufferIdea> =>
+    idea(await BufferBindings.ItemToIdea(orgId, projectId, itemId)),
+  IdeaToItem: async (n: { ideaId: string; title: string; text: string; projectId: string; stateId: string }): Promise<Item> =>
+    item(await BufferBindings.IdeaToItem(n)),
   PreviewPromotion: (postId: string, text: string): Promise<string> => BufferBindings.PreviewPromotion(postId, text),
   Promote: async (p: { postId: string; channelId: string; channel: string; text: string; timing: BufferTiming; dueAt: string }) =>
     post(await BufferBindings.Promote(p as M.Promotion)),

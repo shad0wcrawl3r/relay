@@ -24,6 +24,8 @@ export type {
     BufferOverview,
     BufferStatus,
     Endpoint,
+    IdeaLink,
+    IdeaToItemInput,
     Integrations,
     LogStatus,
     LogSubsystem,

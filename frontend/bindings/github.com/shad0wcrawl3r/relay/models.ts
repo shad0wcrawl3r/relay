@@ -70,6 +70,29 @@ export interface Endpoint {
 }
 
 /**
+ * IdeaLink ties a Buffer idea to the work item made from it, or made into it.
+ */
+export interface IdeaLink {
+    "ideaId": string;
+    "projectId": string;
+    "itemId": string;
+    "key": string;
+    "at": string;
+}
+
+/**
+ * IdeaToItemInput is an idea dropped on a board column. Buffer has no
+ * single-idea query, so the frontend passes the content it already shows.
+ */
+export interface IdeaToItemInput {
+    "ideaId": string;
+    "title": string;
+    "text": string;
+    "projectId": string;
+    "stateId": string;
+}
+
+/**
  * Integrations says which services are set up, without any network calls.
  * Plane's state comes with its snapshot.
  */

@@ -42,7 +42,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	bufferSvc := NewBufferService(postSvc)
+	bufferSvc := NewBufferService(postSvc, planeSvc)
 	settingsSvc := &SettingsService{plane: planeSvc, posts: postSvc, buffer: bufferSvc}
 
 	// Closing the window hides Relay to the tray; only Quit ends it (and
