@@ -35,7 +35,7 @@ jobs:
           node-version: 22
 
       - name: Test the sign-in callback
-        run: node --test site/test/
+        run: node --test site/test/*.test.js
 
       # The newest published release (pre-releases included; releases/latest
       # skips those), its files, and the Build run of its tag's commit.
