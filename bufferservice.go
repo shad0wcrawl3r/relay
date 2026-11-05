@@ -93,7 +93,7 @@ func (s *BufferService) PreviewPromotion(postID, text string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return withLink(text, url), nil
+	return promotionText(text, url), nil
 }
 
 // Promote sends a post about a published article to Buffer. The link comes from
@@ -107,7 +107,7 @@ func (s *BufferService) Promote(ctx context.Context, in Promotion) (posts.Post, 
 		return posts.Post{}, errors.New("the post is empty")
 	}
 	bufferID, err := s.client.CreatePost(ctx, buffer.NewPost{
-		ChannelID: in.ChannelID, Text: withLink(in.Text, url), Timing: in.Timing, DueAt: in.DueAt,
+		ChannelID: in.ChannelID, Text: promotionText(in.Text, url), Timing: in.Timing, DueAt: in.DueAt,
 	})
 	if err != nil {
 		return posts.Post{}, err
@@ -157,7 +157,7 @@ func (s *BufferService) DeletePost(ctx context.Context, id string) error {
 // that article's link, however the text is edited.
 func (s *BufferService) EditPost(ctx context.Context, e buffer.PostEdit) (buffer.Post, error) {
 	if url := s.posts.PromotionURL(e.ID); url != "" {
-		e.Text = withLink(e.Text, url)
+		e.Text = promotionText(e.Text, url)
 	}
 	return s.client.EditPost(ctx, e)
 }

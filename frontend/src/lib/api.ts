@@ -166,6 +166,8 @@ export const BufferService = {
   IdeaToItem: async (n: { ideaId: string; title: string; text: string; projectId: string; stateId: string }): Promise<Item> =>
     item(await BufferBindings.IdeaToItem(n)),
   PreviewPromotion: (postId: string, text: string): Promise<string> => BufferBindings.PreviewPromotion(postId, text),
+  // The note dev builds add to every post, or "" in release builds.
+  EvalNote: (): Promise<string> => BufferBindings.EvalNote(),
   Promote: async (p: { postId: string; channelId: string; channel: string; text: string; timing: BufferTiming; dueAt: string }) =>
     post(await BufferBindings.Promote(p as M.Promotion)),
 };

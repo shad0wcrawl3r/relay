@@ -54,6 +54,14 @@ export function EditPost(e: buffer$0.PostEdit): $CancellablePromise<buffer$0.Pos
 }
 
 /**
+ * EvalNote is the note dev builds add to posts, or "" in release builds, so
+ * the composer can count it.
+ */
+export function EvalNote(): $CancellablePromise<string> {
+    return $Call.ByID(3376683817);
+}
+
+/**
  * IdeaLinks lists which ideas are tied to work items, keyed by idea ID.
  */
 export function IdeaLinks(): $CancellablePromise<{ [_ in string]?: $models.IdeaLink } | null> {

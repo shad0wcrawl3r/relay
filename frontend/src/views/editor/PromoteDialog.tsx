@@ -62,6 +62,7 @@ export function PromoteDialog({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [review, setReview] = useState<string | null>(null);
+  const [evalNote, setEvalNote] = useState("");
   const summary = useRef<CancellablePromise<string> | null>(null);
 
   useEffect(() => {
@@ -74,6 +75,7 @@ export function PromoteDialog({
     setTiming("queue");
     setDueAt(defaultTime());
     AIService.Status().then((s) => !stale && setAi(s), () => {});
+    BufferService.EvalNote().then((n) => !stale && setEvalNote(n), () => {});
     (async () => {
       try {
         const status = await BufferService.Status();
@@ -114,7 +116,8 @@ export function PromoteDialog({
   };
 
   const channel = channels.find((c) => c.id === channelId);
-  const length = text.trim().length + (text.includes(url) ? 0 : url.length + 2);
+  const length =
+    text.trim().length + (text.includes(url) ? 0 : url.length + 2) + (evalNote && !text.includes(evalNote) ? evalNote.length + 2 : 0);
   const tooLong = length > LINKEDIN_LIMIT;
   const ready = connected && channel && text.trim() && !tooLong && !summarizing && (timing !== "schedule" || dueAt);
 
@@ -200,6 +203,11 @@ export function PromoteDialog({
                 </span>
               </div>
               <p className="m-0 text-xs text-dim">The article link is added at the end automatically.</p>
+              {evalNote && (
+                <p className="m-0 text-xs text-dim">
+                  Dev build: “{evalNote}” is added after the link, so a test post left in Buffer still says what it is.
+                </p>
+              )}
             </div>
 
             {ai?.ready ? (
