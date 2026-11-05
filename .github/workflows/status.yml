@@ -28,7 +28,7 @@ jobs:
           run=$(gh run list -R "$REPO" -w Build -b main -L 20 --json databaseId,status,headSha,updatedAt \
             --jq 'map(select(.status == "completed"))[0]')
           id=$(jq -r .databaseId <<<"$run")
-          version=$(gh api "repos/$REPO/releases/latest" --jq .tag_name 2>/dev/null || true)
+          version=$(gh api "repos/$REPO/releases/latest" --jq .tag_name 2>/dev/null) || version=""
           gh api "repos/$REPO/actions/runs/$id/jobs" --jq '.jobs' \
             | jq --argjson run "$run" --arg version "$version" '{
                 updated_at: $run.updatedAt,

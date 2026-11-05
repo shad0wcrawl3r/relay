@@ -1,59 +1,104 @@
-# Welcome to Your New Wails3 Project!
+# Relay
 
-Congratulations on generating your Wails3 application! This README will guide you through the next steps to get your project up and running.
+A desktop workbench for building in public. Plan work on a Plane kanban, write
+the post in a markdown editor, send it to Dev.to as a draft, and promote it
+through Buffer. A terminal is built in.
 
-## Getting Started
+Built with Go and [Wails v3](https://v3.wails.io/), with a React and TypeScript
+frontend. Runs on macOS, Windows and Linux.
 
-1. Navigate to your project directory in the terminal.
+## Features
 
-2. To run your application in development mode, use the following command:
+### Done
 
-   ```
-   wails3 dev
-   ```
+- **Plane**
+  - Attention home: an inbox across all your projects
+  - Kanban board with drag and drop, filters and search
+  - Module lanes view
+  - Item drawer with comments and activity
+  - Quick capture palette (⌘K)
+  - Connects through a Plane app installation (OAuth)
+  - Encrypted cache of the last sync, read-only until the first live sync
+- **Writing**
+  - Markdown editor with preview and image placeholders
+  - Sends to Dev.to as an unpublished draft, and syncs your articles back
+  - Publishing is a separate, confirmed step
+- **Promotion**
+  - Buffer sign-in with OAuth, with tokens kept in the OS keychain
+  - Turns a Dev.to post into social drafts per channel. AI summaries are optional
+  - Review and edit each draft before it goes to Buffer
+  - Every post carries the article's public link
+  - AI providers: Anthropic, OpenAI, OpenRouter, Ollama and LM Studio, with
+    custom endpoints and model search
+- **Terminal**
+  - Background sessions owned by Go, with detach and reattach
+  - Panes, tabs, splits and zoom, with tmux-style keybindings
+  - Quick terminal (⌘/) over any view
+- **Privacy and app**
+  - Everything written to disk is encrypted (AES-256-GCM), with the key in the
+    OS keychain
+  - Lock projects behind Touch ID. Unlocks expire
+  - Per-subsystem logs, held in memory only
+  - Runs in the background with a tray icon
+  - CI builds for macOS, Windows and Linux
 
-   This will start your application and enable hot-reloading for both frontend and backend changes.
+### Planned
 
-3. To build your application for production, use:
+For the Buffer Commit contest:
 
-   ```
-   wails3 build
-   ```
+- Use Relay with Buffer alone, with Plane and Dev.to optional
+- First-run onboarding
+- Stop "Update draft" from overwriting edits made on Dev.to
+- Move secrets out of `config.toml` into the keychain
+- Keep locked project data away from cloud AI providers
+- Ship log: turn finished Plane work into Buffer drafts
+- Public releases, with steps for opening unsigned builds
+- `relay` CLI and MCP server
 
-   This will create a production-ready executable in the `build` directory.
+Later:
 
-## Exploring Wails3 Features
+- Shell integration and Warp-style command blocks
+- Session switcher, plus block actions (copy, re-run, save, find, pin)
+- Git: a changes panel, a diff viewer and code review
+- Command palette for commands, files and workspaces
+- More promotion channels, plus threads for X, Threads and Bluesky
+- Buffer queue panel
+- Image upload for Dev.to and Buffer
+- Unlock on Windows and Linux
+- Auto-update
 
-Now that you have your project set up, it's time to explore the features that Wails3 offers:
+## Getting started
 
-1. **Check out the examples**: The best way to learn is by example. Visit the `examples` directory in the `v3/examples` directory to see various sample applications.
+Requires Go (the version in `go.mod`), Node 22, and the
+[Wails v3 CLI](https://v3.wails.io/getting-started/installation/).
 
-2. **Run an example**: To run any of the examples, navigate to the example's directory and use:
+```sh
+wails3 dev     # run with hot reload
+wails3 build   # production build in bin/
+```
 
-   ```
-   go run .
-   ```
+Settings live in `config.toml` in the project root. Environment variables with
+the `RELAY_` prefix override it. Most settings can be changed from the app's
+Settings screen.
 
-   Note: Some examples may be under development during the alpha phase.
+```toml
+[devto]
+API_KEY = ""          # dev.to → Settings → Extensions
 
-3. **Explore the documentation**: Visit the [Wails3 documentation](https://v3.wails.io/) for in-depth guides and API references.
+[plane]
+BASE_URL = "https://api.plane.so"
+CLIENT_ID = ""        # from your Plane app; the Settings screen has a guide
+CLIENT_SECRET = ""
+```
 
-4. **Join the community**: Have questions or want to share your progress? Join the [Wails Discord](https://discord.gg/JDdSxwjhGf) or visit the [Wails discussions on GitHub](https://github.com/wailsapp/wails/discussions).
+Never commit `config.toml`. It is already in `.gitignore`.
 
-## Project Structure
+## Layout
 
-Take a moment to familiarize yourself with your project structure:
-
-- `frontend/`: Contains your frontend code (HTML, CSS, JavaScript/TypeScript)
-- `main.go`: The entry point of your Go backend
-- `app.go`: Define your application structure and methods here
-- `wails.json`: Configuration file for your Wails project
-
-## Next Steps
-
-1. Modify the frontend in the `frontend/` directory to create your desired UI.
-2. Add backend functionality in `main.go`.
-3. Use `wails3 dev` to see your changes in real-time.
-4. When ready, build your application with `wails3 build`.
-
-Happy coding with Wails3! If you encounter any issues or have questions, don't hesitate to consult the documentation or reach out to the Wails community.
+| Path | What's there |
+| --- | --- |
+| `main.go`, `*service.go` | Wails app and the services bound to the frontend |
+| `internal/` | `plane`, `devto`, `buffer`, `ai`, `posts`, `term`, `vault`, `unlock`, `logs`, `config` |
+| `frontend/` | React and TypeScript UI |
+| `design/` | UI spec (`design/README.md`) and reference mockups |
+| `Project.md` | Intent and Dev.to API notes |
