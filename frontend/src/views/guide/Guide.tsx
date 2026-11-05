@@ -1,15 +1,34 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Browser } from "@wailsio/runtime";
+import {
+  Browser,
+  CancelError,
+  Clipboard,
+  Events,
+  type CancellablePromise,
+} from "@wailsio/runtime";
 import { Check, ExternalLink, Loader2 } from "lucide-react";
-import { AIService, BufferService, GuideService, PlaneService, SettingsService, type AIStatus, type Settings } from "@/lib/api";
+import {
+  AIService,
+  BufferService,
+  GuideService,
+  PlaneService,
+  SettingsService,
+  type AIStatus,
+  type BufferStatus,
+  type Settings,
+} from "@/lib/api";
 import { usePlane } from "@/lib/store";
 import { useIntegrations } from "@/lib/integrations";
 import { cn, errorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SecretInput } from "@/components/ui/secret-input";
 import { AISettings } from "@/components/AISettings";
 import { BufferLogo } from "@/components/icons/BufferLogo";
-import { planeAppSteps, planeIntegrationsUrl } from "@/components/PlaneAppGuide";
+import {
+  planeAppSteps,
+  planeIntegrationsUrl,
+} from "@/components/PlaneAppGuide";
 
 // The setup guide: a small window that floats above the browser while the
 // user creates apps and copies keys there. Each step checks the real state
@@ -51,7 +70,9 @@ export function Guide() {
   useEffect(() => {
     if (step !== null || !known) return;
     const any = done.buffer || done.ai || done.devto || done.plane;
-    const next = STEPS.findIndex((st, i) => i > 0 && st.id !== "done" && !done[st.id]);
+    const next = STEPS.findIndex(
+      (st, i) => i > 0 && st.id !== "done" && !done[st.id],
+    );
     setStep(!any ? 0 : next === -1 ? STEPS.length - 1 : next);
     // done[] derives from the values in the deps.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -70,26 +91,49 @@ export function Guide() {
 
   const at = step ?? 0;
   const id = STEPS[at].id;
-  const go = (d: number) => {
+  const goTo = (i: number) => {
     setError("");
-    setStep(Math.min(STEPS.length - 1, Math.max(0, at + d)));
+    setStep(Math.min(STEPS.length - 1, Math.max(0, i)));
   };
+  const go = (d: number) => goTo(at + d);
+
+  // A step that's now set up has nothing left to warn about, e.g. "already
+  // waiting" from a second click before the browser sign-in finished.
+  const stepDone = done[id];
+  useEffect(() => {
+    if (stepDone) setError("");
+  }, [stepDone]);
 
   return (
     <div className="flex h-screen flex-col bg-background text-[13px] text-[#d4d4d8]">
-      <div className="drag flex h-9 shrink-0 items-center justify-center text-xs text-dim">Set up Relay</div>
+      <div className="drag flex h-9 shrink-0 items-center justify-center text-xs text-dim">
+        Set up Relay
+      </div>
 
       <nav className="flex shrink-0 gap-1 px-5 pb-3" aria-label="Steps">
         {STEPS.map((s, i) => (
           <button
             key={s.id}
-            onClick={() => setStep(i)}
+            onClick={() => goTo(i)}
             aria-current={i === at ? "step" : undefined}
             className="no-drag flex min-w-0 flex-1 flex-col gap-1.5 text-left"
           >
-            <span className={cn("h-1 rounded-full bg-[#27272a]", (i < at || done[s.id]) && "bg-[#3f3f46]", i === at && "bg-[#93c5fd]")} />
-            <span className={cn("truncate text-[11px] text-dim", i === at && "text-strong")}>
-              {done[s.id] && <Check className="mr-0.5 inline size-3 text-[#46a758]" />}
+            <span
+              className={cn(
+                "h-1 rounded-full bg-[#27272a]",
+                (i < at || done[s.id]) && "bg-[#3f3f46]",
+                i === at && "bg-[#93c5fd]",
+              )}
+            />
+            <span
+              className={cn(
+                "truncate text-[11px] text-dim",
+                i === at && "text-strong",
+              )}
+            >
+              {done[s.id] && (
+                <Check className="mr-0.5 inline size-3 text-[#46a758]" />
+              )}
               {s.label}
             </span>
           </button>
@@ -104,7 +148,10 @@ export function Guide() {
         ) : id === "buffer" ? (
           <BufferStep connected={done.buffer} setError={setError} />
         ) : id === "ai" ? (
-          <Section title="Pick a model provider" lead="Relay can summarise a post into a LinkedIn draft. It only sends an article when you ask it to.">
+          <Section
+            title="Pick a model provider"
+            lead="Relay can summarise a post into a LinkedIn draft. It only sends an article when you ask it to."
+          >
             <AISettings compact onChange={onAi} />
           </Section>
         ) : id === "devto" ? (
@@ -138,7 +185,10 @@ export function Guide() {
                 Back
               </Button>
             ) : (
-              <button className="text-xs text-dim hover:text-strong" onClick={() => finish()}>
+              <button
+                className="text-xs text-dim hover:text-strong"
+                onClick={() => finish()}
+              >
                 Skip setup
               </button>
             )}
@@ -148,7 +198,11 @@ export function Guide() {
                 Skip
               </Button>
             )}
-            {(at === 0 || done[id]) && <Button onClick={() => go(1)}>{at === 0 ? "Start" : "Continue"}</Button>}
+            {(at === 0 || done[id]) && (
+              <Button onClick={() => go(1)}>
+                {at === 0 ? "Start" : "Continue"}
+              </Button>
+            )}
           </>
         )}
       </footer>
@@ -156,12 +210,22 @@ export function Guide() {
   );
 }
 
-function Section({ title, lead, children }: { title: string; lead?: string; children?: React.ReactNode }) {
+function Section({
+  title,
+  lead,
+  children,
+}: {
+  title: string;
+  lead?: string;
+  children?: React.ReactNode;
+}) {
   return (
     <section className="flex flex-col gap-4">
       <div>
         <h1 className="m-0 text-[17px] font-semibold text-strong">{title}</h1>
-        {lead && <p className="mt-1.5 leading-relaxed text-muted-foreground">{lead}</p>}
+        {lead && (
+          <p className="mt-1.5 leading-relaxed text-muted-foreground">{lead}</p>
+        )}
       </div>
       {children}
     </section>
@@ -171,7 +235,12 @@ function Section({ title, lead, children }: { title: string; lead?: string; chil
 function Status({ ok, children }: { ok: boolean; children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2 rounded-[10px] border border-column-border bg-column px-3 py-2.5">
-      <span className={cn("size-2 shrink-0 rounded-full", ok ? "bg-[#46a758]" : "bg-[#71717a]")} />
+      <span
+        className={cn(
+          "size-2 shrink-0 rounded-full",
+          ok ? "bg-[#46a758]" : "bg-[#71717a]",
+        )}
+      />
       <span className="min-w-0 flex-1 text-strong">{children}</span>
     </div>
   );
@@ -185,63 +254,154 @@ function Welcome() {
     >
       <ul className="m-0 flex list-none flex-col gap-2 p-0 text-muted-foreground">
         <li>• Buffer: schedule LinkedIn posts about your articles.</li>
-        <li>• AI: draft those posts from the article (optional, local models work).</li>
+        <li>
+          • AI: draft those posts from the article (optional, local models
+          work).
+        </li>
         <li>• Dev.to: send drafts and publish from Relay.</li>
         <li>• Plane: your boards and work items (optional).</li>
       </ul>
       <p className="m-0 text-xs leading-relaxed text-dim">
-        This window stays on top while you work in the browser, so you can follow the steps and copy values from here. Close it any time; it picks up
-        where you left off.
+        This window stays on top while you work in the browser, so you can
+        follow the steps and copy values from here. Close it any time; it picks
+        up where you left off.
       </p>
     </Section>
   );
 }
 
-function BufferStep({ connected, setError }: { connected: boolean; setError: (e: string) => void }) {
-  const [busy, setBusy] = useState(false);
+// A Buffer sign-in outlives the step's view: moving between steps mustn't
+// lose it, or the next click finds Go still waiting.
+let bufferSignIn: CancellablePromise<BufferStatus> | null = null;
+
+function BufferStep({
+  connected,
+  setError,
+}: {
+  connected: boolean;
+  setError: (e: string) => void;
+}) {
+  const [busy, setBusy] = useState(bufferSignIn !== null);
   const [account, setAccount] = useState("");
+  const [link, setLink] = useState("");
+  const [copied, setCopied] = useState(false);
+
   useEffect(() => {
-    if (connected) BufferService.Status().then((s) => setAccount(s.account), () => {});
+    if (connected)
+      BufferService.Status().then(
+        (s) => setAccount(s.account),
+        () => {},
+      );
   }, [connected]);
+  useEffect(
+    () => Events.On("buffer:signin", (ev) => setLink(ev.data as string)),
+    [],
+  );
+  // Back on this step while a sign-in is still waiting: follow it.
+  useEffect(() => {
+    const pending = bufferSignIn;
+    if (!pending) return;
+    let live = true;
+    pending
+      .then(
+        (s) => live && setAccount(s.account),
+        () => {},
+      )
+      .finally(() => live && setBusy(false));
+    return () => {
+      live = false;
+    };
+  }, []);
+
   const connect = async () => {
     setBusy(true);
     setError("");
+    const p = BufferService.Connect();
+    bufferSignIn = p;
     try {
-      setAccount((await BufferService.Connect()).account);
+      setAccount((await p).account);
     } catch (err) {
-      setError(errorMessage(err));
+      if (!(err instanceof CancelError)) setError(errorMessage(err));
     } finally {
+      if (bufferSignIn === p) bufferSignIn = null;
       setBusy(false);
+      setLink("");
     }
   };
+  const cancel = () => {
+    bufferSignIn?.cancel();
+    bufferSignIn = null;
+    setBusy(false);
+    setLink("");
+  };
+
   return (
-    <Section title="Connect Buffer" lead="Relay sends LinkedIn posts through your Buffer account. Nothing is posted until you review it.">
+    <Section
+      title="Connect Buffer"
+      lead="Relay sends LinkedIn posts through your Buffer account. Nothing is posted until you review it."
+    >
       {connected ? (
         <Status ok>Connected{account && ` as ${account}`}</Status>
       ) : (
         <>
           <ol className="m-0 flex flex-col gap-1.5 pl-4 text-muted-foreground">
-            <li>Click Connect. Buffer opens in your browser.</li>
+            <li>Click Connect. Buffer opens in your default browser.</li>
             <li>Sign in and approve Relay.</li>
             <li>Come back here; this step ticks itself off.</li>
           </ol>
-          <Button size="md" onClick={connect} disabled={busy} className="self-start">
-            {busy ? <Loader2 className="size-3.5 animate-spin" /> : <BufferLogo className="size-3.5" />}
-            {busy ? "Waiting for Buffer…" : "Connect Buffer"}
-          </Button>
+          <div className="flex gap-2">
+            <Button size="md" onClick={connect} disabled={busy}>
+              {busy ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <BufferLogo className="size-3.5" />
+              )}
+              {busy ? "Waiting for Buffer…" : "Connect Buffer"}
+            </Button>
+            {busy && (
+              <Button variant="ghost" size="md" onClick={cancel}>
+                Cancel
+              </Button>
+            )}
+          </div>
+          {busy && (
+            <p className="m-0 text-xs leading-relaxed text-dim">
+              Wrong browser or profile? Copy the sign-in link and open it where
+              you're signed in to Buffer.{" "}
+              {link && (
+                <button
+                  className="text-[#93c5fd] hover:underline"
+                  onClick={() => {
+                    Clipboard.SetText(link);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 1500);
+                  }}
+                >
+                  {copied ? "Copied" : "Copy sign-in link"}
+                </button>
+              )}
+            </p>
+          )}
         </>
       )}
     </Section>
   );
 }
 
-function DevtoStep({ saved, setError }: { saved: boolean; setError: (e: string) => void }) {
+function DevtoStep({
+  saved,
+  setError,
+}: {
+  saved: boolean;
+  setError: (e: string) => void;
+}) {
   const [key, setKey] = useState("");
   const [busy, setBusy] = useState(false);
   const save = async () => {
     setBusy(true);
     setError("");
     try {
+      // Go checks the key with Dev.to first and refuses one that doesn't work.
       await SettingsService.SaveDevtoKey(key);
       setKey("");
     } catch (err) {
@@ -251,32 +411,61 @@ function DevtoStep({ saved, setError }: { saved: boolean; setError: (e: string) 
     }
   };
   return (
-    <Section title="Add your Dev.to key" lead="Relay sends posts to Dev.to as unpublished drafts. The key is kept in your system keychain.">
+    <Section
+      title="Add your Dev.to key"
+      lead="Relay sends posts to Dev.to as unpublished drafts. The key is kept in your system keychain."
+    >
       {saved && <Status ok>Key saved</Status>}
       <ol className="m-0 flex flex-col gap-1.5 pl-4 text-muted-foreground">
         <li>
           Open{" "}
-          <button className="text-[#93c5fd] hover:underline" onClick={() => Browser.OpenURL("https://dev.to/settings/extensions")}>
+          <button
+            className="text-[#93c5fd] hover:underline"
+            onClick={() =>
+              Browser.OpenURL("https://dev.to/settings/extensions")
+            }
+          >
             Dev.to → Settings → Extensions
           </button>
           .
         </li>
-        <li>Under DEV Community API Keys, give it a name (e.g. Relay) and click Generate API Key.</li>
+        <li>
+          Under DEV Community API Keys, give it a name (e.g. Relay) and click
+          Generate API Key.
+        </li>
         <li>Copy the key and paste it here.</li>
       </ol>
       <div className="flex gap-2">
-        <Input type="password" value={key} placeholder={saved ? "Paste to replace" : "API key"} onChange={(e) => setKey(e.target.value)} autoComplete="off" />
+        <SecretInput
+          value={key}
+          placeholder={saved ? "Paste to replace" : "API key"}
+          onChange={(e) => setKey(e.target.value)}
+          autoComplete="off"
+        />
         <Button size="md" onClick={save} disabled={busy || !key.trim()}>
-          Save
+          {busy && <Loader2 className="size-3.5 animate-spin" />}
+          {busy ? "Checking…" : "Save"}
         </Button>
       </div>
     </Section>
   );
 }
 
-const PLANE_PARTS = ["Workspace", "Create the app", "Scopes", "Credentials", "Connect"];
+const PLANE_PARTS = [
+  "Workspace",
+  "Create the app",
+  "Scopes",
+  "Credentials",
+  "Connect",
+];
 
-function PlaneStep({ connected, setError }: { connected: boolean; setError: (e: string) => void }) {
+function PlaneStep({
+  connected,
+  setError,
+}: {
+  connected: boolean;
+  setError: (e: string) => void;
+}) {
   const [s, setS] = useState<Settings | null>(null);
   const [part, setPart] = useState(0);
   const [workspace, setWorkspace] = useState("");
@@ -285,21 +474,32 @@ function PlaneStep({ connected, setError }: { connected: boolean; setError: (e: 
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    SettingsService.Get().then((next) => {
-      setS(next);
-      setWorkspace(next.connectedSlug || next.planeWorkspace);
-      setClientId(next.planeClientId);
-      // Credentials already saved: straight to Connect.
-      if (next.planeClientId && next.planeSecretSet) setPart(4);
-    }, () => {});
+    SettingsService.Get().then(
+      (next) => {
+        setS(next);
+        setWorkspace(next.connectedSlug || next.planeWorkspace);
+        setClientId(next.planeClientId);
+        // Credentials already saved: straight to Connect.
+        if (next.planeClientId && next.planeSecretSet) setPart(4);
+      },
+      () => {},
+    );
   }, []);
 
-  const steps = useMemo(() => (s ? planeAppSteps(s.redirectUri, s.planeAppUrl, workspace.trim(), true) : []), [s, workspace]);
+  const steps = useMemo(
+    () =>
+      s
+        ? planeAppSteps(s.redirectUri, s.planeAppUrl, workspace.trim(), true)
+        : [],
+    [s, workspace],
+  );
 
   if (connected) {
     return (
       <Section title="Connect Plane">
-        <Status ok>Connected{s?.connectedSlug ? ` to ${s.connectedSlug}` : ""}</Status>
+        <Status ok>
+          Connected{s?.connectedSlug ? ` to ${s.connectedSlug}` : ""}
+        </Status>
       </Section>
     );
   }
@@ -335,11 +535,25 @@ function PlaneStep({ connected, setError }: { connected: boolean; setError: (e: 
   const body = [
     <>
       <p className="m-0 text-muted-foreground">
-        Your workspace slug is the part after <code className="font-mono text-xs">{s.planeAppUrl.replace(/^https?:\/\//, "")}/</code> in Plane's
-        address bar.
+        Your workspace slug is the part after{" "}
+        <code className="font-mono text-xs">
+          {s.planeAppUrl.replace(/^https?:\/\//, "")}/
+        </code>{" "}
+        in Plane's address bar.
       </p>
-      <Input value={workspace} placeholder="my-workspace" onChange={(e) => setWorkspace(e.target.value)} spellCheck={false} />
-      <Button variant="outline" size="md" className="self-start" disabled={!integrations} onClick={() => Browser.OpenURL(integrations)}>
+      <Input
+        value={workspace}
+        placeholder="my-workspace"
+        onChange={(e) => setWorkspace(e.target.value)}
+        spellCheck={false}
+      />
+      <Button
+        variant="outline"
+        size="md"
+        className="self-start"
+        disabled={!integrations}
+        onClick={() => Browser.OpenURL(integrations)}
+      >
         <ExternalLink className="size-3.5" />
         Open Integrations in Plane
       </Button>
@@ -358,58 +572,94 @@ function PlaneStep({ connected, setError }: { connected: boolean; setError: (e: 
       {steps[6]?.body}
     </div>,
     <>
-      <p className="m-0 text-muted-foreground">Save the app in Plane. It shows the Client ID and Client Secret; the secret only once.</p>
+      <p className="m-0 text-muted-foreground">
+        Save the app in Plane. It shows the Client ID and Client Secret; the
+        secret only once.
+      </p>
       <label className="flex flex-col gap-1.5 text-xs text-muted-foreground">
         Client ID
-        <Input value={clientId} onChange={(e) => setClientId(e.target.value)} autoComplete="off" spellCheck={false} />
+        <Input
+          value={clientId}
+          onChange={(e) => setClientId(e.target.value)}
+          autoComplete="off"
+          spellCheck={false}
+        />
       </label>
       <label className="flex flex-col gap-1.5 text-xs text-muted-foreground">
         Client secret
-        <Input
-          type="password"
+        <SecretInput
           value={secret}
           placeholder={s.planeSecretSet ? "Saved. Paste to replace" : ""}
           onChange={(e) => setSecret(e.target.value)}
           autoComplete="off"
         />
       </label>
-      <Button size="md" className="self-start" onClick={saveCredentials} disabled={busy || !clientId.trim() || (!secret.trim() && !s.planeSecretSet)}>
+      <Button
+        size="md"
+        className="self-start"
+        onClick={saveCredentials}
+        disabled={
+          busy || !clientId.trim() || (!secret.trim() && !s.planeSecretSet)
+        }
+      >
         Save
       </Button>
-      <p className="m-0 text-xs text-dim">The secret goes to your system keychain.</p>
+      <p className="m-0 text-xs text-dim">
+        The secret goes to your system keychain.
+      </p>
     </>,
     <>
-      <p className="m-0 text-muted-foreground">Plane opens in your browser. Approve Relay there, then come back.</p>
-      <Button size="md" className="self-start" onClick={connect} disabled={busy || !s.planeClientId}>
+      <p className="m-0 text-muted-foreground">
+        Plane opens in your browser. Approve Relay there, then come back.
+      </p>
+      <Button
+        size="md"
+        className="self-start"
+        onClick={connect}
+        disabled={busy || !s.planeClientId}
+      >
         {busy && <Loader2 className="size-3.5 animate-spin" />}
         {busy ? "Waiting for Plane…" : "Connect Plane"}
       </Button>
       <p className="m-0 text-xs leading-relaxed text-dim">
-        If Plane answers <code className="font-mono">unauthorized_client</code>, uninstall the app from the workspace, regenerate the secret and try again.
+        If Plane answers <code className="font-mono">unauthorized_client</code>,
+        uninstall the app from the workspace, regenerate the secret and try
+        again.
       </p>
     </>,
   ][part];
 
   return (
-    <Section title="Connect Plane" lead="Optional. Relay connects as an OAuth app you create in your Plane workspace; about two minutes.">
+    <Section
+      title="Connect Plane"
+      lead="Optional. Relay connects as an OAuth app you create in your Plane workspace; about two minutes."
+    >
       <div className="flex items-center justify-between text-xs text-dim">
         <span>
           {part + 1} of {PLANE_PARTS.length} · {PLANE_PARTS[part]}
         </span>
         <span className="flex gap-3">
           {part > 0 && (
-            <button className="hover:text-strong" onClick={() => setPart(part - 1)}>
+            <button
+              className="hover:text-strong"
+              onClick={() => setPart(part - 1)}
+            >
               Previous
             </button>
           )}
           {part < 3 && (
-            <button className="text-[#93c5fd] hover:underline" onClick={() => setPart(part + 1)}>
+            <button
+              className="text-[#93c5fd] hover:underline"
+              onClick={() => setPart(part + 1)}
+            >
               Next
             </button>
           )}
         </span>
       </div>
-      <div className="flex flex-col gap-3 rounded-[10px] border border-column-border bg-column p-4">{body}</div>
+      <div className="flex flex-col gap-3 rounded-[10px] border border-column-border bg-column p-4">
+        {body}
+      </div>
     </Section>
   );
 }
@@ -422,13 +672,18 @@ function DoneStep({ done }: { done: Record<StepId, boolean> }) {
     ["plane", "Plane"],
   ];
   return (
-    <Section title="You're set" lead="Anything you skipped is in Settings, and Settings → Run setup guide brings this window back.">
+    <Section
+      title="You're set"
+      lead="Anything you skipped is in Settings, and Settings → Run setup guide brings this window back."
+    >
       <ul className="m-0 flex list-none flex-col gap-2 p-0">
         {rows.map(([id, label]) => (
           <li key={id}>
             <Status ok={done[id]}>
               {label}
-              <span className="ml-1.5 text-xs text-dim">{done[id] ? "set up" : "skipped"}</span>
+              <span className="ml-1.5 text-xs text-dim">
+                {done[id] ? "set up" : "skipped"}
+              </span>
             </Status>
           </li>
         ))}

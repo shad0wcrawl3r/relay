@@ -76,7 +76,10 @@ type Payload struct {
 }
 
 func do(ctx context.Context, method, path string, body, out any) error {
-	key := config.GetConfig().DevTo.APIKey
+	return doKey(ctx, config.GetConfig().DevTo.APIKey, method, path, body, out)
+}
+
+func doKey(ctx context.Context, key, method, path string, body, out any) error {
 	if key == "" {
 		return ErrNoKey
 	}
@@ -103,6 +106,9 @@ func do(ctx context.Context, method, path string, body, out any) error {
 	}
 	defer resp.Body.Close()
 	data, _ := io.ReadAll(io.LimitReader(resp.Body, 32<<20))
+	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+		return ErrBadKey
+	}
 	if resp.StatusCode >= 300 {
 		var e struct {
 			Error string `json:"error"`
@@ -116,6 +122,25 @@ func do(ctx context.Context, method, path string, body, out any) error {
 		return json.Unmarshal(data, out)
 	}
 	return nil
+}
+
+// User is the account an API key belongs to.
+type User struct {
+	Username string `json:"username"`
+	Name     string `json:"name"`
+}
+
+// ErrBadKey means Dev.to refused the API key.
+var ErrBadKey = errors.New("Dev.to didn't accept this API key")
+
+// Check confirms a key works before it's saved, and says whose it is.
+func Check(ctx context.Context, key string) (User, error) {
+	key = strings.TrimSpace(key)
+	var u User
+	if err := doKey(ctx, key, http.MethodGet, "/users/me", nil, &u); err != nil {
+		return User{}, err
+	}
+	return u, nil
 }
 
 // Mine lists all of the user's articles, published and unpublished.

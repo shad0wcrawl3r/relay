@@ -5,6 +5,7 @@ import { cn, errorMessage } from "@/lib/utils";
 import { ModelPicker } from "@/components/ModelPicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SecretInput } from "@/components/ui/secret-input";
 import { useToast } from "@/components/Toaster";
 
 export function AISettings({ compact = false, onChange }: { compact?: boolean; onChange?: (s: AIStatus) => void } = {}) {
@@ -175,8 +176,8 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
                 if (key.trim()) saveKey();
               }}
             >
-              <Input
-                type="password"
+              <SecretInput
+                
                 value={key}
                 placeholder={provider.keySet ? "•••••••• (saved — type to replace)" : ""}
                 onChange={(e) => setKey(e.target.value)}

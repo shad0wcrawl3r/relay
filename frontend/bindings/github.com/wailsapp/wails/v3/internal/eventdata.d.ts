@@ -18,6 +18,7 @@ import type * as term$0 from "../../../../shad0wcrawl3r/relay/internal/term/mode
 declare module "@wailsio/runtime" {
     namespace Events {
         interface CustomEvents {
+            "buffer:signin": string;
             "guide:show": string;
             "integrations:changed": main$0.Integrations;
             "plane:snapshot": plane$0.Snapshot;

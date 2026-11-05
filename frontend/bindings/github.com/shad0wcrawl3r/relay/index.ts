@@ -25,6 +25,7 @@ export type {
     AIStatus,
     BufferOverview,
     BufferStatus,
+    DevtoKeyCheck,
     Endpoint,
     GuideStatus,
     IdeaLink,

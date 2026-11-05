@@ -31,6 +31,7 @@ func init() {
 	application.RegisterEvent[[]term.Info]("term:sessions")
 	application.RegisterEvent[Integrations]("integrations:changed")
 	application.RegisterEvent[string]("guide:show")
+	application.RegisterEvent[string]("buffer:signin")
 }
 
 func main() {

@@ -17,6 +17,13 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
 import * as $models from "./models.js";
 
 /**
+ * CheckDevtoKey asks Dev.to whether a key works, without saving it.
+ */
+export function CheckDevtoKey(key: string): $CancellablePromise<$models.DevtoKeyCheck> {
+    return $Call.ByID(2280053421, key);
+}
+
+/**
  * ClearDevtoKey removes the stored Dev.to key.
  */
 export function ClearDevtoKey(): $CancellablePromise<$models.Settings> {
@@ -36,7 +43,7 @@ export function Save($in: $models.SettingsInput): $CancellablePromise<$models.Se
 }
 
 /**
- * SaveDevtoKey stores the Dev.to API key, for the setup guide.
+ * SaveDevtoKey checks the Dev.to API key with Dev.to, then stores it.
  */
 export function SaveDevtoKey(key: string): $CancellablePromise<$models.Settings> {
     return $Call.ByID(43371440, key);

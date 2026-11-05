@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/shad0wcrawl3r/relay/internal/config"
+	"github.com/shad0wcrawl3r/relay/internal/devto"
 	"github.com/shad0wcrawl3r/relay/internal/logs"
 	"github.com/shad0wcrawl3r/relay/internal/plane"
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -95,7 +98,13 @@ func (s *SettingsService) Get() Settings {
 	}
 }
 
-func (s *SettingsService) Save(in SettingsInput) (Settings, error) {
+func (s *SettingsService) Save(ctx context.Context, in SettingsInput) (Settings, error) {
+	// A new Dev.to key must work before it replaces the saved one.
+	if key := strings.TrimSpace(in.DevtoKey); key != "" {
+		if _, err := s.CheckDevtoKey(ctx, key); err != nil {
+			return Settings{}, err
+		}
+	}
 	derivedAppURL := plane.AppURL()
 	err := config.Update(func(c *config.Config) {
 		c.Plane.BaseURL = in.PlaneBaseURL
@@ -160,11 +169,28 @@ func (s *SettingsService) SavePlaneApp(clientID, secret, workspace string) (Sett
 	return s.Get(), err
 }
 
-// SaveDevtoKey stores the Dev.to API key, for the setup guide.
-func (s *SettingsService) SaveDevtoKey(key string) (Settings, error) {
+// DevtoKeyCheck is the account a Dev.to key belongs to.
+type DevtoKeyCheck struct {
+	Username string `json:"username"`
+	Name     string `json:"name"`
+}
+
+// CheckDevtoKey asks Dev.to whether a key works, without saving it.
+func (s *SettingsService) CheckDevtoKey(ctx context.Context, key string) (DevtoKeyCheck, error) {
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	u, err := devto.Check(ctx, key)
+	return DevtoKeyCheck{Username: u.Username, Name: u.Name}, err
+}
+
+// SaveDevtoKey checks the Dev.to API key with Dev.to, then stores it.
+func (s *SettingsService) SaveDevtoKey(ctx context.Context, key string) (Settings, error) {
 	key = strings.TrimSpace(key)
 	if key == "" {
 		return s.Get(), nil
+	}
+	if _, err := s.CheckDevtoKey(ctx, key); err != nil {
+		return s.Get(), err
 	}
 	err := config.Update(func(c *config.Config) { c.DevTo.APIKey = key })
 	if err != nil {

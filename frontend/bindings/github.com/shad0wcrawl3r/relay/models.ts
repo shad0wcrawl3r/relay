@@ -57,6 +57,14 @@ export interface BufferStatus {
 }
 
 /**
+ * DevtoKeyCheck is the account a Dev.to key belongs to.
+ */
+export interface DevtoKeyCheck {
+    "username": string;
+    "name": string;
+}
+
+/**
  * Endpoint is where panes attach: <URL>/term/<id>?token=<Token>.
  */
 export interface Endpoint {
