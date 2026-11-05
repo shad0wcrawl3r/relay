@@ -44,6 +44,15 @@ export function SetKey(provider: string, key: string): $CancellablePromise<$mode
     return $Call.ByID(3370039508, provider, key);
 }
 
+/**
+ * SetPrivate marks a cloud provider as trusted with private projects, for
+ * its current endpoint, or clears the mark. Local providers are always
+ * trusted and need no mark.
+ */
+export function SetPrivate(provider: string, $private: boolean): $CancellablePromise<$models.AIStatus> {
+    return $Call.ByID(2389537316, provider, $private);
+}
+
 export function Status(): $CancellablePromise<$models.AIStatus> {
     return $Call.ByID(680075281);
 }

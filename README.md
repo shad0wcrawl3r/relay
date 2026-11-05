@@ -52,6 +52,8 @@ frontend. Runs on macOS, Windows and Linux.
   - Everything written to disk is encrypted (AES-256-GCM), with the key in the
     OS keychain
   - Lock projects behind Touch ID. Unlocks expire
+  - Private projects never reach a cloud model: only local providers, or ones
+    you mark private in Settings → AI, can read them, even while unlocked
   - Per-subsystem logs, held in memory only
   - Runs in the background with a tray icon
   - CI builds for macOS, Windows and Linux

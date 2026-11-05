@@ -131,6 +131,7 @@ func write(next Config) error {
 	v.Set("ai.PROVIDER", next.AI.Provider)
 	v.Set("ai.MODEL", next.AI.Model)
 	v.Set("ai.ENDPOINTS", next.AI.Endpoints)
+	v.Set("ai.PRIVATE", next.AI.Private)
 	v.Set("logs.ENABLED", next.Logs.Enabled)
 	v.Set("logs.LEVELS", next.Logs.Levels)
 	v.Set("onboarding.DONE", next.Onboarding.Done)
@@ -182,6 +183,10 @@ type Config struct {
 		Model    string `mapstructure:"MODEL"`
 		// Endpoints overrides a provider's base URL, keyed by provider ID.
 		Endpoints map[string]string `mapstructure:"ENDPOINTS"`
+		// Private marks cloud providers the user trusts with private projects,
+		// keyed by provider ID. The value is the endpoint it was marked for,
+		// so pointing the provider somewhere else drops the mark.
+		Private map[string]string `mapstructure:"PRIVATE"`
 	}
 	Logs struct {
 		Enabled bool `mapstructure:"ENABLED"`

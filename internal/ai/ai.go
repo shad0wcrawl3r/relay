@@ -375,12 +375,17 @@ func (c *Client) openAICompatible(ctx context.Context, p Provider, model, system
 	return r, nil
 }
 
-// Complete returns the model's reply to one prompt. Logs carry sizes and
-// reasons only, never the prompt or reply.
-func (c *Client) Complete(ctx context.Context, id, model, system, user string) (string, error) {
+// Complete returns the model's reply to one prompt. origin says where the
+// prompt's content came from; private content only goes to a trusted
+// provider (privacy.go). Logs carry sizes and reasons only, never the prompt
+// or reply.
+func (c *Client) Complete(ctx context.Context, origin Origin, id, model, system, user string) (string, error) {
 	p, ok := Find(id)
 	if !ok || model == "" {
 		return "", ErrNoProvider
+	}
+	if err := c.allow(p, origin); err != nil {
+		return "", err
 	}
 	start := time.Now()
 	log.Info("completion started", "provider", id, "model", model, "input_chars", len(user))

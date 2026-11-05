@@ -28,6 +28,9 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
   `internal/unlock` (Touch ID / login password); unlocks expire. Never log their data.
 - Dev.to: send as `published: false`; publishing is a separate, confirmed user action, refused while image placeholders remain. No image upload in v1 (insert `<INSERT IMAGE HERE: …>` placeholders).
 - Buffer: promotions need a live Dev.to article; Go adds its public link, so one can never go out without it. Articles reach a model provider only when the user asks.
+- AI: every prompt goes through `ai.Client.Complete` with an `ai.Origin`. Plane content uses `ai.Plane(plane.PrivacyKeys(...))`;
+  content from a lockable project or module only reaches a local provider or one the user marked private
+  (`[ai] PRIVATE`, tied to the endpoint). Unlocking doesn't change that. Never log a refused prompt or the project it came from.
 - Posts are local markdown files in the OS app-storage dir.
 - Never commit `config.toml` or log secrets.
 - Logs go through `internal/logs`: per-subsystem levels, in memory only. Never log locked project data, prompts, article text or terminal output.

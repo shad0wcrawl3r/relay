@@ -6,6 +6,7 @@ import { ModelPicker } from "@/components/ModelPicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SecretInput } from "@/components/ui/secret-input";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/Toaster";
 
 export function AISettings({ compact = false, onChange }: { compact?: boolean; onChange?: (s: AIStatus) => void } = {}) {
@@ -93,6 +94,14 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
     }
   };
 
+  const setPrivate = async (on: boolean) => {
+    try {
+      setStatus(await AIService.SetPrivate(provider.id, on));
+    } catch (err) {
+      toast({ tone: "error", title: "Couldn't change the setting", body: errorMessage(err) });
+    }
+  };
+
   const insecure = endpoint.startsWith("http://") && !provider.local;
 
   const select = async (model: string) => {
@@ -126,6 +135,7 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
           >
             {p.name}
             {p.local && <span className="text-[11px] text-dim">local</span>}
+            {p.markedPrivate && <span className="text-[11px] text-dim">private</span>}
             {p.id === status.provider && status.ready && <Check className="size-3 text-[#4ade80]" />}
           </button>
         ))}
@@ -202,6 +212,27 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
       ) : (
         !provider.needsKey && <p className="m-0 text-xs text-dim">This address is on another machine, so articles you summarise are sent there.</p>
       )}
+
+      <div className={row}>
+        <span className="pt-2.5 text-[13px] text-muted-foreground">Private projects</span>
+        <div className="flex flex-col gap-1.5">
+          {provider.local ? (
+            <span className="pt-2.5 text-xs text-dim">Allowed: {provider.name} runs on this computer, so private projects never leave it.</span>
+          ) : (
+            <>
+              <label className="flex h-9 items-center gap-2.5 text-[13px] text-foreground">
+                <Switch checked={provider.markedPrivate} onCheckedChange={setPrivate} />
+                Trust {provider.name} with private projects
+              </label>
+              <span className="text-xs text-dim">
+                {provider.markedPrivate
+                  ? `Work from locked projects may be sent to ${provider.endpoint}. Changing the endpoint turns this off.`
+                  : "Off: Relay refuses to send anything from a locked project here, even while it's unlocked. Turn on only for a deployment you trust with that data, such as one with no retention."}
+              </span>
+            </>
+          )}
+        </div>
+      </div>
 
       {(!provider.needsKey || provider.keySet) && (
         <div className={row}>

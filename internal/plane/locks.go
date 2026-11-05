@@ -166,3 +166,25 @@ func (l *Locks) Allowed(snap Snapshot, projectID, itemID string) bool {
 	}
 	return true
 }
+
+// PrivacyKeys lists the lock keys of an item's project and modules, for
+// ai.Plane. Pass the full snapshot, not a redacted one. An item that isn't in
+// it yields only its project's key, or nothing for an unknown project, which
+// ai.Plane treats as private.
+func PrivacyKeys(snap Snapshot, projectID, itemID string) []string {
+	for _, p := range snap.Projects {
+		if p.ID != projectID {
+			continue
+		}
+		keys := []string{ProjectKey(p.Identifier)}
+		for _, it := range p.Items {
+			if it.ID == itemID {
+				for _, m := range it.ModuleIDs {
+					keys = append(keys, ModuleKey(m))
+				}
+			}
+		}
+		return keys
+	}
+	return nil
+}

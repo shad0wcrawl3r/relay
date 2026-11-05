@@ -21,6 +21,13 @@ export interface AIProvider {
     "endpoint": string;
     "defaultEndpoint": string;
     "custom": boolean;
+
+    /**
+     * MarkedPrivate: the user trusts this cloud provider with private
+     * projects. Trusted: it may read them (local, or marked).
+     */
+    "markedPrivate": boolean;
+    "trusted": boolean;
 }
 
 export interface AIStatus {
@@ -42,6 +49,11 @@ export interface AIStatus {
      */
     "label": string;
     "local": boolean;
+
+    /**
+     * Trusted: the selected provider may read private projects.
+     */
+    "trusted": boolean;
 }
 
 /**
