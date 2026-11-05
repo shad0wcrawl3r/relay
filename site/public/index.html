@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'">
+  <title>Relay: write, promote and track your work from one desktop app</title>
+  <meta name="description" content="Relay is a free desktop app for building in public: write Dev.to posts, promote them on LinkedIn through Buffer, and keep your Plane board and a terminal beside them.">
+  <link rel="icon" href="/icon.png">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <nav class="top">
+    <a class="brand" href="/"><img src="/icon.png" alt="" width="26" height="26">Relay</a>
+    <span class="grow"></span>
+    <a href="#features">Features</a>
+    <a href="#download">Download</a>
+    <a href="#privacy">Privacy</a>
+    <a href="#status">Status</a>
+    <a href="https://github.com/shad0wcrawl3r/relay" rel="noopener">GitHub</a>
+  </nav>
+
+  <main>
+    <section class="hero">
+      <p class="eyebrow" id="hero-version">Desktop app for macOS, Windows and Linux</p>
+      <h1>Write it, ship it, tell people.</h1>
+      <p class="lead">
+        Relay is a desktop workbench for building in public. Write on Dev.to, promote what you publish on
+        LinkedIn through Buffer, and keep your Plane board and a terminal right beside it.
+      </p>
+      <div class="cta">
+        <a class="button primary" id="hero-download" href="#download">Download Relay</a>
+        <a class="button" href="https://github.com/shad0wcrawl3r/relay" rel="noopener">View the source</a>
+      </div>
+      <p class="fine" id="hero-note">Free. Your data stays on your machine.</p>
+    </section>
+
+    <section id="features">
+      <h2>What it does</h2>
+      <div class="grid">
+        <article>
+          <h3>Write</h3>
+          <p>A markdown editor with preview and image placeholders. Posts go to Dev.to as unpublished drafts; publishing is a separate, confirmed step.</p>
+          <p>Edited a draft on Dev.to? Relay notices and shows the difference before it would overwrite anything.</p>
+        </article>
+        <article>
+          <h3>Promote</h3>
+          <p>Turn a published post into a LinkedIn draft, by hand or with an AI model you choose (local models work). You review every word before it goes to Buffer, and the article's link is always attached.</p>
+        </article>
+        <article>
+          <h3>Buffer, in full</h3>
+          <p>Your channels, posting schedules and goals; the queue, drafts, approvals, sent and failed posts. Edit, reschedule and delete. Capture ideas, drafted with AI from anything you paste.</p>
+        </article>
+        <article>
+          <h3>Plane boards</h3>
+          <p>A fast kanban for your Plane workspace, with an attention inbox and a Buffer column: drag a work item in to save it as an idea, or an idea out to make it a work item. Plane is optional.</p>
+        </article>
+        <article>
+          <h3>Terminal</h3>
+          <p>Sessions that keep running in the background, with tabs, splits, zoom and tmux-style keys. A quick terminal (⌘/) drops over any view.</p>
+        </article>
+        <article>
+          <h3>Private by default</h3>
+          <p>Everything Relay stores is encrypted, with the key and your tokens in the system keychain. Lock projects behind Touch ID. No accounts, no analytics.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="download">
+      <h2>Download</h2>
+      <p class="section-lead" id="release-line">Loading the latest release…</p>
+      <div class="downloads" id="downloads"></div>
+      <details class="unsigned">
+        <summary>Builds aren't signed yet. How to open Relay the first time</summary>
+        <div class="unsigned-body">
+          <div>
+            <h4>macOS (Apple silicon)</h4>
+            <ol>
+              <li>Unzip and move <b>relay.app</b> to Applications.</li>
+              <li>Open it once. macOS says it can't check it for malware; click <b>Done</b>.</li>
+              <li>Open <b>System Settings → Privacy &amp; Security</b>, scroll down and click <b>Open Anyway</b> next to Relay.</li>
+            </ol>
+            <p class="fine">Or in Terminal: <code>xattr -dr com.apple.quarantine /Applications/relay.app</code></p>
+          </div>
+          <div>
+            <h4>Windows</h4>
+            <ol>
+              <li>Run the installer.</li>
+              <li>If SmartScreen says “Windows protected your PC”, click <b>More info</b>, then <b>Run anyway</b>.</li>
+            </ol>
+          </div>
+          <div>
+            <h4>Linux</h4>
+            <ol>
+              <li>Debian or Ubuntu: <code>sudo apt install ./relay.deb</code></li>
+              <li>Other distributions: extract the .tar.gz; Relay needs GTK 4 and WebKitGTK 6.</li>
+            </ol>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <section id="privacy">
+      <h2>Privacy</h2>
+      <ul class="plain">
+        <li><b>Stays on your machine.</b> Posts, settings and caches are stored locally and encrypted (AES-256-GCM). The key, and every token and API key, live in your system keychain.</li>
+        <li><b>Goes only where you connect it.</b> Relay talks to Plane, Dev.to, Buffer and the AI provider you pick, and nothing else. There's no Relay server, account or telemetry.</li>
+        <li><b>AI only when you ask.</b> An article reaches a model provider only when you ask for a summary. Local models (Ollama, LM Studio) keep it on your machine.</li>
+        <li><b>Sign-in passes through, nothing kept.</b> Buffer needs an https address to return to after sign-in, so it comes to this site's <code>/oauth/callback</code>, which hands the result straight to Relay on your machine. It stores nothing and loads no third-party code.</li>
+      </ul>
+    </section>
+
+    <section id="status">
+      <h2>Status</h2>
+      <div class="banner" id="banner" data-state="unknown">
+        <span class="dot"></span>
+        <div>
+          <h3 id="headline">Checking status…</h3>
+          <p id="subline">Loading the latest release.</p>
+        </div>
+      </div>
+      <div class="status-grid">
+        <div>
+          <h4>Builds</h4>
+          <ul class="rows" id="platforms">
+            <li><span>macOS</span><span class="pill" data-state="unknown">Unknown</span></li>
+            <li><span>Windows</span><span class="pill" data-state="unknown">Unknown</span></li>
+            <li><span>Linux</span><span class="pill" data-state="unknown">Unknown</span></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Services</h4>
+          <ul class="rows">
+            <li><span>Buffer sign-in callback</span><span class="pill" id="callback" data-state="unknown">Unknown</span></li>
+          </ul>
+          <h4>Release</h4>
+          <dl>
+            <dt>Latest version</dt><dd id="version">Not released yet</dd>
+            <dt>Built</dt><dd id="updated">Unknown</dd>
+            <dt>Commit</dt><dd id="commit" class="mono">Unknown</dd>
+          </dl>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p class="links">
+      <a href="https://github.com/shad0wcrawl3r/relay" rel="noopener">Source on GitHub</a> ·
+      <a href="https://github.com/shad0wcrawl3r/relay/releases" rel="noopener">All releases</a> ·
+      <a href="https://github.com/shad0wcrawl3r/relay/issues" rel="noopener">Report a problem</a>
+    </p>
+    <p>Relay is an independent project, not an official product of Buffer, Dev.to, Plane or any service it connects to.</p>
+  </footer>
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -34,7 +34,7 @@ var ErrSignInCancelled = errors.New("Buffer sign-in cancelled")
 // Connect runs the Authorization Code flow with PKCE. Buffer redirects to the
 // hosted callback page, which forwards to the loopback listener here using the
 // port in state as "<port>.<nonce>". Keep that format in step with
-// site/oauth/forward.js in relay-status.
+// site/public/oauth/forward.js.
 func (c *Client) Connect(ctx context.Context, openURL func(string)) error {
 	if !c.signIn.TryLock() {
 		return errors.New("a Buffer sign-in is already waiting in your browser")
