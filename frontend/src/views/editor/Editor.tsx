@@ -23,7 +23,7 @@ const normaliseTag = (t: string) => t.toLowerCase().replace(/[^a-z0-9]/g, "");
 
 type SaveState = { kind: "saved"; at: number } | { kind: "saving" } | { kind: "dirty" } | { kind: "error"; message: string };
 
-export function Editor() {
+export function Editor({ goSettings }: { goSettings: () => void }) {
   const toast = useToast();
   const [list, setList] = useState<PostList | null>(null);
   const [syncing, setSyncing] = useState(false);
@@ -276,7 +276,7 @@ export function Editor() {
 
   return (
     <>
-      <PostsSidebar list={list} activeId={post?.id} syncing={syncing} onOpen={open} onNew={newPost} onSync={sync} />
+      <PostsSidebar list={list} activeId={post?.id} syncing={syncing} onOpen={open} onNew={newPost} onSync={sync} onAddKey={goSettings} />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="drag flex h-[84px] shrink-0 items-end gap-4 border-b border-border px-6 pb-[13px]">
           <div className="min-w-0 grow truncate pb-1.5 text-sm text-muted-foreground">
