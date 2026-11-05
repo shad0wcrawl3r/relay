@@ -28,7 +28,9 @@ jobs:
           run=$(gh run list -R "$REPO" -w Build -b main -L 20 --json databaseId,status,headSha,updatedAt \
             --jq 'map(select(.status == "completed"))[0]')
           id=$(jq -r .databaseId <<<"$run")
-          release=$(gh api "repos/$REPO/releases/latest" 2>/dev/null) || release='{}'
+          # Newest published release, pre-releases (alpha, beta) included:
+          # releases/latest skips those. Drafts are listed for this token, so drop them.
+          release=$(gh api "repos/$REPO/releases?per_page=20" --jq 'map(select(.draft | not))[0] // {}' 2>/dev/null) || release='{}'
           version=$(jq -r '.tag_name // ""' <<<"$release")
           release_url=$(jq -r '.html_url // ""' <<<"$release")
           gh api "repos/$REPO/actions/runs/$id/jobs" --jq '.jobs' \
