@@ -18,7 +18,7 @@ import { PlaneAppGuide } from "@/components/PlaneAppGuide";
 
 export function Settings() {
   const toast = useToast();
-  const { syncNow, projects, setLockable, unlockMethod } = usePlane();
+  const { syncNow, projects, setLockable, unlockMethod, disconnect: disconnectPlane } = usePlane();
   const [s, setS] = useState<SettingsT | null>(null);
   const [form, setForm] = useState<SettingsInput | null>(null);
   const [saving, setSaving] = useState(false);
@@ -130,7 +130,7 @@ export function Settings() {
 
   const disconnect = async () => {
     try {
-      await PlaneService.Disconnect();
+      await disconnectPlane();
       load(await SettingsService.Get());
     } catch (err) {
       toast({ tone: "error", title: "Couldn't disconnect", body: errorMessage(err) });

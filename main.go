@@ -29,6 +29,7 @@ var trayColor []byte
 func init() {
 	application.RegisterEvent[plane.Snapshot]("plane:snapshot")
 	application.RegisterEvent[[]term.Info]("term:sessions")
+	application.RegisterEvent[Integrations]("integrations:changed")
 }
 
 func main() {
@@ -41,7 +42,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	settingsSvc := &SettingsService{plane: planeSvc, posts: postSvc}
+	bufferSvc := NewBufferService(postSvc)
+	settingsSvc := &SettingsService{plane: planeSvc, posts: postSvc, buffer: bufferSvc}
 
 	// Closing the window hides Relay to the tray; only Quit ends it (and
 	// with it the terminal sessions).
@@ -53,7 +55,7 @@ func main() {
 		Services: []application.Service{
 			application.NewService(planeSvc),
 			application.NewService(postSvc),
-			application.NewService(NewBufferService(postSvc)),
+			application.NewService(bufferSvc),
 			application.NewService(NewAIService(postSvc)),
 			application.NewService(&LogService{}),
 			application.NewService(settingsSvc),

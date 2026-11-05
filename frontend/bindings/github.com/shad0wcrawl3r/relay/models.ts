@@ -69,6 +69,15 @@ export interface Endpoint {
     "home": string;
 }
 
+/**
+ * Integrations says which services are set up, without any network calls.
+ * Plane's state comes with its snapshot.
+ */
+export interface Integrations {
+    "buffer": boolean;
+    "devto": boolean;
+}
+
 export interface LogStatus {
     "enabled": boolean;
     "subsystems": LogSubsystem[] | null;

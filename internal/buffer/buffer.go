@@ -78,6 +78,16 @@ type Client struct {
 	token *Token
 
 	signIn sync.Mutex
+
+	// OnSignOut runs when Buffer ends the sign-in (revoked access or a
+	// refused refresh), not when the user disconnects.
+	OnSignOut func()
+}
+
+func (c *Client) signedOut() {
+	if c.OnSignOut != nil {
+		go c.OnSignOut()
+	}
 }
 
 func New() *Client {
@@ -157,6 +167,7 @@ func (c *Client) valid(ctx context.Context) (*Token, error) {
 	if errors.As(err, &refused) {
 		log.Warn("refresh refused, signing out", "error", err)
 		_ = c.clear()
+		c.signedOut()
 		return nil, ErrNotConnected
 	}
 	if err != nil {
@@ -244,6 +255,7 @@ func (c *Client) queryVars(ctx context.Context, query string, vars map[string]an
 		// Buffer answers 401 once the user revokes access.
 		log.Warn("access revoked, signing out")
 		_ = c.Disconnect()
+		c.signedOut()
 		return ErrNotConnected
 	case http.StatusTooManyRequests:
 		return fmt.Errorf("Buffer's rate limit was reached; try again in %s seconds", resp.Header.Get("Retry-After"))

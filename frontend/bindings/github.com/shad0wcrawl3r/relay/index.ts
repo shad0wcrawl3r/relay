@@ -24,6 +24,7 @@ export type {
     BufferOverview,
     BufferStatus,
     Endpoint,
+    Integrations,
     LogStatus,
     LogSubsystem,
     PostList,

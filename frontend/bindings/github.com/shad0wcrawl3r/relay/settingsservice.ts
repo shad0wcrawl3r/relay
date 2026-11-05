@@ -26,6 +26,10 @@ export function Get(): $CancellablePromise<$models.Settings> {
     return $Call.ByID(710695688);
 }
 
+export function Integrations(): $CancellablePromise<$models.Integrations> {
+    return $Call.ByID(2836534999);
+}
+
 export function Save($in: $models.SettingsInput): $CancellablePromise<$models.Settings> {
     return $Call.ByID(2704157817, $in);
 }

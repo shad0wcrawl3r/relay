@@ -177,6 +177,7 @@ export const SettingsService = {
   Get: async (): Promise<Settings> => SettingsBindings.Get(),
   Save: async (s: SettingsInput): Promise<Settings> => SettingsBindings.Save(s as M.SettingsInput),
   ClearDevtoKey: async (): Promise<Settings> => SettingsBindings.ClearDevtoKey(),
+  Integrations: (): Promise<M.Integrations> => SettingsBindings.Integrations(),
 };
 
 export const normaliseSessions = (l: TermM.Info[] | null | undefined): TermInfo[] => arr(l);

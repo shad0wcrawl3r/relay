@@ -19,7 +19,10 @@ type BufferService struct {
 }
 
 func NewBufferService(posts *PostService) *BufferService {
-	return &BufferService{client: buffer.New(), posts: posts}
+	s := &BufferService{client: buffer.New(), posts: posts}
+	// Buffer can end the sign-in on its side (revoked, refresh refused).
+	s.client.OnSignOut = func() { integrationsChanged(s) }
+	return s
 }
 
 type BufferStatus struct {
@@ -49,11 +52,14 @@ func (s *BufferService) Connect(ctx context.Context) (BufferStatus, error) {
 	if err != nil {
 		return BufferStatus{}, err
 	}
+	integrationsChanged(s)
 	return s.Status(ctx), nil
 }
 
 func (s *BufferService) Disconnect() error {
-	return s.client.Disconnect()
+	err := s.client.Disconnect()
+	integrationsChanged(s)
+	return err
 }
 
 func (s *BufferService) Channels(ctx context.Context) ([]buffer.Channel, error) {
