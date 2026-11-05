@@ -82,6 +82,12 @@ export function Terminal() {
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.isComposing) return;
+      // ⌘T opens a tab, as in other terminals.
+      if (e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "t") {
+        stop(e);
+        setPrefix(false);
+        return void t.newTab();
+      }
       const k = keyName(e);
       if (!k) return;
       if (!prefix) {
