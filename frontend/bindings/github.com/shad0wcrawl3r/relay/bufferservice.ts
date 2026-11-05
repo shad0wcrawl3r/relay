@@ -30,8 +30,36 @@ export function Connect(): $CancellablePromise<$models.BufferStatus> {
     return $Call.ByID(4086719047);
 }
 
+export function CreateIdea(n: buffer$0.NewIdea): $CancellablePromise<buffer$0.Idea> {
+    return $Call.ByID(1984216784, n);
+}
+
+export function DeletePost(id: string): $CancellablePromise<void> {
+    return $Call.ByID(1419905978, id);
+}
+
 export function Disconnect(): $CancellablePromise<void> {
     return $Call.ByID(2908012889);
+}
+
+/**
+ * EditPost changes a post in Buffer. A post Relay sent about an article keeps
+ * that article's link, however the text is edited.
+ */
+export function EditPost(e: buffer$0.PostEdit): $CancellablePromise<buffer$0.Post> {
+    return $Call.ByID(411497569, e);
+}
+
+export function Ideas(orgID: string, after: string): $CancellablePromise<buffer$0.IdeaPage> {
+    return $Call.ByID(2561747881, orgID, after);
+}
+
+export function Overview(): $CancellablePromise<$models.BufferOverview> {
+    return $Call.ByID(159039820);
+}
+
+export function Posts(q: buffer$0.PostQuery): $CancellablePromise<buffer$0.PostPage> {
+    return $Call.ByID(360456402, q);
 }
 
 /**

@@ -41,6 +41,16 @@ export interface AIStatus {
     "local": boolean;
 }
 
+/**
+ * BufferOverview is what the Buffer tab opens with: the account, its
+ * organizations (with plan limits) and every channel.
+ */
+export interface BufferOverview {
+    "account": string;
+    "organizations": buffer$0.Organization[] | null;
+    "channels": buffer$0.Channel[] | null;
+}
+
 export interface BufferStatus {
     "connected": boolean;
     "account": string;
@@ -74,6 +84,11 @@ export interface PostList {
     "posts": PostSummary[] | null;
     "syncedAt": string;
     "error": string;
+
+    /**
+     * NoKey is set when there's no Dev.to key: writing still works locally.
+     */
+    "noKey": boolean;
     "dir": string;
 }
 

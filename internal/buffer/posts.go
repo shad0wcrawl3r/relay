@@ -11,11 +11,21 @@ import (
 
 // Channel is a social account connected to Buffer.
 type Channel struct {
-	ID            string `json:"id"`
-	Name          string `json:"name"`
-	Service       string `json:"service"`
-	Avatar        string `json:"avatar"`
-	IsQueuePaused bool   `json:"isQueuePaused"`
+	ID             string `json:"id"`
+	Name           string `json:"name"`
+	DisplayName    string `json:"displayName"`
+	Service        string `json:"service"`
+	Avatar         string `json:"avatar"`
+	Descriptor     string `json:"descriptor"`
+	IsQueuePaused  bool   `json:"isQueuePaused"`
+	IsDisconnected bool   `json:"isDisconnected"`
+	IsLocked       bool   `json:"isLocked"`
+	Timezone       string `json:"timezone"`
+	ExternalLink   string `json:"externalLink"`
+	OrganizationID string `json:"organizationId"`
+	// PostingSchedule is empty when Buffer hasn't set one.
+	PostingSchedule []ScheduleDay `json:"postingSchedule"`
+	PostingGoal     *PostingGoal  `json:"postingGoal"`
 }
 
 // Channels lists the channels across every organization on the account.
@@ -24,18 +34,28 @@ func (c *Client) Channels(ctx context.Context) ([]Channel, error) {
 	if err != nil {
 		return nil, err
 	}
+	return c.ChannelsIn(ctx, account.Organizations)
+}
+
+// ChannelsIn lists the channels of the given organizations.
+func (c *Client) ChannelsIn(ctx context.Context, orgs []Organization) ([]Channel, error) {
 	channels := []Channel{}
-	for _, org := range account.Organizations {
+	for _, org := range orgs {
 		var data struct {
 			Channels []Channel `json:"channels"`
 		}
-		q := fmt.Sprintf(`query { channels(input: { organizationId: %s }) { id name service avatar isQueuePaused } }`, quote(org.ID))
-		if err := c.query(ctx, q, &data); err != nil {
+		q := `query Channels($org: OrganizationId!) { channels(input: { organizationId: $org }) { ` + channelFields + ` } }`
+		if err := c.queryVars(ctx, q, map[string]any{"org": org.ID}, &data); err != nil {
 			return nil, err
+		}
+		for i := range data.Channels {
+			if data.Channels[i].PostingSchedule == nil {
+				data.Channels[i].PostingSchedule = []ScheduleDay{}
+			}
 		}
 		channels = append(channels, data.Channels...)
 	}
-	log.Debug("channels loaded", "organizations", len(account.Organizations), "channels", len(channels))
+	log.Debug("channels loaded", "organizations", len(orgs), "channels", len(channels))
 	return channels, nil
 }
 

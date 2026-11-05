@@ -115,3 +115,25 @@ func TestSeriesCombinesLocalAndRemote(t *testing.T) {
 		t.Errorf("got %v, %v", got, err)
 	}
 }
+
+func TestPromotionURLFindsRelayPromotionsOnly(t *testing.T) {
+	s := testService(t)
+	_, _ = s.store.Save(posts.Post{Meta: posts.Meta{
+		Title: "T", DevtoID: 7, DevtoURL: "https://dev.to/a/saved",
+		Promotions: []posts.Promotion{{BufferID: "b1", Channel: "LinkedIn", At: time.Now()}},
+	}})
+	if got := s.PromotionURL("other"); got != "" {
+		t.Errorf("unrelated Buffer post got %q", got)
+	}
+	if got := s.PromotionURL(""); got != "" {
+		t.Errorf("empty ID got %q", got)
+	}
+	// Before a Dev.to sync, fall back to the saved link.
+	if got := s.PromotionURL("b1"); got != "https://dev.to/a/saved" {
+		t.Errorf("unsynced got %q", got)
+	}
+	s.remote[7] = devto.Article{ID: 7, Published: true, URL: "https://dev.to/a/live"}
+	if got := s.PromotionURL("b1"); got != "https://dev.to/a/live" {
+		t.Errorf("synced got %q", got)
+	}
+}

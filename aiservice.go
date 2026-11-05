@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"maps"
+	"strings"
 	"time"
 
 	"github.com/shad0wcrawl3r/relay/internal/ai"
@@ -118,6 +119,24 @@ func (s *AIService) Select(provider, model string) (AIStatus, error) {
 		return AIStatus{}, err
 	}
 	return s.Status(), nil
+}
+
+// SummarizeText drafts a social post from pasted text, for when there's no
+// local article (no Dev.to account, or writing that lives elsewhere). It only
+// runs when the user asks.
+func (s *AIService) SummarizeText(ctx context.Context, title, text string) (string, error) {
+	st := s.Status()
+	if !st.Ready {
+		return "", ai.ErrNoProvider
+	}
+	if strings.TrimSpace(text) == "" {
+		return "", errors.New("paste some text first")
+	}
+	if strings.TrimSpace(title) == "" {
+		title = "Untitled"
+	}
+	system, user := ai.LinkedInPrompt(ai.Article{Title: title, Body: text})
+	return s.client.Complete(ctx, st.Provider, st.Model, system, user)
 }
 
 // SummarizePost drafts a LinkedIn post from a local article. It only runs when

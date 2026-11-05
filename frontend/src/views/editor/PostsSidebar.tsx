@@ -118,7 +118,9 @@ export function PostsSidebar({
         <span className={cn("truncate", list?.error && "text-overdue")}>
           {syncing
             ? "Syncing with Dev.to…"
-            : list?.error
+            : list?.noKey
+              ? "Writing locally · add a Dev.to key in Settings to send"
+              : list?.error
               ? list.error
               : list?.syncedAt && !list.syncedAt.startsWith("0001")
                 ? `Synced with Dev.to · ${ago(list.syncedAt, now)}`

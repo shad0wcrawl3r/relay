@@ -21,6 +21,7 @@ export {
 export type {
     AIProvider,
     AIStatus,
+    BufferOverview,
     BufferStatus,
     Endpoint,
     LogStatus,

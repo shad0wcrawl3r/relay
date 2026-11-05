@@ -108,3 +108,56 @@ func (s *BufferService) Promote(ctx context.Context, in Promotion) (posts.Post, 
 		BufferID: bufferID, Channel: in.Channel, Timing: string(in.Timing), DueAt: in.DueAt, At: time.Now(),
 	})
 }
+
+// BufferOverview is what the Buffer tab opens with: the account, its
+// organizations (with plan limits) and every channel.
+type BufferOverview struct {
+	Account       string                `json:"account"`
+	Organizations []buffer.Organization `json:"organizations"`
+	Channels      []buffer.Channel      `json:"channels"`
+}
+
+func (s *BufferService) Overview(ctx context.Context) (BufferOverview, error) {
+	a, err := s.client.Account(ctx)
+	if err != nil {
+		return BufferOverview{}, err
+	}
+	channels, err := s.client.ChannelsIn(ctx, a.Organizations)
+	if err != nil {
+		return BufferOverview{}, err
+	}
+	name := a.Name
+	if name == "" {
+		name = a.Email
+	}
+	orgs := a.Organizations
+	if orgs == nil {
+		orgs = []buffer.Organization{}
+	}
+	return BufferOverview{Account: name, Organizations: orgs, Channels: channels}, nil
+}
+
+func (s *BufferService) Posts(ctx context.Context, q buffer.PostQuery) (buffer.PostPage, error) {
+	return s.client.Posts(ctx, q)
+}
+
+func (s *BufferService) DeletePost(ctx context.Context, id string) error {
+	return s.client.DeletePost(ctx, id)
+}
+
+// EditPost changes a post in Buffer. A post Relay sent about an article keeps
+// that article's link, however the text is edited.
+func (s *BufferService) EditPost(ctx context.Context, e buffer.PostEdit) (buffer.Post, error) {
+	if url := s.posts.PromotionURL(e.ID); url != "" {
+		e.Text = withLink(e.Text, url)
+	}
+	return s.client.EditPost(ctx, e)
+}
+
+func (s *BufferService) Ideas(ctx context.Context, orgID, after string) (buffer.IdeaPage, error) {
+	return s.client.Ideas(ctx, orgID, after)
+}
+
+func (s *BufferService) CreateIdea(ctx context.Context, n buffer.NewIdea) (buffer.Idea, error) {
+	return s.client.CreateIdea(ctx, n)
+}

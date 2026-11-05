@@ -11,7 +11,7 @@ frontend. Runs on macOS, Windows and Linux.
 
 ### Done
 
-- **Plane**
+- **Plane** (optional: Relay works with just Buffer)
   - Attention home: an inbox across all your projects
   - Kanban board with drag and drop, filters and search
   - Module lanes view
@@ -28,6 +28,9 @@ frontend. Runs on macOS, Windows and Linux.
   - Turns a Dev.to post into social drafts per channel. AI summaries are optional
   - Review and edit each draft before it goes to Buffer
   - Every post carries the article's public link
+  - Buffer tab: channels with posting schedules and weekly goals; the queue,
+    drafts, approvals, sent and failed posts; edit, reschedule and delete;
+    ideas, drafted with AI from any pasted text
   - AI providers: Anthropic, OpenAI, OpenRouter, Ollama and LM Studio, with
     custom endpoints and model search
 - **Terminal**
@@ -46,7 +49,6 @@ frontend. Runs on macOS, Windows and Linux.
 
 For the Buffer Commit contest:
 
-- Use Relay with Buffer alone, with Plane and Dev.to optional
 - First-run onboarding
 - Stop "Update draft" from overwriting edits made on Dev.to
 - Move secrets out of `config.toml` into the keychain
@@ -62,7 +64,6 @@ Later:
 - Git: a changes panel, a diff viewer and code review
 - Command palette for commands, files and workspaces
 - More promotion channels, plus threads for X, Threads and Bluesky
-- Buffer queue panel
 - Image upload for Dev.to and Buffer
 - Unlock on Windows and Linux
 - Auto-update

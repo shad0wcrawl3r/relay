@@ -41,6 +41,14 @@ export function List(): $CancellablePromise<$models.PostList> {
 }
 
 /**
+ * PromotionURL returns the article link of the local post that promoted
+ * bufferID, or "" when Relay didn't send that Buffer post.
+ */
+export function PromotionURL(bufferID: string): $CancellablePromise<string> {
+    return $Call.ByID(2047958889, bufferID);
+}
+
+/**
  * Publish makes a post live on Dev.to. It only runs on the user's explicit
  * request. The article goes live as it stands there, so the placeholder check
  * reads Dev.to's copy: images are usually swapped in on Dev.to, not here.

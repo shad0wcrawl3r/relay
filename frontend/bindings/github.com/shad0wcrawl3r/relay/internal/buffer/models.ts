@@ -7,9 +7,146 @@
 export interface Channel {
     "id": string;
     "name": string;
+    "displayName": string;
     "service": string;
     "avatar": string;
+    "descriptor": string;
     "isQueuePaused": boolean;
+    "isDisconnected": boolean;
+    "isLocked": boolean;
+    "timezone": string;
+    "externalLink": string;
+    "organizationId": string;
+
+    /**
+     * PostingSchedule is empty when Buffer hasn't set one.
+     */
+    "postingSchedule": ScheduleDay[] | null;
+    "postingGoal": PostingGoal | null;
+}
+
+/**
+ * Idea is a saved idea in Buffer's Create space. CreatedAt is Unix seconds.
+ */
+export interface Idea {
+    "id": string;
+    "groupId": string;
+    "title": string;
+    "text": string;
+    "services": string[] | null;
+    "createdAt": number;
+}
+
+export interface IdeaGroup {
+    "id": string;
+    "name": string;
+    "isLocked": boolean;
+}
+
+export interface IdeaPage {
+    "ideas": Idea[] | null;
+    "groups": IdeaGroup[] | null;
+    "cursor": string;
+    "more": boolean;
+}
+
+/**
+ * Limits are the organization's plan limits.
+ */
+export interface Limits {
+    "channels": number;
+    "scheduledPosts": number;
+    "ideas": number;
+    "tags": number;
+}
+
+/**
+ * NewIdea is an idea to save in Buffer. Ideas are never published on their
+ * own, so they don't need a Dev.to link.
+ */
+export interface NewIdea {
+    "organizationId": string;
+    "groupId": string;
+    "title": string;
+    "text": string;
+}
+
+export interface Organization {
+    "id": string;
+    "name": string;
+    "channelCount": number;
+    "limits": Limits;
+}
+
+/**
+ * Post is a post in Buffer, whoever made it.
+ */
+export interface Post {
+    "id": string;
+    "text": string;
+    "status": string;
+    "dueAt": string;
+    "sentAt": string;
+    "createdAt": string;
+    "channelId": string;
+    "channelService": string;
+    "externalLink": string;
+    "actions": string[] | null;
+    "error": string;
+    "errorHelp": string;
+    "tags": Tag[] | null;
+    "images": string[] | null;
+    "author": string;
+}
+
+/**
+ * PostEdit changes a post's text and, when DueAt is set, its time.
+ */
+export interface PostEdit {
+    "id": string;
+    "text": string;
+    "dueAt": string;
+}
+
+export interface PostPage {
+    "posts": Post[] | null;
+    "cursor": string;
+    "more": boolean;
+}
+
+/**
+ * PostQuery selects one page of posts.
+ */
+export interface PostQuery {
+    "organizationId": string;
+    "statuses": string[] | null;
+    "channelIds": string[] | null;
+    "after": string;
+}
+
+/**
+ * PostingGoal is the channel's weekly target. Status is OnTrack, AtRisk or Hit.
+ */
+export interface PostingGoal {
+    "goal": number;
+    "sentCount": number;
+    "scheduledCount": number;
+    "status": string;
+}
+
+/**
+ * ScheduleDay is one day of a channel's posting schedule. Times are HH:MM in
+ * the channel's timezone.
+ */
+export interface ScheduleDay {
+    "day": string;
+    "paused": boolean;
+    "times": string[] | null;
+}
+
+export interface Tag {
+    "name": string;
+    "color": string;
 }
 
 /**
