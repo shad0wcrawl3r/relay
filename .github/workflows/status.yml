@@ -1,10 +1,8 @@
 name: Publish status
 
+# Only when a release goes out (pre-releases included), or by hand. The page
+# shows that release and the build of its tag.
 on:
-  workflow_run:
-    workflows: [Build]
-    types: [completed]
-    branches: [main]
   release:
     types: [published]
   workflow_dispatch:
@@ -25,21 +23,31 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
         run: |
-          run=$(gh run list -R "$REPO" -w Build -b main -L 20 --json databaseId,status,headSha,updatedAt \
-            --jq 'map(select(.status == "completed"))[0]')
-          id=$(jq -r .databaseId <<<"$run")
           # Newest published release, pre-releases (alpha, beta) included:
           # releases/latest skips those. Drafts are listed for this token, so drop them.
           release=$(gh api "repos/$REPO/releases?per_page=20" --jq 'map(select(.draft | not))[0] // {}' 2>/dev/null) || release='{}'
           version=$(jq -r '.tag_name // ""' <<<"$release")
           release_url=$(jq -r '.html_url // ""' <<<"$release")
+          if [ -z "$version" ]; then
+            echo "No published release yet; nothing to show." >&2
+            exit 1
+          fi
+          # The Build run for the release's tag: the one that made its files.
+          sha=$(gh api "repos/$REPO/commits/$version" --jq .sha)
+          run=$(gh run list -R "$REPO" -w Build --commit "$sha" -L 20 --json databaseId,status,headSha,updatedAt,event \
+            --jq 'map(select(.status == "completed" and .event == "push"))[0] // empty')
+          if [ -z "$run" ]; then
+            echo "No finished Build run for $version ($sha)." >&2
+            exit 1
+          fi
+          id=$(jq -r .databaseId <<<"$run")
           gh api "repos/$REPO/actions/runs/$id/jobs" --jq '.jobs' \
             | jq --argjson run "$run" --arg version "$version" --arg release_url "$release_url" '{
                 updated_at: $run.updatedAt,
                 commit: $run.headSha[0:7],
-                version: (if $version == "" then null else $version end),
+                version: $version,
                 release_url: (if $release_url == "" then null else $release_url end),
-                platforms: map(select(.conclusion != "skipped") | {name: (.name | split(" ")[0]), conclusion})
+                platforms: map(select(.conclusion != "skipped" and .name != "Draft release") | {name: (.name | split(" ")[0]), conclusion})
               }' > status.json
           cat status.json
 
