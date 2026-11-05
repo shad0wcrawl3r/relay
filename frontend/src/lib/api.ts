@@ -47,6 +47,10 @@ export type TermOptions = Clean<TermM.Options>;
 export type TermEndpoint = Clean<M.Endpoint>;
 export type TermKeymap = Clean<TermM.Keymap>;
 export type TermBinding = Clean<TermM.Binding>;
+export type Shell = Clean<TermM.Shell>;
+export type ShellChoice = Clean<M.ShellChoice>;
+export type ExportResult = Clean<M.ExportResult>;
+export type ImportResult = Clean<M.ImportResult>;
 
 const arr = <T,>(v: T[] | null | undefined): T[] => v ?? [];
 
@@ -203,6 +207,16 @@ export const SettingsService = {
   SavePlaneApp: async (clientId: string, secret: string, workspace: string): Promise<Settings> =>
     SettingsBindings.SavePlaneApp(clientId, secret, workspace),
   SaveDevtoKey: async (key: string): Promise<Settings> => SettingsBindings.SaveDevtoKey(key),
+  ExportSettings: async (): Promise<ExportResult> => {
+    const r = await SettingsBindings.ExportSettings();
+    return { ...r, words: arr(r.words) };
+  },
+  RevealExport: (path: string) => SettingsBindings.RevealExport(path),
+  ChooseSettingsFile: () => SettingsBindings.ChooseSettingsFile(),
+  ImportSettings: async (path: string, passphrase: string): Promise<ImportResult> => {
+    const r = await SettingsBindings.ImportSettings(path, passphrase);
+    return { ...r, imported: arr(r.imported) };
+  },
 };
 
 // The floating setup guide window.
@@ -213,6 +227,8 @@ export const GuideService = {
   Finish: () => GuideBindings.Finish(),
   Show: (view: "editor" | "buffer" | "attention" | "terminal" | "settings") => GuideBindings.Show(view),
 };
+
+const shellChoice = (c: M.ShellChoice): ShellChoice => ({ ...c, shells: arr(c.shells) });
 
 export const normaliseSessions = (l: TermM.Info[] | null | undefined): TermInfo[] => arr(l);
 
@@ -231,4 +247,6 @@ export const TerminalService = {
     return { ...k, bindings: arr(k.bindings), skipped: arr(k.skipped) };
   },
   TmuxConfig: () => TerminalBindings.TmuxConfig(),
+  Shells: async (): Promise<ShellChoice> => shellChoice(await TerminalBindings.Shells()),
+  SetShell: async (path: string): Promise<ShellChoice> => shellChoice(await TerminalBindings.SetShell(path)),
 };

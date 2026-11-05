@@ -10,6 +10,7 @@ import (
 	"github.com/shad0wcrawl3r/relay/internal/devto"
 	"github.com/shad0wcrawl3r/relay/internal/logs"
 	"github.com/shad0wcrawl3r/relay/internal/plane"
+	"github.com/shad0wcrawl3r/relay/internal/term"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
@@ -63,7 +64,9 @@ type Settings struct {
 	PostsDir          string `json:"postsDir"`
 	RedirectURI       string `json:"redirectUri"`
 	TerminalTmuxKeys  bool   `json:"terminalTmuxKeys"`
-	AutoLockMinutes   int    `json:"autoLockMinutes"`
+	// TerminalShell is the shell for new sessions; empty uses the default.
+	TerminalShell   string `json:"terminalShell"`
+	AutoLockMinutes int    `json:"autoLockMinutes"`
 }
 
 type SettingsInput struct {
@@ -79,7 +82,9 @@ type SettingsInput struct {
 	AgentName         string `json:"agentName"`
 	AgentLabel        string `json:"agentLabel"`
 	TerminalTmuxKeys  bool   `json:"terminalTmuxKeys"`
-	AutoLockMinutes   int    `json:"autoLockMinutes"`
+	// TerminalShell is the shell for new sessions; empty uses the default.
+	TerminalShell   string `json:"terminalShell"`
+	AutoLockMinutes int    `json:"autoLockMinutes"`
 }
 
 func (s *SettingsService) Get() Settings {
@@ -94,6 +99,7 @@ func (s *SettingsService) Get() Settings {
 		ConfigPath: config.Path(), PostsDir: s.posts.store.Dir,
 		RedirectURI:      "http://127.0.0.1:" + strconv.Itoa(c.Plane.RedirectPort) + "/oauth/callback",
 		TerminalTmuxKeys: c.Terminal.TmuxKeys,
+		TerminalShell:    usableShell(c.Terminal.Shell),
 		AutoLockMinutes:  c.Privacy.AutoLockMinutes,
 	}
 }
@@ -131,6 +137,9 @@ func (s *SettingsService) Save(ctx context.Context, in SettingsInput) (Settings,
 		c.Agent.Name = in.AgentName
 		c.Agent.Label = in.AgentLabel
 		c.Terminal.TmuxKeys = in.TerminalTmuxKeys
+		if in.TerminalShell == "" || term.Usable(in.TerminalShell) {
+			c.Terminal.Shell = in.TerminalShell
+		}
 		if in.AutoLockMinutes >= 1 {
 			c.Privacy.AutoLockMinutes = in.AutoLockMinutes
 		}
@@ -142,6 +151,15 @@ func (s *SettingsService) Save(ctx context.Context, in SettingsInput) (Settings,
 	logs.For("app").Info("settings saved")
 	integrationsChanged(s.buffer)
 	return s.Get(), nil
+}
+
+// usableShell hides a saved shell that doesn't exist here, so the form shows
+// the default that sessions will actually use.
+func usableShell(path string) string {
+	if term.Usable(path) {
+		return path
+	}
+	return ""
 }
 
 // ClearDevtoKey removes the stored Dev.to key.

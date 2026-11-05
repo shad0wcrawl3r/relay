@@ -28,9 +28,11 @@ export type {
     DevtoKeyCheck,
     Drift,
     Endpoint,
+    ExportResult,
     GuideStatus,
     IdeaLink,
     IdeaToItemInput,
+    ImportResult,
     Integrations,
     LogStatus,
     LogSubsystem,
@@ -39,5 +41,6 @@ export type {
     Promotion,
     SendResult,
     Settings,
-    SettingsInput
+    SettingsInput,
+    ShellChoice
 } from "./models.js";

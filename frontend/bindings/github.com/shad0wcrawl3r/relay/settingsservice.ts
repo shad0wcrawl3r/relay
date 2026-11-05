@@ -24,18 +24,49 @@ export function CheckDevtoKey(key: string): $CancellablePromise<$models.DevtoKey
 }
 
 /**
+ * ChooseSettingsFile asks for an export to import. Empty when cancelled.
+ */
+export function ChooseSettingsFile(): $CancellablePromise<string> {
+    return $Call.ByID(3585663910);
+}
+
+/**
  * ClearDevtoKey removes the stored Dev.to key.
  */
 export function ClearDevtoKey(): $CancellablePromise<$models.Settings> {
     return $Call.ByID(357252920);
 }
 
+/**
+ * ExportSettings writes the sealed settings to Downloads and returns the
+ * passphrase. The same settings always get the same words.
+ */
+export function ExportSettings(): $CancellablePromise<$models.ExportResult> {
+    return $Call.ByID(2603016047);
+}
+
 export function Get(): $CancellablePromise<$models.Settings> {
     return $Call.ByID(710695688);
 }
 
+/**
+ * ImportSettings opens an export with its passphrase and replaces this
+ * device's settings and API keys with it. Nothing changes unless the
+ * passphrase is right.
+ */
+export function ImportSettings(path: string, passphrase: string): $CancellablePromise<$models.ImportResult> {
+    return $Call.ByID(2066498364, path, passphrase);
+}
+
 export function Integrations(): $CancellablePromise<$models.Integrations> {
     return $Call.ByID(2836534999);
+}
+
+/**
+ * RevealExport shows an exported file in Finder or Explorer.
+ */
+export function RevealExport(path: string): $CancellablePromise<void> {
+    return $Call.ByID(1390917287, path);
 }
 
 export function Save($in: $models.SettingsInput): $CancellablePromise<$models.Settings> {

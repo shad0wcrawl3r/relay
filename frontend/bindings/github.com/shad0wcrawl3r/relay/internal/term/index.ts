@@ -9,5 +9,6 @@ export type {
     Binding,
     Info,
     Keymap,
-    Options
+    Options,
+    Shell
 } from "./models.js";

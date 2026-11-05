@@ -7,6 +7,9 @@ import * as buffer$0 from "./internal/buffer/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as posts$0 from "./internal/posts/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as term$0 from "./internal/term/models.js";
 
 export interface AIProvider {
     "id": string;
@@ -98,6 +101,15 @@ export interface Endpoint {
 }
 
 /**
+ * ExportResult tells the user where the file went and how to open it.
+ */
+export interface ExportResult {
+    "path": string;
+    "passphrase": string;
+    "words": string[] | null;
+}
+
+/**
  * GuideStatus is whether the user has finished or skipped the guide.
  */
 export interface GuideStatus {
@@ -125,6 +137,18 @@ export interface IdeaToItemInput {
     "text": string;
     "projectId": string;
     "stateId": string;
+}
+
+/**
+ * ImportResult lists what an import brought in, for the confirmation.
+ */
+export interface ImportResult {
+    "imported": string[] | null;
+
+    /**
+     * ShellKept is set when the file's shell doesn't exist on this machine.
+     */
+    "shellKept": boolean;
 }
 
 /**
@@ -223,6 +247,11 @@ export interface Settings {
     "postsDir": string;
     "redirectUri": string;
     "terminalTmuxKeys": boolean;
+
+    /**
+     * TerminalShell is the shell for new sessions; empty uses the default.
+     */
+    "terminalShell": string;
     "autoLockMinutes": number;
 }
 
@@ -239,5 +268,22 @@ export interface SettingsInput {
     "agentName": string;
     "agentLabel": string;
     "terminalTmuxKeys": boolean;
+
+    /**
+     * TerminalShell is the shell for new sessions; empty uses the default.
+     */
+    "terminalShell": string;
     "autoLockMinutes": number;
+}
+
+/**
+ * ShellChoice is the shells on this machine and the one new sessions use.
+ */
+export interface ShellChoice {
+    "shells": term$0.Shell[] | null;
+
+    /**
+     * Chosen is the saved shell; empty means the default (Shells[0]).
+     */
+    "chosen": string;
 }

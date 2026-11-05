@@ -78,6 +78,22 @@ export interface Options {
 }
 
 /**
+ * Shell is one shell installed on this machine that a session can run.
+ */
+export interface Shell {
+    /**
+     * Name is what the user sees, e.g. "zsh" or "PowerShell 7".
+     */
+    "name": string;
+    "path": string;
+
+    /**
+     * Default marks the one used when none is chosen.
+     */
+    "default": boolean;
+}
+
+/**
  * Status is what the sessions sidebar shows for a session.
  */
 export enum Status {

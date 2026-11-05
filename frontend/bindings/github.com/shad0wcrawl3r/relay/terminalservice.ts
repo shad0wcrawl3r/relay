@@ -66,6 +66,20 @@ export function SaveLayout(layout: string): $CancellablePromise<void> {
 }
 
 /**
+ * SetShell saves the shell for new sessions; empty uses the default.
+ */
+export function SetShell(path: string): $CancellablePromise<$models.ShellChoice> {
+    return $Call.ByID(1828493327, path);
+}
+
+/**
+ * Shells lists the shells installed here, the default first.
+ */
+export function Shells(): $CancellablePromise<$models.ShellChoice> {
+    return $Call.ByID(3502992142);
+}
+
+/**
  * TmuxConfig names the tmux config Relay would read, or "" if none exists.
  */
 export function TmuxConfig(): $CancellablePromise<string> {
