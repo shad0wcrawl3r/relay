@@ -27,9 +27,9 @@ export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => v
   // Unknown counts as on, so nothing jumps sections while loading.
   const bufferOn = buffer !== false;
   const others = [
-    !planeOn && { label: "Plane", icon: <Kanban className="size-[15px]" strokeWidth={1.8} />, onClick: () => go({ name: "settings" }), active: false },
+    !planeOn && { label: "Plane", icon: <Kanban className="size-[15px]" strokeWidth={1.8} />, onClick: () => go({ name: "settings", tab: "plane" }), active: false },
     !bufferOn && { label: "Buffer", icon: <BufferLogo className="size-[14px]" />, onClick: () => go({ name: "buffer" }), active: route.name === "buffer" },
-    devto === false && { label: "Dev.to", icon: <PenLine className="size-[15px]" strokeWidth={1.8} />, onClick: () => go({ name: "settings" }), active: false },
+    devto === false && { label: "Dev.to", icon: <PenLine className="size-[15px]" strokeWidth={1.8} />, onClick: () => go({ name: "settings", tab: "publishing" }), active: false },
   ].filter((o) => !!o);
   const anyUnlocked = projects.some((p) => (p.private && !p.locked) || p.modules.some((m) => m.private && !m.locked));
   const { sessions } = useTerminal();
