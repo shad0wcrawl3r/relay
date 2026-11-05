@@ -38,6 +38,8 @@ export type PostList = Clean<M.PostList>;
 export type Settings = Clean<M.Settings>;
 export type SettingsInput = Clean<M.SettingsInput>;
 export type Post = Clean<PostM.Post>;
+/** Dev.to's copy of a post next to Relay's, when it was edited on Dev.to. */
+export type Drift = Clean<M.Drift>;
 export type TermInfo = Clean<TermM.Info>;
 export type UnlockMethod = Clean<UnlockM.Method>;
 export type TermOptions = Clean<TermM.Options>;
@@ -96,7 +98,14 @@ export const PostService = {
   Create: async () => post(await PostBindings.Create()),
   Save: async (p: Post) => post(await PostBindings.Save(p as PostM.Post)),
   Delete: (id: string) => PostBindings.Delete(id),
-  Send: async (id: string) => post(await PostBindings.Send(id)),
+  /** Sends the post. An update that finds edits made on Dev.to sends nothing
+   *  and returns the drift instead, unless overwrite is set. */
+  Send: async (id: string, overwrite = false): Promise<{ post: Post; drift: Drift | null }> => {
+    const r = await PostBindings.Send(id, overwrite);
+    return { post: post(r.post), drift: r.drift ?? null };
+  },
+  Drift: async (id: string): Promise<Drift | null> => (await PostBindings.Drift(id)) ?? null,
+  PullDevto: async (id: string) => post(await PostBindings.PullDevto(id)),
   Publish: async (id: string) => post(await PostBindings.Publish(id)),
   Series: async (): Promise<string[]> => arr(await PostBindings.Series()),
 };

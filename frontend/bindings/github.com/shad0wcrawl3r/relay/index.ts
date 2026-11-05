@@ -23,6 +23,7 @@ export type {
     AIStatus,
     BufferOverview,
     BufferStatus,
+    Drift,
     Endpoint,
     IdeaLink,
     IdeaToItemInput,
@@ -32,6 +33,7 @@ export type {
     PostList,
     PostSummary,
     Promotion,
+    SendResult,
     Settings,
     SettingsInput
 } from "./models.js";

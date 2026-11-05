@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Browser } from "@wailsio/runtime";
-import { ExternalLink, ImageIcon, Loader2, Megaphone, Rocket, Send, X } from "lucide-react";
-import { PostService, type Post, type PostList } from "@/lib/api";
+import { ExternalLink, GitCompare, ImageIcon, Loader2, Megaphone, Rocket, Send, X } from "lucide-react";
+import { PostService, type Drift, type Post, type PostList } from "@/lib/api";
 import { ago } from "@/lib/time";
 import { cn, errorMessage } from "@/lib/utils";
 import { useToast } from "@/components/Toaster";
@@ -13,6 +13,7 @@ import { MarkdownEditor, MoreButton, type EditorHandle } from "./MarkdownEditor"
 import { Preview } from "./Preview";
 import { ImageDialog } from "./ImageDialog";
 import { PromoteDialog } from "./PromoteDialog";
+import { DriftDialog } from "./DriftDialog";
 import { PublishDialog } from "./PublishDialog";
 import { SeriesSelect } from "./SeriesSelect";
 import { countPlaceholders } from "./highlight";
@@ -33,6 +34,7 @@ export function Editor() {
   const [sending, setSending] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
   const [promoteOpen, setPromoteOpen] = useState(false);
+  const [drift, setDrift] = useState<Drift | null>(null);
   const [, tick] = useState(0);
   const editor = useRef<EditorHandle>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -185,7 +187,7 @@ export function Editor() {
     }
   };
 
-  const send = async () => {
+  const send = async (overwrite = false) => {
     if (!post) return;
     if (!post.title.trim()) {
       toast({ tone: "error", title: "Add a title first" });
@@ -198,8 +200,16 @@ export function Editor() {
       return;
     }
     try {
-      const result = await PostService.Send(post.id);
-      setPost((cur) => (cur && cur.id === result.id ? { ...cur, devtoId: result.devtoId, devtoUrl: result.devtoUrl, sentAt: result.sentAt } : cur));
+      const { post: result, drift: found } = await PostService.Send(post.id, overwrite);
+      if (found) {
+        // Edited on Dev.to since the last send: nothing was sent.
+        setDrift(found);
+        return;
+      }
+      setDrift(null);
+      setPost((cur) =>
+        cur && cur.id === result.id ? { ...cur, devtoId: result.devtoId, devtoUrl: result.devtoUrl, sentAt: result.sentAt, devtoHash: result.devtoHash } : cur,
+      );
       refreshList();
       const todo = [images > 0 && `${images} image${images === 1 ? "" : "s"}`, "the cover"].filter(Boolean).join(" and ");
       toast({
@@ -217,6 +227,35 @@ export function Editor() {
       toast({ tone: "error", title: "Couldn't send to Dev.to", body: errorMessage(err) });
     } finally {
       setSending(false);
+    }
+  };
+
+  const review = async () => {
+    if (!post) return;
+    try {
+      const found = await PostService.Drift(post.id);
+      if (found) setDrift(found);
+      else {
+        toast({ tone: "success", title: "Dev.to matches Relay" });
+        refreshList();
+      }
+    } catch (err) {
+      toast({ tone: "error", title: "Couldn't check Dev.to", body: errorMessage(err) });
+    }
+  };
+
+  const pull = async () => {
+    if (!post) return;
+    clearTimeout(timer.current);
+    try {
+      const pulled = await PostService.PullDevto(post.id);
+      setPost(pulled);
+      setSave({ kind: "saved", at: Date.now() });
+      setDrift(null);
+      refreshList();
+      toast({ tone: "success", title: "Took Dev.to's version", body: "Relay's copy now matches Dev.to." });
+    } catch (err) {
+      toast({ tone: "error", title: "Couldn't load Dev.to's copy", body: errorMessage(err) });
     }
   };
 
@@ -270,6 +309,15 @@ export function Editor() {
           </div>
         ) : (
           <>
+            {summary?.remoteChanged && (
+              <div className="flex shrink-0 items-center gap-3 border-b border-[rgba(245,158,11,.25)] bg-[rgba(245,158,11,.06)] px-6 py-2 text-[13px] text-[#fbbf24]">
+                <GitCompare className="size-3.5 shrink-0" />
+                <span className="grow">Edited on Dev.to since you last sent it. Update draft will ask before replacing those changes.</span>
+                <Button variant="amber" size="sm" onClick={review}>
+                  Review changes
+                </Button>
+              </div>
+            )}
             <main className="grow overflow-y-auto px-6 pb-8 pt-10">
               {mode === "preview" ? (
                 <Preview title={post.title} tags={post.tags} body={post.body} />
@@ -324,7 +372,7 @@ export function Editor() {
                       Open on Dev.to
                     </Button>
                   )}
-                  <Button variant="outline" size="md" className="font-medium text-strong" disabled={sending} onClick={send}>
+                  <Button variant="outline" size="md" className="font-medium text-strong" disabled={sending} onClick={() => send()}>
                     {sending ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
                     {published ? "Update article" : "Update draft"}
                   </Button>
@@ -343,7 +391,7 @@ export function Editor() {
               ) : (
                 <>
                   <span className="text-dim">Creates an unpublished draft</span>
-                  <Button size="md" disabled={sending} onClick={send}>
+                  <Button size="md" disabled={sending} onClick={() => send()}>
                     {sending ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
                     Send to Dev.to
                   </Button>
@@ -353,6 +401,7 @@ export function Editor() {
           </>
         )}
       </div>
+      <DriftDialog drift={drift} onOpenChange={(o) => !o && setDrift(null)} onPull={pull} onOverwrite={() => send(true)} />
       <ImageDialog open={imageOpen} onOpenChange={setImageOpen} onInsert={(t) => setTimeout(() => editor.current?.insertAtCursor(t), 0)} />
       {post && <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} onPublish={publish} />}
       {post && url && (
