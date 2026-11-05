@@ -7,6 +7,8 @@ through Buffer. A terminal is built in.
 Built with Go and [Wails v3](https://v3.wails.io/), with a React and TypeScript
 frontend. Runs on macOS, Windows and Linux.
 
+**Download:** [relay.shadowcrawler.dev](https://relay.shadowcrawler.dev)
+
 ## Features
 
 ### Done
@@ -106,5 +108,10 @@ Never commit `config.toml`. It is already in `.gitignore`.
 | `main.go`, `*service.go` | Wails app and the services bound to the frontend |
 | `internal/` | `plane`, `devto`, `buffer`, `ai`, `posts`, `term`, `vault`, `unlock`, `logs`, `config` |
 | `frontend/` | React and TypeScript UI |
+| `site/` | [relay.shadowcrawler.dev](https://relay.shadowcrawler.dev): landing page, downloads, status and the Buffer sign-in callback (`site/public`, tests in `site/test`), published by `.github/workflows/pages.yml` |
 | `design/` | UI spec (`design/README.md`) and reference mockups |
 | `Project.md` | Intent and Dev.to API notes |
+
+## License
+
+[BSD 3-Clause](LICENSE).
