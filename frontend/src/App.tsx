@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Events } from "@wailsio/runtime";
 import { usePlane } from "@/lib/store";
 import { stateById } from "@/lib/plane";
 import { Sidebar } from "@/components/Sidebar";
@@ -40,6 +41,16 @@ export default function App() {
     // The Terminal view is the full version of the quick terminal.
     if (r.name === "terminal") setQuick(false);
   }, []);
+
+  // The setup guide's last step brings this window forward on a view.
+  useEffect(
+    () =>
+      Events.On("guide:show", (ev) => {
+        const view = ev.data as string;
+        if (view === "editor" || view === "buffer" || view === "attention" || view === "terminal" || view === "settings") go({ name: view });
+      }),
+    [go],
+  );
 
   // ⌘/ or ⌃/ toggles the quick terminal anywhere but the Terminal view.
   // Captured so it works while the quick terminal itself has focus (xterm

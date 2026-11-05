@@ -50,7 +50,13 @@ func (s *BufferService) Status(ctx context.Context) BufferStatus {
 }
 
 func (s *BufferService) Connect(ctx context.Context) (BufferStatus, error) {
-	err := s.client.Connect(ctx, func(u string) { _ = application.Get().Browser.OpenURL(u) })
+	err := s.client.Connect(ctx, func(u string) {
+		app := application.Get()
+		// Also to the frontend, so the user can copy the link into another
+		// browser or profile than the default one.
+		app.Event.Emit("buffer:signin", u)
+		_ = app.Browser.OpenURL(u)
+	})
 	if err != nil {
 		return BufferStatus{}, err
 	}

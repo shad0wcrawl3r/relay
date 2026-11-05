@@ -60,6 +60,14 @@ export interface BufferStatus {
 }
 
 /**
+ * DevtoKeyCheck is the account a Dev.to key belongs to.
+ */
+export interface DevtoKeyCheck {
+    "username": string;
+    "name": string;
+}
+
+/**
  * Drift is Dev.to's copy of a post next to Relay's, when they disagree.
  */
 export interface Drift {
@@ -87,6 +95,13 @@ export interface Endpoint {
      * Home lets the UI shorten folders to ~.
      */
     "home": string;
+}
+
+/**
+ * GuideStatus is whether the user has finished or skipped the guide.
+ */
+export interface GuideStatus {
+    "done": boolean;
 }
 
 /**

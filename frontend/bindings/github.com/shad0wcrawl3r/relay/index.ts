@@ -3,6 +3,7 @@
 
 import * as AIService from "./aiservice.js";
 import * as BufferService from "./bufferservice.js";
+import * as GuideService from "./guideservice.js";
 import * as LogService from "./logservice.js";
 import * as PlaneService from "./planeservice.js";
 import * as PostService from "./postservice.js";
@@ -11,6 +12,7 @@ import * as TerminalService from "./terminalservice.js";
 export {
     AIService,
     BufferService,
+    GuideService,
     LogService,
     PlaneService,
     PostService,
@@ -23,8 +25,10 @@ export type {
     AIStatus,
     BufferOverview,
     BufferStatus,
+    DevtoKeyCheck,
     Drift,
     Endpoint,
+    GuideStatus,
     IdeaLink,
     IdeaToItemInput,
     Integrations,

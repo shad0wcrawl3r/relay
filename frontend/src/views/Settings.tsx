@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Browser, CancelError, Clipboard, type CancellablePromise } from "@wailsio/runtime";
-import { Check, Copy, ExternalLink, Loader2 } from "lucide-react";
-import { BufferService, moduleKey, PlaneService, projectKey, SettingsService, TerminalService, type BufferStatus, type Settings as SettingsT, type SettingsInput } from "@/lib/api";
+import { Check, Compass, Copy, ExternalLink, Loader2 } from "lucide-react";
+import { BufferService, GuideService, moduleKey, PlaneService, projectKey, SettingsService, TerminalService, type BufferStatus, type Settings as SettingsT, type SettingsInput } from "@/lib/api";
 import { useTerminal } from "@/lib/terminal";
 import { showKey } from "@/lib/keys";
 import { Switch } from "@/components/ui/switch";
@@ -10,6 +10,7 @@ import { errorMessage } from "@/lib/utils";
 import { useToast } from "@/components/Toaster";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SecretInput } from "@/components/ui/secret-input";
 import { Dot } from "@/components/bits";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AISettings } from "@/components/AISettings";
@@ -173,6 +174,10 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
                 {l.label}
               </button>
             ))}
+            <button className="ml-auto inline-flex items-center gap-1 text-[#93c5fd] hover:underline" onClick={() => GuideService.Open()}>
+              <Compass className="size-3" />
+              Run setup guide
+            </button>
           </div>
         </div>
 
@@ -270,8 +275,8 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
             <Input value={form.planeClientId} onChange={(e) => set({ planeClientId: e.target.value })} autoComplete="off" spellCheck={false} />
           </Row>
           <Row label="Client secret">
-            <Input
-              type="password"
+            <SecretInput
+              
               value={form.planeSecret}
               placeholder={s.planeSecretSet ? "•••••••• (saved — type to replace)" : ""}
               onChange={(e) => set({ planeSecret: e.target.value })}
@@ -339,8 +344,8 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
             }
           >
             <div className="flex gap-2">
-              <Input
-                type="password"
+              <SecretInput
+                
                 value={form.devtoKey}
                 placeholder={s.devtoKeySet ? "•••••••• (saved — type to replace)" : ""}
                 onChange={(e) => set({ devtoKey: e.target.value })}

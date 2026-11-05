@@ -9,6 +9,16 @@ import type {} from "../github.com/wailsapp/wails/v3/internal/eventdata.js";
 import "../github.com/wailsapp/wails/v3/internal/eventcreate.js";
 
 /**
+ * Name of the custom event "buffer:signin".
+ */
+export const BufferSignin = "buffer:signin";
+
+/**
+ * Name of the custom event "guide:show".
+ */
+export const GuideShow = "guide:show";
+
+/**
  * Name of the custom event "integrations:changed".
  */
 export const IntegrationsChanged = "integrations:changed";
