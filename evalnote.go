@@ -7,8 +7,8 @@ import (
 
 // EvalNoteText ends every Buffer post sent from a dev build or a test run, so
 // a test post left in the queue still goes out labelled, and says where it
-// came from.
-const EvalNoteText = "Created via Relay for test/evaluation"
+// came from: the link is Relay's status page.
+const EvalNoteText = "Created via Relay for test/evaluation: https://relay.shadowcrawler.dev"
 
 func evalMarking() bool { return !releaseBuild || testing.Testing() }
 

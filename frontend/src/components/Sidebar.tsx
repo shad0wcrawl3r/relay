@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Bell, Kanban, Lock, LockOpen, PenLine, RefreshCw, Send, SlidersHorizontal, SquareTerminal } from "lucide-react";
+import { Bell, Kanban, Lock, LockOpen, PenLine, RefreshCw, SlidersHorizontal, SquareTerminal } from "lucide-react";
+import { BufferLogo } from "@/components/icons/BufferLogo";
 import { usePlane } from "@/lib/store";
 import { useIntegrations } from "@/lib/integrations";
 import { useTerminal } from "@/lib/terminal";
@@ -27,7 +28,7 @@ export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => v
   const bufferOn = buffer !== false;
   const others = [
     !planeOn && { label: "Plane", icon: <Kanban className="size-[15px]" strokeWidth={1.8} />, onClick: () => go({ name: "settings" }), active: false },
-    !bufferOn && { label: "Buffer", icon: <Send className="size-[15px]" strokeWidth={1.8} />, onClick: () => go({ name: "buffer" }), active: route.name === "buffer" },
+    !bufferOn && { label: "Buffer", icon: <BufferLogo className="size-[14px]" />, onClick: () => go({ name: "buffer" }), active: route.name === "buffer" },
     devto === false && { label: "Dev.to", icon: <PenLine className="size-[15px]" strokeWidth={1.8} />, onClick: () => go({ name: "settings" }), active: false },
   ].filter((o) => !!o);
   const anyUnlocked = projects.some((p) => (p.private && !p.locked) || p.modules.some((m) => m.private && !m.locked));
@@ -141,7 +142,7 @@ export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => v
         {!rail && <div className="px-2.5 pb-1.5 text-[11px] font-medium uppercase tracking-[.06em] text-dim">Write</div>}
         <Item active={route.name === "editor"} onClick={() => go({ name: "editor" })} icon={<PenLine className="size-[15px]" strokeWidth={1.8} />} label="Dev.to editor" />
         {bufferOn && (
-          <Item active={route.name === "buffer"} onClick={() => go({ name: "buffer" })} icon={<Send className="size-[15px]" strokeWidth={1.8} />} label="Buffer" />
+          <Item active={route.name === "buffer"} onClick={() => go({ name: "buffer" })} icon={<BufferLogo className="size-[14px]" />} label="Buffer" />
         )}
       </div>
 
