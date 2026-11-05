@@ -1,16 +1,20 @@
 package main
 
 import (
+	"context"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/shad0wcrawl3r/relay/internal/config"
+	"github.com/shad0wcrawl3r/relay/internal/devto"
 	"github.com/shad0wcrawl3r/relay/internal/logs"
 	"github.com/shad0wcrawl3r/relay/internal/plane"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
-// SettingsService reads and writes config.toml. Secrets are never sent to the
+// SettingsService reads and writes settings: config.toml, and the keychain for
+// secrets (internal/config/secrets.go). Secrets are never sent to the
 // frontend: it only learns whether they are set, and blank inputs keep them.
 type SettingsService struct {
 	plane  *PlaneService
@@ -94,7 +98,13 @@ func (s *SettingsService) Get() Settings {
 	}
 }
 
-func (s *SettingsService) Save(in SettingsInput) (Settings, error) {
+func (s *SettingsService) Save(ctx context.Context, in SettingsInput) (Settings, error) {
+	// A new Dev.to key must work before it replaces the saved one.
+	if key := strings.TrimSpace(in.DevtoKey); key != "" {
+		if _, err := s.CheckDevtoKey(ctx, key); err != nil {
+			return Settings{}, err
+		}
+	}
 	derivedAppURL := plane.AppURL()
 	err := config.Update(func(c *config.Config) {
 		c.Plane.BaseURL = in.PlaneBaseURL
@@ -137,6 +147,55 @@ func (s *SettingsService) Save(in SettingsInput) (Settings, error) {
 // ClearDevtoKey removes the stored Dev.to key.
 func (s *SettingsService) ClearDevtoKey() (Settings, error) {
 	err := config.Update(func(c *config.Config) { c.DevTo.APIKey = "" })
+	integrationsChanged(s.buffer)
+	return s.Get(), err
+}
+
+// SavePlaneApp stores the Plane OAuth app's credentials, for the setup guide.
+// A blank secret keeps the saved one.
+func (s *SettingsService) SavePlaneApp(clientID, secret, workspace string) (Settings, error) {
+	err := config.Update(func(c *config.Config) {
+		c.Plane.ClientID = strings.TrimSpace(clientID)
+		if secret = strings.TrimSpace(secret); secret != "" {
+			c.Plane.ClientSecret = secret
+		}
+		if workspace = strings.TrimSpace(workspace); workspace != "" {
+			c.Plane.Workspace = workspace
+		}
+	})
+	if err != nil {
+		logs.For("app").Error("could not save the Plane app", "error", err)
+	}
+	return s.Get(), err
+}
+
+// DevtoKeyCheck is the account a Dev.to key belongs to.
+type DevtoKeyCheck struct {
+	Username string `json:"username"`
+	Name     string `json:"name"`
+}
+
+// CheckDevtoKey asks Dev.to whether a key works, without saving it.
+func (s *SettingsService) CheckDevtoKey(ctx context.Context, key string) (DevtoKeyCheck, error) {
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	u, err := devto.Check(ctx, key)
+	return DevtoKeyCheck{Username: u.Username, Name: u.Name}, err
+}
+
+// SaveDevtoKey checks the Dev.to API key with Dev.to, then stores it.
+func (s *SettingsService) SaveDevtoKey(ctx context.Context, key string) (Settings, error) {
+	key = strings.TrimSpace(key)
+	if key == "" {
+		return s.Get(), nil
+	}
+	if _, err := s.CheckDevtoKey(ctx, key); err != nil {
+		return s.Get(), err
+	}
+	err := config.Update(func(c *config.Config) { c.DevTo.APIKey = key })
+	if err != nil {
+		logs.For("app").Error("could not save the Dev.to key", "error", err)
+	}
 	integrationsChanged(s.buffer)
 	return s.Get(), err
 }

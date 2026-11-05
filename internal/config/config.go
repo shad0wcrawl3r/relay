@@ -88,17 +88,35 @@ func Override(fn func(c *Config)) {
 	fn(&cfg)
 }
 
-// Update applies fn to a copy of the config and persists it to Path().
+// Update applies fn to a copy of the config and persists it: secrets to the
+// keychain, the rest to Path().
 func Update(fn func(c *Config)) error {
 	writeMu.Lock()
 	defer writeMu.Unlock()
-	next := *GetConfig()
+	prev := *GetConfig()
+	next := prev
 	fn(&next)
-	v.Set("devto.API_KEY", next.DevTo.APIKey)
+	if err := storeSecrets(prev, next); err != nil {
+		return err
+	}
+	if err := write(next); err != nil {
+		return err
+	}
+	mu.Lock()
+	cfg = next
+	mu.Unlock()
+	return nil
+}
+
+// write saves next to Path(). Caller holds writeMu.
+func write(next Config) error {
+	for _, s := range secrets {
+		// Also overrides an env value, which must not reach the file either.
+		v.Set(s.viperKey, fileValue(s, &next))
+	}
 	v.Set("plane.BASE_URL", next.Plane.BaseURL)
 	v.Set("plane.APP_URL", next.Plane.AppURL)
 	v.Set("plane.CLIENT_ID", next.Plane.ClientID)
-	v.Set("plane.CLIENT_SECRET", next.Plane.ClientSecret)
 	v.Set("plane.WORKSPACE", next.Plane.Workspace)
 	v.Set("plane.REDIRECT_PORT", next.Plane.RedirectPort)
 	v.Set("plane.SCOPE", next.Plane.Scope)
@@ -115,6 +133,7 @@ func Update(fn func(c *Config)) error {
 	v.Set("ai.ENDPOINTS", next.AI.Endpoints)
 	v.Set("logs.ENABLED", next.Logs.Enabled)
 	v.Set("logs.LEVELS", next.Logs.Levels)
+	v.Set("onboarding.DONE", next.Onboarding.Done)
 	path := Path()
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return err
@@ -122,17 +141,12 @@ func Update(fn func(c *Config)) error {
 	if err := v.WriteConfigAs(path); err != nil {
 		return err
 	}
-	if err := os.Chmod(path, 0o600); err != nil {
-		return err
-	}
-	mu.Lock()
-	cfg = next
-	mu.Unlock()
-	return nil
+	return os.Chmod(path, 0o600)
 }
 
 type Config struct {
 	DevTo struct {
+		// APIKey lives in the keychain (secrets.go); here in memory only.
 		APIKey string `mapstructure:"API_KEY"`
 	}
 	Plane struct {
@@ -140,7 +154,7 @@ type Config struct {
 		// AppURL is the web UI ("Open in Plane"); derived from BaseURL when empty.
 		AppURL       string `mapstructure:"APP_URL"`
 		ClientID     string `mapstructure:"CLIENT_ID"`
-		ClientSecret string `mapstructure:"CLIENT_SECRET"`
+		ClientSecret string `mapstructure:"CLIENT_SECRET"` // keychain; in memory only
 		// Workspace slug; normally discovered from the app installation.
 		Workspace    string `mapstructure:"WORKSPACE"`
 		RedirectPort int    `mapstructure:"REDIRECT_PORT"`
@@ -177,5 +191,9 @@ type Config struct {
 	Privacy struct {
 		Locked          []string `mapstructure:"LOCKED"`
 		AutoLockMinutes int      `mapstructure:"AUTO_LOCK_MINUTES"`
+	}
+	Onboarding struct {
+		// Done is set once the setup guide is finished or dismissed.
+		Done bool `mapstructure:"DONE"`
 	}
 }

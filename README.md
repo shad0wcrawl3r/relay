@@ -41,6 +41,10 @@ frontend. Runs on macOS, Windows and Linux.
   - Quick terminal (⌘/) over any view
   - ⌘T opens a tab; `exit` closes the pane, or the tab if it was the last one
 - **Privacy and app**
+  - Setup guide: a small window that floats over the browser and walks through
+    Buffer, an AI provider, Dev.to and Plane, one step at a time. Opens on first
+    run; Settings → Run setup guide brings it back
+  - API keys and client secrets live in the OS keychain, never in `config.toml`
   - Everything written to disk is encrypted (AES-256-GCM), with the key in the
     OS keychain
   - Lock projects behind Touch ID. Unlocks expire
@@ -52,9 +56,7 @@ frontend. Runs on macOS, Windows and Linux.
 
 For the Buffer Commit contest:
 
-- First-run onboarding
 - Stop "Update draft" from overwriting edits made on Dev.to
-- Move secrets out of `config.toml` into the keychain
 - Keep locked project data away from cloud AI providers
 - Ship log: turn finished Plane work into Buffer drafts
 - Public releases, with steps for opening unsigned builds
@@ -81,18 +83,17 @@ wails3 dev     # run with hot reload
 wails3 build   # production build in bin/
 ```
 
-Settings live in `config.toml` in the project root. Environment variables with
-the `RELAY_` prefix override it. Most settings can be changed from the app's
-Settings screen.
+On first run the setup guide opens. Settings live in `config.toml` in the
+project root (or the OS app-config dir); secrets (the Dev.to key and the Plane
+client secret) are kept in the OS keychain instead, and any found in an older
+`config.toml` are moved there at launch. Environment variables with the
+`RELAY_` prefix override both (`RELAY_DEVTO_API_KEY`,
+`RELAY_PLANE_CLIENT_SECRET`) and are never copied into the keychain or file.
 
 ```toml
-[devto]
-API_KEY = ""          # dev.to → Settings → Extensions
-
 [plane]
 BASE_URL = "https://api.plane.so"
-CLIENT_ID = ""        # from your Plane app; the Settings screen has a guide
-CLIENT_SECRET = ""
+CLIENT_ID = ""        # from your Plane app; the setup guide walks through it
 ```
 
 Never commit `config.toml`. It is already in `.gitignore`.

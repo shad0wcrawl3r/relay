@@ -64,12 +64,13 @@ interface Props {
 export const planeIntegrationsUrl = (appUrl: string, workspace: string) =>
   workspace ? `${appUrl.replace(/\/+$/, "")}/${workspace}/settings/integrations/` : "";
 
-/** How to register Relay as an OAuth app in Plane. */
-export function PlaneAppGuide({ redirectUri, appUrl, workspace, defaultOpen }: Props) {
-  const [open, setOpen] = useState(defaultOpen);
-  const integrations = planeIntegrationsUrl(appUrl, workspace);
+export type GuideStep = { title: string; body: React.ReactNode };
 
-  const steps: { title: string; body: React.ReactNode }[] = [
+/** The steps to register Relay as an OAuth app in Plane, shared by Settings
+ *  and the setup guide window. */
+export function planeAppSteps(redirectUri: string, appUrl: string, workspace: string, inGuide = false): GuideStep[] {
+  const integrations = planeIntegrationsUrl(appUrl, workspace);
+  return [
     {
       title: "Open Workspace settings → Integrations and click Build your own.",
       body: integrations ? (
@@ -101,7 +102,7 @@ export function PlaneAppGuide({ redirectUri, appUrl, workspace, defaultOpen }: P
         <>
           <Scopes access="read" names={READ_SCOPES} />
           <Scopes access="write" names={WRITE_SCOPES} />
-          <span className="mt-1.5 block text-dim">Leave the Scopes field below empty: Relay then gets exactly what you tick.</span>
+          {!inGuide && <span className="mt-1.5 block text-dim">Leave the Scopes field below empty: Relay then gets exactly what you tick.</span>}
         </>
       ),
     },
@@ -111,6 +112,13 @@ export function PlaneAppGuide({ redirectUri, appUrl, workspace, defaultOpen }: P
     },
     { title: "Click Save settings, then Connect Plane, and approve access in your browser.", body: null },
   ];
+}
+
+/** How to register Relay as an OAuth app in Plane. */
+export function PlaneAppGuide({ redirectUri, appUrl, workspace, defaultOpen }: Props) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  const steps = planeAppSteps(redirectUri, appUrl, workspace);
 
   return (
     <div className="rounded-[10px] border border-column-border bg-column">

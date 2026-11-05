@@ -1,7 +1,11 @@
 package devto
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+	"io"
+	"net/http"
 	"strings"
 	"testing"
 )
@@ -31,5 +35,27 @@ func TestUpdateNeverSendsPublished(t *testing.T) {
 	b, _ = json.Marshal(p)
 	if !strings.Contains(string(b), `"published":false`) {
 		t.Errorf("create payload missing published:false: %s", b)
+	}
+}
+
+type fakeDevto func(*http.Request) (*http.Response, error)
+
+func (f fakeDevto) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+func TestCheckRefusesABadKey(t *testing.T) {
+	old := httpClient.Transport
+	t.Cleanup(func() { httpClient.Transport = old })
+	httpClient.Transport = fakeDevto(func(r *http.Request) (*http.Response, error) {
+		status, body := http.StatusUnauthorized, `{"error":"unauthorized","status":401}`
+		if r.Header.Get("api-key") == "good" && r.URL.Path == "/api/users/me" {
+			status, body = http.StatusOK, `{"username":"ash","name":"Ash"}`
+		}
+		return &http.Response{StatusCode: status, Body: io.NopCloser(strings.NewReader(body)), Header: http.Header{}}, nil
+	})
+	if _, err := Check(context.Background(), "not-a-real-devto-key-0000"); !errors.Is(err, ErrBadKey) {
+		t.Errorf("bad key: err = %v", err)
+	}
+	if u, err := Check(context.Background(), " good "); err != nil || u.Username != "ash" {
+		t.Errorf("good key: %+v, %v", u, err)
 	}
 }

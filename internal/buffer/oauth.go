@@ -28,6 +28,9 @@ func challengeFor(verifier string) string {
 	return base64.RawURLEncoding.EncodeToString(sum[:])
 }
 
+// ErrSignInCancelled is returned when the caller cancels a waiting sign-in.
+var ErrSignInCancelled = errors.New("Buffer sign-in cancelled")
+
 // Connect runs the Authorization Code flow with PKCE. Buffer redirects to the
 // hosted callback page, which forwards to the loopback listener here using the
 // port in state as "<port>.<nonce>". Keep that format in step with
@@ -102,7 +105,11 @@ func (c *Client) Connect(ctx context.Context, openURL func(string)) error {
 	select {
 	case res = <-done:
 	case <-ctx.Done():
-		log.Notice("sign-in cancelled or timed out")
+		if errors.Is(ctx.Err(), context.Canceled) {
+			log.Notice("sign-in cancelled")
+			return ErrSignInCancelled
+		}
+		log.Notice("sign-in timed out")
 		return errors.New("timed out waiting for Buffer sign-in")
 	}
 	if res.err != nil {

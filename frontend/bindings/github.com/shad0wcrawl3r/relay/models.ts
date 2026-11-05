@@ -57,6 +57,14 @@ export interface BufferStatus {
 }
 
 /**
+ * DevtoKeyCheck is the account a Dev.to key belongs to.
+ */
+export interface DevtoKeyCheck {
+    "username": string;
+    "name": string;
+}
+
+/**
  * Endpoint is where panes attach: <URL>/term/<id>?token=<Token>.
  */
 export interface Endpoint {
@@ -67,6 +75,13 @@ export interface Endpoint {
      * Home lets the UI shorten folders to ~.
      */
     "home": string;
+}
+
+/**
+ * GuideStatus is whether the user has finished or skipped the guide.
+ */
+export interface GuideStatus {
+    "done": boolean;
 }
 
 /**

@@ -5,6 +5,7 @@
 // exported types drop the nulls, so the UI never has to guard.
 import * as AIBindings from "../../bindings/github.com/shad0wcrawl3r/relay/aiservice";
 import * as BufferBindings from "../../bindings/github.com/shad0wcrawl3r/relay/bufferservice";
+import * as GuideBindings from "../../bindings/github.com/shad0wcrawl3r/relay/guideservice";
 import * as LogBindings from "../../bindings/github.com/shad0wcrawl3r/relay/logservice";
 import * as PlaneBindings from "../../bindings/github.com/shad0wcrawl3r/relay/planeservice";
 import * as PostBindings from "../../bindings/github.com/shad0wcrawl3r/relay/postservice";
@@ -190,6 +191,18 @@ export const SettingsService = {
   Save: async (s: SettingsInput): Promise<Settings> => SettingsBindings.Save(s as M.SettingsInput),
   ClearDevtoKey: async (): Promise<Settings> => SettingsBindings.ClearDevtoKey(),
   Integrations: (): Promise<M.Integrations> => SettingsBindings.Integrations(),
+  SavePlaneApp: async (clientId: string, secret: string, workspace: string): Promise<Settings> =>
+    SettingsBindings.SavePlaneApp(clientId, secret, workspace),
+  SaveDevtoKey: async (key: string): Promise<Settings> => SettingsBindings.SaveDevtoKey(key),
+};
+
+// The floating setup guide window.
+export const GuideService = {
+  Status: (): Promise<M.GuideStatus> => GuideBindings.Status(),
+  Open: () => GuideBindings.Open(),
+  Close: () => GuideBindings.Close(),
+  Finish: () => GuideBindings.Finish(),
+  Show: (view: "editor" | "buffer" | "attention" | "terminal" | "settings") => GuideBindings.Show(view),
 };
 
 export const normaliseSessions = (l: TermM.Info[] | null | undefined): TermInfo[] => arr(l);
