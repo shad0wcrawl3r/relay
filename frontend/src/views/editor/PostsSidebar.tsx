@@ -73,26 +73,27 @@ export function PostsSidebar({
 
   return (
     <aside aria-label="Posts" className="flex w-[280px] shrink-0 flex-col border-r border-border">
-      <div className="drag flex h-[calc(56px+28px)] shrink-0 flex-col justify-end border-b border-border pb-2 pl-4 pr-2">
-        {/* Without a key nothing reaches Dev.to; say so where posts start. */}
+      <div className="drag flex h-[calc(56px+28px)] shrink-0 items-end justify-between border-b border-border pb-2 pl-4 pr-2">
+        <h2 className="m-0 pb-2.5 text-sm font-semibold text-strong">Posts</h2>
+        <button aria-label="New post" onClick={onNew} className="no-drag grid size-10 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-strong">
+          <Plus className="size-[18px]" strokeWidth={1.9} />
+        </button>
+      </div>
+      <div className="flex flex-col gap-2.5 p-3">
+        {/* Without a key nothing reaches Dev.to; say so first, under the
+            title bar so it stays clear of the window controls. */}
         {list?.noKey && (
           <button
             onClick={onAddKey}
-            className="no-drag mb-auto mt-2.5 flex items-center gap-1.5 self-stretch rounded-md border border-[rgba(245,158,11,.3)] bg-[rgba(245,158,11,.08)] px-2 py-1 text-left text-xs text-[#fbbf24] hover:bg-[rgba(245,158,11,.14)]"
+            className="flex items-start gap-2 rounded-md border border-[rgba(245,158,11,.3)] bg-[rgba(245,158,11,.08)] px-2.5 py-2 text-left text-xs leading-snug text-[#fbbf24] hover:bg-[rgba(245,158,11,.14)]"
           >
-            <TriangleAlert className="size-3.5 shrink-0" />
-            <span className="truncate">Writing locally: no Dev.to key</span>
-            <span className="ml-auto shrink-0 font-medium underline-offset-2 hover:underline">Add key</span>
+            <TriangleAlert className="mt-px size-3.5 shrink-0" />
+            <span className="grow">
+              Writing locally. Posts can't reach Dev.to until you add an API key.
+              <span className="mt-1 block font-medium underline underline-offset-2">Add Dev.to key</span>
+            </span>
           </button>
         )}
-        <div className="flex items-end justify-between">
-          <h2 className="m-0 pb-2.5 text-sm font-semibold text-strong">Posts</h2>
-          <button aria-label="New post" onClick={onNew} className="no-drag grid size-10 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-strong">
-            <Plus className="size-[18px]" strokeWidth={1.9} />
-          </button>
-        </div>
-      </div>
-      <div className="flex flex-col gap-2.5 p-3">
         <div className="relative">
           <Search className="absolute left-2.5 top-[11px] size-[15px] text-dim-2" strokeWidth={1.9} />
           <input
