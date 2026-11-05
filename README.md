@@ -111,3 +111,7 @@ Never commit `config.toml`. It is already in `.gitignore`.
 | `site/` | [relay.shadowcrawler.dev](https://relay.shadowcrawler.dev): landing page, downloads, status and the Buffer sign-in callback (`site/public`, tests in `site/test`), published by `.github/workflows/pages.yml` |
 | `design/` | UI spec (`design/README.md`) and reference mockups |
 | `Project.md` | Intent and Dev.to API notes |
+
+## License
+
+[BSD 3-Clause](LICENSE).
