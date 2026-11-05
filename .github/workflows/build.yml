@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  WAILS_VERSION: v3.0.0
+  WAILS_VERSION: v3.1.0
 
 jobs:
   build:
