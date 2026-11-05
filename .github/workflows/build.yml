@@ -1,8 +1,9 @@
 name: Build
 
+# PRs are built on every platform before they merge, so main isn't built
+# again. A v* tag builds and drafts the release.
 on:
   push:
-    branches: [main]
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
