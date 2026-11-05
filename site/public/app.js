@@ -1,7 +1,6 @@
 "use strict";
 
-// Fills the page from /status.json, which the Pages workflow writes at deploy
-// time from the newest published release and the build of its tag.
+// Fills the page with the newest published release and the build of its tag.
 
 const LABELS = { success: ["ok", "Passing"], failure: ["bad", "Failing"], cancelled: ["warn", "Cancelled"] };
 
@@ -128,11 +127,46 @@ function render(status) {
   renderStatus(status);
 }
 
-fetch("/status.json", { cache: "no-store" })
-  .then((response) => {
-    if (!response.ok) throw new Error(String(response.status));
-    return response.json();
-  })
+// Release data comes live from GitHub's public API, so a new release shows up
+// without waiting for a site deploy. /status.json, written at deploy time, is
+// the fallback when the API is unreachable or rate-limited (60 requests an hour
+// per visitor IP).
+const API = "https://api.github.com/repos/shad0wcrawl3r/relay";
+
+async function getJSON(url) {
+  const response = await fetch(url, { cache: "no-store" });
+  if (!response.ok) throw new Error(`${url}: ${response.status}`);
+  return response.json();
+}
+
+// The same shape the Pages workflow writes to status.json.
+async function liveStatus() {
+  const releases = await getJSON(`${API}/releases?per_page=20`);
+  const release = releases.find((r) => !r.draft);
+  if (!release) return {};
+  const status = {
+    version: release.tag_name,
+    prerelease: release.prerelease,
+    published_at: release.published_at,
+    release_url: release.html_url,
+    assets: release.assets.map((a) => ({ name: a.name, size: a.size, url: a.browser_download_url })),
+  };
+  const { sha } = await getJSON(`${API}/commits/${encodeURIComponent(release.tag_name)}`);
+  const { workflow_runs: runs } = await getJSON(`${API}/actions/runs?head_sha=${sha}&event=push&status=completed&per_page=20`);
+  const build = runs.find((r) => r.name === "Build");
+  if (build) {
+    const { jobs } = await getJSON(`${API}/actions/runs/${build.id}/jobs`);
+    status.updated_at = build.updated_at;
+    status.commit = sha.slice(0, 7);
+    status.platforms = jobs
+      .filter((j) => j.conclusion !== "skipped" && j.name !== "Draft release")
+      .map((j) => ({ name: j.name.split(" ")[0], conclusion: j.conclusion }));
+  }
+  return status;
+}
+
+liveStatus()
+  .catch(() => getJSON("/status.json"))
   .then(render)
   .catch(() => {
     setBanner("warn", "Status unavailable", "Release data couldn't be loaded.");
