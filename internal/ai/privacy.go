@@ -10,7 +10,8 @@ import (
 
 // Private projects and modules (config privacy.LOCKED) may only reach a
 // provider the user trusts with them: one on this machine, or one they've
-// marked private (say, a company deployment with no data retention). The
+// marked as a private provider (a model they run or control behind an
+// OpenAI-style endpoint, say). The
 // check is here, at the one function that sends prompts, so no caller and no
 // UI can skip it. Unlocking a project in Relay doesn't change this: unlocking
 // is about who sits at the screen, not where the data may go.
@@ -20,7 +21,7 @@ import (
 type ErrPrivate struct{ Provider string }
 
 func (e ErrPrivate) Error() string {
-	return fmt.Sprintf("this includes work from a private project, and %s isn't marked private. Use a local model, or mark %s private in Settings → AI", e.Provider, e.Provider)
+	return fmt.Sprintf("this includes work from a private project, and %s isn't a private provider. Use a local model, or mark %s as a private provider in Settings → AI", e.Provider, e.Provider)
 }
 
 // IsPrivate reports whether err is a refusal by the privacy gate.

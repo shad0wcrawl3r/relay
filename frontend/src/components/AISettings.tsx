@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SecretInput } from "@/components/ui/secret-input";
 import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/components/Toaster";
 
 export function AISettings({ compact = false, onChange }: { compact?: boolean; onChange?: (s: AIStatus) => void } = {}) {
@@ -20,6 +21,8 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
   const [error, setError] = useState("");
   const [key, setKey] = useState("");
   const [endpoint, setEndpoint] = useState("");
+  // Turning "Private provider" on asks first; turning it off doesn't.
+  const [confirmPrivate, setConfirmPrivate] = useState(false);
 
   const provider = status?.providers.find((p) => p.id === picked);
   useEffect(() => {
@@ -214,20 +217,20 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
       )}
 
       <div className={row}>
-        <span className="pt-2.5 text-[13px] text-muted-foreground">Private projects</span>
+        <span className="pt-2.5 text-[13px] text-muted-foreground">Private provider</span>
         <div className="flex flex-col gap-1.5">
           {provider.local ? (
             <span className="pt-2.5 text-xs text-dim">Allowed: {provider.name} runs on this computer, so private projects never leave it.</span>
           ) : (
             <>
               <label className="flex h-9 items-center gap-2.5 text-[13px] text-foreground">
-                <Switch checked={provider.markedPrivate} onCheckedChange={setPrivate} />
-                Trust {provider.name} with private projects
+                <Switch checked={provider.markedPrivate} onCheckedChange={(on) => (on ? setConfirmPrivate(true) : setPrivate(false))} />
+                This is a model I run or control
               </label>
               <span className="text-xs text-dim">
                 {provider.markedPrivate
-                  ? `Work from locked projects may be sent to ${provider.endpoint}. Changing the endpoint turns this off.`
-                  : "Off: Relay refuses to send anything from a locked project here, even while it's unlocked. Turn on only for a deployment you trust with that data, such as one with no retention."}
+                  ? `${provider.endpoint} receives data from private projects too. Changing the endpoint turns this off.`
+                  : "For a self-hosted model behind an OpenAI-style endpoint, say. While off, Relay never sends this provider anything from a private project, even while it's unlocked."}
               </span>
             </>
           )}
@@ -257,6 +260,36 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
           </div>
         </div>
       )}
+      <Dialog open={confirmPrivate} onOpenChange={setConfirmPrivate}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mark {provider.name} as a private provider?</DialogTitle>
+            <DialogDescription>
+              From now on, <span className="break-all font-mono text-xs text-foreground">{provider.endpoint}</span> receives data from private projects
+              too: locked projects and modules, whenever you use AI on them.
+            </DialogDescription>
+          </DialogHeader>
+          <p className="m-0 text-[13px] leading-relaxed text-muted-foreground">
+            Only do this for a model you run or control, such as one on your own machine or network that only looks like an OpenAI endpoint. If the
+            endpoint changes, Relay turns this off again.
+          </p>
+          <DialogFooter>
+            <Button variant="ghost" size="md" onClick={() => setConfirmPrivate(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="md"
+              onClick={() => {
+                setConfirmPrivate(false);
+                setPrivate(true);
+              }}
+            >
+              Mark as private
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
