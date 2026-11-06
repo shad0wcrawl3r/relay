@@ -29,7 +29,7 @@ func TestReplyCapIsSent(t *testing.T) {
 			}
 			fmt.Fprint(w, `{"choices":[{"message":{"content":"hi"}}]}`)
 		})
-		if _, err := c.Complete(context.Background(), id, "m", "s", "u"); err != nil {
+		if _, err := c.Complete(context.Background(), Local(), id, "m", "s", "u"); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -48,7 +48,7 @@ func TestOpenAIGetsMaxCompletionTokens(t *testing.T) {
 		}
 		return jsonResponse(r, `{"choices":[{"message":{"content":"hi"}}]}`), nil
 	})
-	if _, err := c.Complete(context.Background(), "openai", "m", "s", "u"); err != nil {
+	if _, err := c.Complete(context.Background(), Local(), "openai", "m", "s", "u"); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -59,7 +59,7 @@ func TestCutShortInputIsAnError(t *testing.T) {
 		// What Ollama reports with its 2,048-token default context.
 		fmt.Fprint(w, `{"choices":[{"message":{"content":"an off-topic plan"},"finish_reason":"stop"}],"usage":{"prompt_tokens":2048,"completion_tokens":900}}`)
 	})
-	_, err := c.Complete(context.Background(), "ollama", "m", "s", article)
+	_, err := c.Complete(context.Background(), Local(), "ollama", "m", "s", article)
 	if err == nil || !strings.Contains(err.Error(), "OLLAMA_CONTEXT_LENGTH") || !strings.Contains(err.Error(), "2048") {
 		t.Fatalf("err = %v", err)
 	}
@@ -67,7 +67,7 @@ func TestCutShortInputIsAnError(t *testing.T) {
 	ok := clientFor(t, "ollama", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"choices":[{"message":{"content":"post"},"finish_reason":"stop"}],"usage":{"prompt_tokens":4600}}`)
 	})
-	if _, err := ok.Complete(context.Background(), "ollama", "m", "s", article); err != nil {
+	if _, err := ok.Complete(context.Background(), Local(), "ollama", "m", "s", article); err != nil {
 		t.Fatal(err)
 	}
 	if cutShort(400, 100) || cutShort(5000, 0) || !cutShort(5000, 2048) || cutShort(5000, 2600) {
@@ -82,7 +82,7 @@ func TestHittingTheLengthCapIsAnError(t *testing.T) {
 	} {
 		_ = SetKey(id, "k")
 		c := clientFor(t, id, func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, body) })
-		if _, err := c.Complete(context.Background(), id, "m", "s", "u"); err == nil || !strings.Contains(err.Error(), "length limit") {
+		if _, err := c.Complete(context.Background(), Local(), id, "m", "s", "u"); err == nil || !strings.Contains(err.Error(), "length limit") {
 			t.Fatalf("%s: err = %v", id, err)
 		}
 	}
