@@ -218,6 +218,7 @@ export const SettingsService = {
     const r = await SettingsBindings.ImportSettings(path, passphrase);
     return { ...r, imported: arr(r.imported) };
   },
+  CheckDevtoKey: (key: string) => SettingsBindings.CheckDevtoKey(key),
 };
 
 // The floating setup guide window.

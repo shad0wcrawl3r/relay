@@ -5,6 +5,7 @@ import { PostService, type Drift, type Post, type PostList } from "@/lib/api";
 import { ago } from "@/lib/time";
 import { cn, errorMessage } from "@/lib/utils";
 import { useToast } from "@/components/Toaster";
+import { isBadDevtoKey } from "@/components/DevtoKeyField";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,16 @@ type SaveState = { kind: "saved"; at: number } | { kind: "saving" } | { kind: "d
 
 export function Editor({ goSettings }: { goSettings: () => void }) {
   const toast = useToast();
+  // Errors from Dev.to calls. A refused key gets a way to fix it.
+  const fail = (title: string, err: unknown) => {
+    const body = errorMessage(err);
+    toast({
+      tone: "error",
+      title,
+      body: isBadDevtoKey(body) ? `${body}. It may have been revoked or expired.` : body,
+      actions: isBadDevtoKey(body) ? [{ label: "Update key", onClick: goSettings, primary: true }] : undefined,
+    });
+  };
   const [list, setList] = useState<PostList | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [post, setPost] = useState<Post | null>(null);
@@ -48,7 +59,7 @@ export function Editor({ goSettings }: { goSettings: () => void }) {
     try {
       setList(await PostService.Sync());
     } catch (err) {
-      toast({ tone: "error", title: "Dev.to sync failed", body: errorMessage(err) });
+      fail("Dev.to sync failed", err);
     } finally {
       setSyncing(false);
     }
@@ -82,7 +93,7 @@ export function Editor({ goSettings }: { goSettings: () => void }) {
         setMode("edit");
         refreshList();
       } catch (err) {
-        toast({ tone: "error", title: "Couldn't open post", body: errorMessage(err) });
+        fail("Couldn't open post", err);
       }
     },
     [flush, refreshList, save.kind, toast],
@@ -133,7 +144,7 @@ export function Editor({ goSettings }: { goSettings: () => void }) {
       setMode("edit");
       refreshList();
     } catch (err) {
-      toast({ tone: "error", title: "Couldn't create post", body: errorMessage(err) });
+      fail("Couldn't create post", err);
     }
   };
 
@@ -183,7 +194,7 @@ export function Editor({ goSettings }: { goSettings: () => void }) {
       setPublishOpen(false);
       await refreshList();
     } catch (err) {
-      toast({ tone: "error", title: "Couldn't publish", body: errorMessage(err) });
+      fail("Couldn't publish", err);
     }
   };
 
@@ -224,7 +235,7 @@ export function Editor({ goSettings }: { goSettings: () => void }) {
           : undefined,
       });
     } catch (err) {
-      toast({ tone: "error", title: "Couldn't send to Dev.to", body: errorMessage(err) });
+      fail("Couldn't send to Dev.to", err);
     } finally {
       setSending(false);
     }
@@ -240,7 +251,7 @@ export function Editor({ goSettings }: { goSettings: () => void }) {
         refreshList();
       }
     } catch (err) {
-      toast({ tone: "error", title: "Couldn't check Dev.to", body: errorMessage(err) });
+      fail("Couldn't check Dev.to", err);
     }
   };
 
@@ -255,7 +266,7 @@ export function Editor({ goSettings }: { goSettings: () => void }) {
       refreshList();
       toast({ tone: "success", title: "Took Dev.to's version", body: "Relay's copy now matches Dev.to." });
     } catch (err) {
-      toast({ tone: "error", title: "Couldn't load Dev.to's copy", body: errorMessage(err) });
+      fail("Couldn't load Dev.to's copy", err);
     }
   };
 
@@ -270,7 +281,7 @@ export function Editor({ goSettings }: { goSettings: () => void }) {
       const next = l.posts.find((p) => p.local);
       if (next) open(next.id);
     } catch (err) {
-      toast({ tone: "error", title: "Couldn't delete post", body: errorMessage(err) });
+      fail("Couldn't delete post", err);
     }
   };
 
