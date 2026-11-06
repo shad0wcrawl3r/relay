@@ -52,8 +52,9 @@ frontend. Runs on macOS, Windows and Linux.
   - Everything written to disk is encrypted (AES-256-GCM), with the key in the
     OS keychain
   - Lock projects behind Touch ID. Unlocks expire
-  - Private projects never reach a cloud model: only local providers, or ones
-    you mark as private providers in Settings → AI, can read them, even while unlocked
+  - Private projects only reach private providers: models you run or control,
+    marked in Settings → AI (Ollama and LM Studio start marked at their local
+    addresses). Unlocking a project doesn't change that
   - Per-subsystem logs, held in memory only
   - Runs in the background with a tray icon
   - CI builds for macOS, Windows and Linux

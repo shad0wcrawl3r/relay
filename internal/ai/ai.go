@@ -40,14 +40,17 @@ type Provider struct {
 	Name     string `json:"name"`
 	Local    bool   `json:"local"`
 	NeedsKey bool   `json:"needsKey"`
+	// PrivateByDefault: a private provider at its default (local) endpoint
+	// until the user says otherwise. See privacy.go.
+	PrivateByDefault bool `json:"privateByDefault"`
 }
 
 var providers = []Provider{
 	{ID: "anthropic", Name: "Anthropic", NeedsKey: true},
 	{ID: "openai", Name: "OpenAI", NeedsKey: true},
 	{ID: "openrouter", Name: "OpenRouter", NeedsKey: true},
-	{ID: "ollama", Name: "Ollama", Local: true},
-	{ID: "lmstudio", Name: "LM Studio", Local: true},
+	{ID: "ollama", Name: "Ollama", Local: true, PrivateByDefault: true},
+	{ID: "lmstudio", Name: "LM Studio", Local: true, PrivateByDefault: true},
 }
 
 // Providers lists every supported provider.

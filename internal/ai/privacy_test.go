@@ -78,8 +78,8 @@ func TestMarkedPrivateProviderMayReadPrivateContent(t *testing.T) {
 	withPrivacy(t, []string{"project:TEACH"}, map[string]string{"openai": "https://api.example.com/v1"})
 	sent := 0
 	c := cloudClient(t, &sent)
-	if !c.Trusted("openai") {
-		t.Fatal("marked provider isn't trusted")
+	if !c.Private("openai") {
+		t.Fatal("marked provider isn't private")
 	}
 	if _, err := c.Complete(context.Background(), Plane("project:TEACH"), "openai", "m", "s", "u"); err != nil {
 		t.Fatal(err)
@@ -88,7 +88,7 @@ func TestMarkedPrivateProviderMayReadPrivateContent(t *testing.T) {
 	config.Override(func(cfg *config.Config) {
 		cfg.AI.Endpoints = map[string]string{"openai": "https://proxy.example.net/v1"}
 	})
-	if c.Trusted("openai") {
+	if c.Private("openai") {
 		t.Fatal("the mark survived an endpoint change")
 	}
 	if _, err := c.Complete(context.Background(), Plane("project:TEACH"), "openai", "m", "s", "u"); !IsPrivate(err) {
@@ -99,18 +99,34 @@ func TestMarkedPrivateProviderMayReadPrivateContent(t *testing.T) {
 	}
 }
 
-func TestLocalProvidersAreTrusted(t *testing.T) {
+func TestOllamaAndLMStudioStartPrivate(t *testing.T) {
 	withPrivacy(t, []string{"project:TEACH"}, nil)
 	c := New()
-	if !c.Trusted("ollama") || !c.Trusted("lmstudio") {
-		t.Fatal("local providers must be trusted")
+	if !c.Private("ollama") || !c.Private("lmstudio") {
+		t.Fatal("local providers should start private at their default endpoints")
 	}
-	// Ollama on another machine is a cloud provider like any other.
+	if c.Private("openai") || c.Private("anthropic") {
+		t.Fatal("cloud providers start private")
+	}
+	// Ollama Cloud, or Ollama on another machine, isn't private by default.
+	for _, endpoint := range []string{"https://ollama.com/v1", "http://192.168.1.20:11434/v1"} {
+		config.Override(func(cfg *config.Config) { cfg.AI.Endpoints = map[string]string{"ollama": endpoint} })
+		if c.Private("ollama") {
+			t.Fatalf("Ollama at %s private without a mark", endpoint)
+		}
+	}
+	// A local-looking address isn't enough either: it can be a proxy.
+	config.Override(func(cfg *config.Config) { cfg.AI.Endpoints = map[string]string{"anthropic": "http://127.0.0.1:8000"} })
+	if c.Private("anthropic") {
+		t.Fatal("loopback proxy private without a mark")
+	}
+	// The user can turn the default off.
 	config.Override(func(cfg *config.Config) {
-		cfg.AI.Endpoints = map[string]string{"ollama": "http://192.168.1.20:11434/v1"}
+		cfg.AI.Endpoints = nil
+		cfg.AI.Private = map[string]string{"ollama": ""}
 	})
-	if c.Trusted("ollama") {
-		t.Fatal("remote Ollama trusted without a mark")
+	if c.Private("ollama") {
+		t.Fatal("turned-off Ollama still private")
 	}
 }
 

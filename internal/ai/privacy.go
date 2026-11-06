@@ -9,9 +9,10 @@ import (
 )
 
 // Private projects and modules (config privacy.LOCKED) may only reach a
-// provider the user trusts with them: one on this machine, or one they've
-// marked as a private provider (a model they run or control behind an
-// OpenAI-style endpoint, say). The
+// private provider: one the user marked as a model they run or control.
+// Ollama and LM Studio start marked, at their default local endpoints only.
+// A local-looking address alone isn't enough: localhost can be a proxy to
+// the cloud, and an "Ollama" endpoint can be Ollama Cloud. The
 // check is here, at the one function that sends prompts, so no caller and no
 // UI can skip it. Unlocking a project in Relay doesn't change this: unlocking
 // is about who sits at the screen, not where the data may go.
@@ -21,7 +22,7 @@ import (
 type ErrPrivate struct{ Provider string }
 
 func (e ErrPrivate) Error() string {
-	return fmt.Sprintf("this includes work from a private project, and %s isn't a private provider. Use a local model, or mark %s as a private provider in Settings → AI", e.Provider, e.Provider)
+	return fmt.Sprintf("this includes work from a private project, and %s isn't a private provider. Pick one that is, or mark %s as one in Settings → AI if you run or control it", e.Provider, e.Provider)
 }
 
 // IsPrivate reports whether err is a refusal by the privacy gate.
@@ -62,22 +63,24 @@ func (o Origin) Private() bool {
 	return slices.ContainsFunc(o.keys, func(k string) bool { return slices.Contains(locked, k) })
 }
 
-// MarkedPrivate reports whether the user marked the provider private for the
-// endpoint it uses now. Changing the endpoint drops the mark.
-func (c *Client) MarkedPrivate(id string) bool {
-	marked, ok := config.GetConfig().AI.Private[id]
-	return ok && marked != "" && marked == c.Endpoint(id)
-}
-
-// Trusted reports whether the provider may see private content: it runs on
-// this machine, or the user marked it private.
-func (c *Client) Trusted(id string) bool {
-	return c.Local(id) || c.MarkedPrivate(id)
+// Private reports whether the provider is a private provider for the
+// endpoint it uses now, and so may see private content.
+//
+// config AI.Private holds the user's choices: an endpoint marks the provider
+// private for that endpoint only, and "" marks it not private. Without a
+// choice, PrivateByDefault providers are private at their default endpoint.
+func (c *Client) Private(id string) bool {
+	endpoint := c.Endpoint(id)
+	if marked, ok := config.GetConfig().AI.Private[id]; ok {
+		return marked != "" && marked == endpoint
+	}
+	p, ok := Find(id)
+	return ok && p.PrivateByDefault && endpoint == c.Default(id)
 }
 
 // allow is the gate. Refusals are logged without the content or the project.
 func (c *Client) allow(p Provider, origin Origin) error {
-	if !origin.Private() || c.Trusted(p.ID) {
+	if !origin.Private() || c.Private(p.ID) {
 		return nil
 	}
 	log.Notice("refused: private content to an untrusted provider", "provider", p.ID)

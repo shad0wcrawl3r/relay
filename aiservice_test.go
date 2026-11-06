@@ -8,7 +8,7 @@ import (
 	"github.com/zalando/go-keyring"
 )
 
-func TestPrivateMarkFollowsTheEndpoint(t *testing.T) {
+func TestPrivateProviderSetting(t *testing.T) {
 	keyring.MockInit()
 	t.Chdir(t.TempDir())
 	// Without ./config.toml, config.Update would write the real one.
@@ -17,34 +17,44 @@ func TestPrivateMarkFollowsTheEndpoint(t *testing.T) {
 	}
 	before := *config.GetConfig()
 	t.Cleanup(func() { config.Override(func(c *config.Config) { *c = before }) })
+	config.Override(func(c *config.Config) { c.AI.Private, c.AI.Endpoints = nil, nil })
 
 	s := NewAIService(nil)
-	trusted := func(id string) (marked, ok bool) {
+	private := func(id string) bool {
 		for _, p := range s.Status().Providers {
 			if p.ID == id {
-				return p.MarkedPrivate, p.Trusted
+				return p.Private
 			}
 		}
 		t.Fatalf("no provider %s", id)
-		return
+		return false
 	}
-	if marked, ok := trusted("openai"); marked || ok {
-		t.Fatal("cloud provider trusted by default")
+	if private("openai") || !private("ollama") {
+		t.Fatal("wrong defaults")
 	}
-	if _, ok := trusted("ollama"); !ok {
-		t.Fatal("local provider not trusted")
-	}
+
+	// Marking follows the endpoint.
 	if _, err := s.SetPrivate("openai", true); err != nil {
 		t.Fatal(err)
 	}
-	if marked, ok := trusted("openai"); !marked || !ok {
+	if !private("openai") {
 		t.Fatal("mark not saved")
 	}
 	if _, err := s.SetEndpoint("openai", "https://gateway.example.com/v1"); err != nil {
 		t.Fatal(err)
 	}
-	if marked, _ := trusted("openai"); marked {
+	if private("openai") {
 		t.Fatal("mark kept after the endpoint changed")
+	}
+
+	// Turning Ollama off sticks, even across an endpoint change and back.
+	if _, err := s.SetPrivate("ollama", false); err != nil {
+		t.Fatal(err)
+	}
+	_, _ = s.SetEndpoint("ollama", "http://192.168.1.20:11434/v1")
+	_, _ = s.SetEndpoint("ollama", "")
+	if private("ollama") {
+		t.Fatal("turned-off Ollama came back on")
 	}
 	if _, err := s.SetPrivate("nope", true); err == nil {
 		t.Fatal("unknown provider accepted")

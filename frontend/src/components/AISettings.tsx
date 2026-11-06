@@ -138,7 +138,7 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
           >
             {p.name}
             {p.local && <span className="text-[11px] text-dim">local</span>}
-            {p.markedPrivate && <span className="text-[11px] text-dim">private</span>}
+            {p.private && <span className="text-[11px] text-dim">private</span>}
             {p.id === status.provider && status.ready && <Check className="size-3 text-[#4ade80]" />}
           </button>
         ))}
@@ -219,21 +219,21 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
       <div className={row}>
         <span className="pt-2.5 text-[13px] text-muted-foreground">Private provider</span>
         <div className="flex flex-col gap-1.5">
-          {provider.local ? (
-            <span className="pt-2.5 text-xs text-dim">Allowed: {provider.name} runs on this computer, so private projects never leave it.</span>
-          ) : (
-            <>
-              <label className="flex h-9 items-center gap-2.5 text-[13px] text-foreground">
-                <Switch checked={provider.markedPrivate} onCheckedChange={(on) => (on ? setConfirmPrivate(true) : setPrivate(false))} />
-                This is a model I run or control
-              </label>
-              <span className="text-xs text-dim">
-                {provider.markedPrivate
-                  ? `${provider.endpoint} receives data from private projects too. Changing the endpoint turns this off.`
-                  : "For a self-hosted model behind an OpenAI-style endpoint, say. While off, Relay never sends this provider anything from a private project, even while it's unlocked."}
-              </span>
-            </>
-          )}
+          <label className="flex h-9 items-center gap-2.5 text-[13px] text-foreground">
+            <Switch checked={provider.private} onCheckedChange={(on) => (on ? setConfirmPrivate(true) : setPrivate(false))} />
+            This is a model provider I run or control
+          </label>
+          <span className="text-xs text-dim">
+            {provider.private
+              ? `${provider.endpoint} receives data from private projects too. Changing the endpoint turns this off.`
+              : `For a self-hosted model behind an ${provider.name}-style endpoint, say. While off, Relay never sends this provider anything from a private project, even while it's unlocked.`}
+            {provider.privateByDefault &&
+              (provider.private
+                ? ` On by default at ${provider.name}'s usual local address; turn it off if this is ${provider.name === "Ollama" ? "Ollama Cloud or " : ""}another service.`
+                : provider.endpoint !== provider.defaultEndpoint
+                  ? ` On by default only at ${provider.defaultEndpoint}.`
+                  : "")}
+          </span>
         </div>
       </div>
 

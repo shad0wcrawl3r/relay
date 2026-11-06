@@ -13,6 +13,12 @@ export interface AIProvider {
     "name": string;
     "local": boolean;
     "needsKey": boolean;
+
+    /**
+     * PrivateByDefault: a private provider at its default (local) endpoint
+     * until the user says otherwise. See privacy.go.
+     */
+    "privateByDefault": boolean;
     "keySet": boolean;
 
     /**
@@ -23,11 +29,9 @@ export interface AIProvider {
     "custom": boolean;
 
     /**
-     * MarkedPrivate: the user trusts this cloud provider with private
-     * projects. Trusted: it may read them (local, or marked).
+     * Private: a private provider, so it may read private projects.
      */
-    "markedPrivate": boolean;
-    "trusted": boolean;
+    "private": boolean;
 }
 
 export interface AIStatus {
@@ -51,9 +55,9 @@ export interface AIStatus {
     "local": boolean;
 
     /**
-     * Trusted: the selected provider may read private projects.
+     * Private: the selected provider may read private projects.
      */
-    "trusted": boolean;
+    "private": boolean;
 }
 
 /**

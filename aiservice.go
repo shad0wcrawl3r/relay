@@ -30,10 +30,8 @@ type AIProvider struct {
 	Endpoint        string `json:"endpoint"`
 	DefaultEndpoint string `json:"defaultEndpoint"`
 	Custom          bool   `json:"custom"`
-	// MarkedPrivate: the user trusts this cloud provider with private
-	// projects. Trusted: it may read them (local, or marked).
-	MarkedPrivate bool `json:"markedPrivate"`
-	Trusted       bool `json:"trusted"`
+	// Private: a private provider, so it may read private projects.
+	Private bool `json:"private"`
 }
 
 type AIStatus struct {
@@ -46,8 +44,8 @@ type AIStatus struct {
 	// Label names the selection, e.g. "Ollama · llama3".
 	Label string `json:"label"`
 	Local bool   `json:"local"`
-	// Trusted: the selected provider may read private projects.
-	Trusted bool `json:"trusted"`
+	// Private: the selected provider may read private projects.
+	Private bool `json:"private"`
 }
 
 func (s *AIService) Status() AIStatus {
@@ -59,12 +57,12 @@ func (s *AIService) Status() AIStatus {
 		st.Providers = append(st.Providers, AIProvider{
 			Provider: p, KeySet: ai.HasKey(p.ID),
 			Endpoint: endpoint, DefaultEndpoint: fallback, Custom: endpoint != fallback,
-			MarkedPrivate: s.client.MarkedPrivate(p.ID), Trusted: s.client.Trusted(p.ID),
+			Private: s.client.Private(p.ID),
 		})
 	}
 	if p, ok := ai.Find(c.AI.Provider); ok && c.AI.Model != "" && (!p.NeedsKey || ai.HasKey(p.ID)) {
 		st.Ready, st.Local, st.Label = true, s.client.Local(p.ID), p.Name+" · "+c.AI.Model
-		st.Trusted = s.client.Trusted(p.ID)
+		st.Private = s.client.Private(p.ID)
 	}
 	return st
 }
@@ -111,7 +109,8 @@ func (s *AIService) SetEndpoint(provider, endpoint string) (AIStatus, error) {
 		}
 		c.AI.Endpoints = next
 		// A private mark covers the address it was given for, not a new one.
-		if _, ok := c.AI.Private[provider]; ok {
+		// An explicit "not private" stays.
+		if marked, ok := c.AI.Private[provider]; ok && marked != "" {
 			private := maps.Clone(c.AI.Private)
 			delete(private, provider)
 			c.AI.Private = private
@@ -124,9 +123,9 @@ func (s *AIService) SetEndpoint(provider, endpoint string) (AIStatus, error) {
 	return s.Status(), nil
 }
 
-// SetPrivate marks a cloud provider as trusted with private projects, for
-// its current endpoint, or clears the mark. Local providers are always
-// trusted and need no mark.
+// SetPrivate marks a provider as private for its current endpoint, or as
+// not private. Either way it's an explicit choice that overrides
+// PrivateByDefault.
 func (s *AIService) SetPrivate(provider string, private bool) (AIStatus, error) {
 	if _, ok := ai.Find(provider); !ok {
 		return AIStatus{}, errors.New("unknown provider")
@@ -140,7 +139,7 @@ func (s *AIService) SetPrivate(provider string, private bool) (AIStatus, error) 
 		if private {
 			next[provider] = endpoint
 		} else {
-			delete(next, provider)
+			next[provider] = ""
 		}
 		c.AI.Private = next
 	})
