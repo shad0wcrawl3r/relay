@@ -203,6 +203,7 @@ export const SettingsService = {
   SavePlaneApp: async (clientId: string, secret: string, workspace: string): Promise<Settings> =>
     SettingsBindings.SavePlaneApp(clientId, secret, workspace),
   SaveDevtoKey: async (key: string): Promise<Settings> => SettingsBindings.SaveDevtoKey(key),
+  CheckDevtoKey: (key: string) => SettingsBindings.CheckDevtoKey(key),
 };
 
 // The floating setup guide window.

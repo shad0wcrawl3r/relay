@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { usePlane } from "@/lib/store";
 import { errorMessage } from "@/lib/utils";
 import { useToast } from "@/components/Toaster";
+import { DevtoKeyField } from "@/components/DevtoKeyField";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SecretInput } from "@/components/ui/secret-input";
@@ -60,6 +61,10 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
     });
   };
 
+  // After a key is saved on its own: take the new saved state, keep the
+  // form's unsaved edits.
+  const refresh = (next: SettingsT) => setS(next);
+
   useEffect(() => {
     SettingsService.Get().then(load).catch(() => {});
     TerminalService.TmuxConfig().then(setTmuxConf).catch(() => {});
@@ -81,7 +86,6 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
   const set = (patch: Partial<SettingsInput>) => setForm({ ...form, ...patch });
   const dirty =
     form.planeSecret !== "" ||
-    form.devtoKey !== "" ||
     form.planeBaseUrl !== s.planeBaseUrl ||
     form.planeAppUrl !== s.planeAppUrl ||
     form.planeClientId !== s.planeClientId ||
@@ -99,7 +103,7 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
     try {
       load(await SettingsService.Save(form));
       reloadKeymap();
-      toast({ tone: "success", title: "Settings saved", body: s.configPath });
+      toast({ tone: "success", title: "Settings saved", body: "API keys and secrets are in the system keychain." });
       return true;
     } catch (err) {
       toast({ tone: "error", title: "Couldn't save settings", body: errorMessage(err) });
@@ -163,7 +167,7 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
       <div className="mx-auto flex max-w-[720px] flex-col gap-8 px-8 pb-16">
         <div>
           <h1 className="m-0 text-[22px] font-semibold tracking-[-.01em] text-strong">Settings</h1>
-          <p className="mt-1 text-[13px] text-dim">Saved to {s.configPath}. Secrets are never shown again once saved.</p>
+          <p className="mt-1 text-[13px] text-dim">Settings are saved to {s.configPath}. API keys and secrets go to the system keychain, never that file, and aren't shown again.</p>
           <div className="mt-2 flex gap-4 text-xs">
             {[
               { label: "Source on GitHub", url: "https://github.com/shad0wcrawl3r/relay" },
@@ -331,32 +335,8 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
 
           <TabsContent value="publishing">
         <Section title="Dev.to" description="Posts go up as unpublished drafts. Publish from Relay or Dev.to when they're ready.">
-          <Row
-            label="API key"
-            hint={
-              <>
-                Create one under{" "}
-                <button className="text-[#93c5fd] hover:underline" onClick={() => Browser.OpenURL("https://dev.to/settings/extensions")}>
-                  Settings → Extensions
-                </button>{" "}
-                on Dev.to.
-              </>
-            }
-          >
-            <div className="flex gap-2">
-              <SecretInput
-                
-                value={form.devtoKey}
-                placeholder={s.devtoKeySet ? "•••••••• (saved — type to replace)" : ""}
-                onChange={(e) => set({ devtoKey: e.target.value })}
-                autoComplete="off"
-              />
-              {s.devtoKeySet && (
-                <Button variant="outline" size="md" onClick={async () => load(await SettingsService.ClearDevtoKey())}>
-                  Remove
-                </Button>
-              )}
-            </div>
+          <Row label="API key">
+            <DevtoKeyField saved={s.devtoKeySet} onSaved={refresh} onRemove={async () => refresh(await SettingsService.ClearDevtoKey())} />
           </Row>
         </Section>
 

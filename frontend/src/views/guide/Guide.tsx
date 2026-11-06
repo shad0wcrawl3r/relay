@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SecretInput } from "@/components/ui/secret-input";
 import { AISettings } from "@/components/AISettings";
+import { DevtoKeyField, DevtoKeyLink } from "@/components/DevtoKeyField";
 import { BufferLogo } from "@/components/icons/BufferLogo";
 import {
   planeAppSteps,
@@ -155,7 +156,7 @@ export function Guide() {
             <AISettings compact onChange={onAi} />
           </Section>
         ) : id === "devto" ? (
-          <DevtoStep saved={done.devto} setError={setError} />
+          <DevtoStep saved={done.devto} />
         ) : id === "plane" ? (
           <PlaneStep connected={planeOn} setError={setError} />
         ) : (
@@ -388,28 +389,7 @@ function BufferStep({
   );
 }
 
-function DevtoStep({
-  saved,
-  setError,
-}: {
-  saved: boolean;
-  setError: (e: string) => void;
-}) {
-  const [key, setKey] = useState("");
-  const [busy, setBusy] = useState(false);
-  const save = async () => {
-    setBusy(true);
-    setError("");
-    try {
-      // Go checks the key with Dev.to first and refuses one that doesn't work.
-      await SettingsService.SaveDevtoKey(key);
-      setKey("");
-    } catch (err) {
-      setError(errorMessage(err));
-    } finally {
-      setBusy(false);
-    }
-  };
+function DevtoStep({ saved }: { saved: boolean }) {
   return (
     <Section
       title="Add your Dev.to key"
@@ -418,35 +398,15 @@ function DevtoStep({
       {saved && <Status ok>Key saved</Status>}
       <ol className="m-0 flex flex-col gap-1.5 pl-4 text-muted-foreground">
         <li>
-          Open{" "}
-          <button
-            className="text-[#93c5fd] hover:underline"
-            onClick={() =>
-              Browser.OpenURL("https://dev.to/settings/extensions")
-            }
-          >
-            Dev.to → Settings → Extensions
-          </button>
-          .
+          Open <DevtoKeyLink label="Dev.to → Settings → Extensions" />.
         </li>
         <li>
           Under DEV Community API Keys, give it a name (e.g. Relay) and click
           Generate API Key.
         </li>
-        <li>Copy the key and paste it here.</li>
+        <li>Paste the key here. Relay checks it with Dev.to, then saves it.</li>
       </ol>
-      <div className="flex gap-2">
-        <SecretInput
-          value={key}
-          placeholder={saved ? "Paste to replace" : "API key"}
-          onChange={(e) => setKey(e.target.value)}
-          autoComplete="off"
-        />
-        <Button size="md" onClick={save} disabled={busy || !key.trim()}>
-          {busy && <Loader2 className="size-3.5 animate-spin" />}
-          {busy ? "Checking…" : "Save"}
-        </Button>
-      </div>
+      <DevtoKeyField saved={saved} onSaved={() => {}} />
     </Section>
   );
 }
