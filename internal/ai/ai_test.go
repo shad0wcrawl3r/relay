@@ -48,7 +48,7 @@ func TestAnthropicRequest(t *testing.T) {
 		}
 		fmt.Fprint(w, `{"content":[{"type":"text","text":" hello "},{"type":"thinking"}]}`)
 	})
-	got, err := c.Complete(context.Background(), "anthropic", "m", "sys", "user")
+	got, err := c.Complete(context.Background(), Local(), "anthropic", "m", "sys", "user")
 	if err != nil || got != "hello" {
 		t.Fatalf("got %q, %v", got, err)
 	}
@@ -71,7 +71,7 @@ func TestOpenAICompatibleRequest(t *testing.T) {
 		}
 		fmt.Fprint(w, `{"choices":[{"message":{"content":"hi"}}]}`)
 	})
-	got, err := c.Complete(context.Background(), "openrouter", "m", "sys", "user")
+	got, err := c.Complete(context.Background(), Local(), "openrouter", "m", "sys", "user")
 	if err != nil || got != "hi" {
 		t.Fatalf("got %q, %v", got, err)
 	}
@@ -113,7 +113,7 @@ func TestOpenAIModelsDropNonChat(t *testing.T) {
 func TestMissingKeyAsksForIt(t *testing.T) {
 	_ = ClearKey("openai")
 	c := clientFor(t, "openai", func(http.ResponseWriter, *http.Request) { t.Error("no request expected") })
-	if _, err := c.Complete(context.Background(), "openai", "m", "s", "u"); err == nil || !strings.Contains(err.Error(), "API key") {
+	if _, err := c.Complete(context.Background(), Local(), "openai", "m", "s", "u"); err == nil || !strings.Contains(err.Error(), "API key") {
 		t.Fatalf("err = %v", err)
 	}
 }
@@ -125,7 +125,7 @@ func TestErrorsAreFriendlyAndHideTheKey(t *testing.T) {
 			w.WriteHeader(status)
 			fmt.Fprint(w, `{"error":{"message":"model not found"}}`)
 		})
-		_, err := c.Complete(context.Background(), "openai", "m", "s", "u")
+		_, err := c.Complete(context.Background(), Local(), "openai", "m", "s", "u")
 		if err == nil || !strings.Contains(err.Error(), want) || strings.Contains(err.Error(), "sk-secret") {
 			t.Errorf("%d: err = %v", status, err)
 		}
@@ -134,7 +134,7 @@ func TestErrorsAreFriendlyAndHideTheKey(t *testing.T) {
 
 func TestEmptyReplyIsAnError(t *testing.T) {
 	c := clientFor(t, "ollama", func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, `{"choices":[]}`) })
-	if _, err := c.Complete(context.Background(), "ollama", "m", "s", "u"); err == nil {
+	if _, err := c.Complete(context.Background(), Local(), "ollama", "m", "s", "u"); err == nil {
 		t.Fatal("expected an error")
 	}
 }
@@ -146,7 +146,7 @@ func TestRateLimitShowsTheUpstreamReason(t *testing.T) {
 		w.WriteHeader(http.StatusTooManyRequests)
 		fmt.Fprint(w, `{"error":{"message":"Provider returned error","metadata":{"raw":"free model is rate-limited upstream"}}}`)
 	})
-	_, err := c.Complete(context.Background(), "openrouter", "m", "s", "u")
+	_, err := c.Complete(context.Background(), Local(), "openrouter", "m", "s", "u")
 	if err == nil || !strings.Contains(err.Error(), "rate-limited upstream") || !strings.Contains(err.Error(), "20s") {
 		t.Fatalf("err = %v", err)
 	}
@@ -159,7 +159,7 @@ func TestErrorsInsideSuccessfulResponses(t *testing.T) {
 		"in choice": `{"choices":[{"error":{"message":"upstream failed"},"finish_reason":"error"}]}`,
 	} {
 		c := clientFor(t, "openrouter", func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, body) })
-		_, err := c.Complete(context.Background(), "openrouter", "m", "s", "u")
+		_, err := c.Complete(context.Background(), Local(), "openrouter", "m", "s", "u")
 		if err == nil || !strings.Contains(err.Error(), "upstream failed") {
 			t.Errorf("%s: err = %v", name, err)
 		}
@@ -171,7 +171,7 @@ func TestEmptyReplySaysWhy(t *testing.T) {
 	c := clientFor(t, "openrouter", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"choices":[{"message":{"content":null,"reasoning":"thinking hard"},"finish_reason":"length"}]}`)
 	})
-	_, err := c.Complete(context.Background(), "openrouter", "m", "s", "u")
+	_, err := c.Complete(context.Background(), Local(), "openrouter", "m", "s", "u")
 	if err == nil || !strings.Contains(err.Error(), "length") || !strings.Contains(err.Error(), "reasoning") {
 		t.Fatalf("err = %v", err)
 	}
@@ -181,7 +181,7 @@ func TestContentCanBeAListOfParts(t *testing.T) {
 	c := clientFor(t, "ollama", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"choices":[{"message":{"content":[{"type":"text","text":"he"},{"type":"text","text":"llo"}]}}]}`)
 	})
-	if got, err := c.Complete(context.Background(), "ollama", "m", "s", "u"); err != nil || got != "hello" {
+	if got, err := c.Complete(context.Background(), Local(), "ollama", "m", "s", "u"); err != nil || got != "hello" {
 		t.Fatalf("got %q, %v", got, err)
 	}
 }
@@ -252,7 +252,7 @@ func TestNormaliseEndpoint(t *testing.T) {
 }
 
 func TestNoSelectionIsNoProvider(t *testing.T) {
-	if _, err := New().Complete(context.Background(), "", "", "s", "u"); !errors.Is(err, ErrNoProvider) {
+	if _, err := New().Complete(context.Background(), Local(), "", "", "s", "u"); !errors.Is(err, ErrNoProvider) {
 		t.Fatalf("err = %v", err)
 	}
 }

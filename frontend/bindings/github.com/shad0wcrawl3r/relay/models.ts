@@ -16,6 +16,12 @@ export interface AIProvider {
     "name": string;
     "local": boolean;
     "needsKey": boolean;
+
+    /**
+     * PrivateByDefault: a private provider at its default (local) endpoint
+     * until the user says otherwise. See privacy.go.
+     */
+    "privateByDefault": boolean;
     "keySet": boolean;
 
     /**
@@ -24,6 +30,11 @@ export interface AIProvider {
     "endpoint": string;
     "defaultEndpoint": string;
     "custom": boolean;
+
+    /**
+     * Private: a private provider, so it may read private projects.
+     */
+    "private": boolean;
 }
 
 export interface AIStatus {
@@ -45,6 +56,11 @@ export interface AIStatus {
      */
     "label": string;
     "local": boolean;
+
+    /**
+     * Private: the selected provider may read private projects.
+     */
+    "private": boolean;
 }
 
 /**

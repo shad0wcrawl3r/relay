@@ -44,6 +44,15 @@ export function SetKey(provider: string, key: string): $CancellablePromise<$mode
     return $Call.ByID(3370039508, provider, key);
 }
 
+/**
+ * SetPrivate marks a provider as private for its current endpoint, or as
+ * not private. Either way it's an explicit choice that overrides
+ * PrivateByDefault.
+ */
+export function SetPrivate(provider: string, $private: boolean): $CancellablePromise<$models.AIStatus> {
+    return $Call.ByID(2389537316, provider, $private);
+}
+
 export function Status(): $CancellablePromise<$models.AIStatus> {
     return $Call.ByID(680075281);
 }

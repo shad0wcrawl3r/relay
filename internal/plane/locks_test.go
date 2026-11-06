@@ -54,3 +54,27 @@ func TestRedact(t *testing.T) {
 		t.Error("auto-lock didn't relock")
 	}
 }
+
+func TestPrivacyKeys(t *testing.T) {
+	snap := Snapshot{Projects: []Project{
+		{ID: "w", Identifier: "work", Items: []Item{{ID: "a", ModuleIDs: []string{"m1", "m2"}}, {ID: "b"}}},
+	}}
+	cases := map[[2]string][]string{
+		{"w", "a"}:    {"project:WORK", "module:m1", "module:m2"},
+		{"w", "b"}:    {"project:WORK"},
+		{"w", "gone"}: {"project:WORK"},
+		{"x", "a"}:    nil,
+	}
+	for in, want := range cases {
+		got := PrivacyKeys(snap, in[0], in[1])
+		if len(got) != len(want) {
+			t.Errorf("%v: got %v, want %v", in, got, want)
+			continue
+		}
+		for i := range got {
+			if got[i] != want[i] {
+				t.Errorf("%v: got %v, want %v", in, got, want)
+			}
+		}
+	}
+}

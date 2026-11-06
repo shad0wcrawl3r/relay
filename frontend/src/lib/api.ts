@@ -195,6 +195,7 @@ export const AIService = {
   ClearKey: async (provider: string) => aiStatus(await AIBindings.ClearKey(provider)),
   SetEndpoint: async (provider: string, endpoint: string) => aiStatus(await AIBindings.SetEndpoint(provider, endpoint)),
   Select: async (provider: string, model: string) => aiStatus(await AIBindings.Select(provider, model)),
+  SetPrivate: async (provider: string, isPrivate: boolean) => aiStatus(await AIBindings.SetPrivate(provider, isPrivate)),
   SummarizePost: (id: string) => AIBindings.SummarizePost(id),
   SummarizeText: (title: string, text: string) => AIBindings.SummarizeText(title, text),
 };

@@ -6,6 +6,8 @@ import { ModelPicker } from "@/components/ModelPicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SecretInput } from "@/components/ui/secret-input";
+import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/components/Toaster";
 
 export function AISettings({ compact = false, onChange }: { compact?: boolean; onChange?: (s: AIStatus) => void } = {}) {
@@ -19,6 +21,8 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
   const [error, setError] = useState("");
   const [key, setKey] = useState("");
   const [endpoint, setEndpoint] = useState("");
+  // Turning "Private provider" on asks first; turning it off doesn't.
+  const [confirmPrivate, setConfirmPrivate] = useState(false);
 
   const provider = status?.providers.find((p) => p.id === picked);
   useEffect(() => {
@@ -93,6 +97,14 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
     }
   };
 
+  const setPrivate = async (on: boolean) => {
+    try {
+      setStatus(await AIService.SetPrivate(provider.id, on));
+    } catch (err) {
+      toast({ tone: "error", title: "Couldn't change the setting", body: errorMessage(err) });
+    }
+  };
+
   const insecure = endpoint.startsWith("http://") && !provider.local;
 
   const select = async (model: string) => {
@@ -126,6 +138,7 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
           >
             {p.name}
             {p.local && <span className="text-[11px] text-dim">local</span>}
+            {p.private && <span className="text-[11px] text-dim">private</span>}
             {p.id === status.provider && status.ready && <Check className="size-3 text-[#4ade80]" />}
           </button>
         ))}
@@ -203,6 +216,27 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
         !provider.needsKey && <p className="m-0 text-xs text-dim">This address is on another machine, so articles you summarise are sent there.</p>
       )}
 
+      <div className={row}>
+        <span className="pt-2.5 text-[13px] text-muted-foreground">Private provider</span>
+        <div className="flex flex-col gap-1.5">
+          <label className="flex h-9 items-center gap-2.5 text-[13px] text-foreground">
+            <Switch checked={provider.private} onCheckedChange={(on) => (on ? setConfirmPrivate(true) : setPrivate(false))} />
+            This is a model provider I run or control
+          </label>
+          <span className="text-xs text-dim">
+            {provider.private
+              ? `${provider.endpoint} receives data from private projects too. Changing the endpoint turns this off.`
+              : `For a self-hosted model behind an ${provider.name}-style endpoint, say. While off, Relay never sends this provider anything from a private project, even while it's unlocked.`}
+            {provider.privateByDefault &&
+              (provider.private
+                ? ` On by default at ${provider.name}'s usual local address; turn it off if this is ${provider.name === "Ollama" ? "Ollama Cloud or " : ""}another service.`
+                : provider.endpoint !== provider.defaultEndpoint
+                  ? ` On by default only at ${provider.defaultEndpoint}.`
+                  : "")}
+          </span>
+        </div>
+      </div>
+
       {(!provider.needsKey || provider.keySet) && (
         <div className={row}>
           <span className="pt-2.5 text-[13px] text-muted-foreground">Model</span>
@@ -226,6 +260,36 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
           </div>
         </div>
       )}
+      <Dialog open={confirmPrivate} onOpenChange={setConfirmPrivate}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mark {provider.name} as a private provider?</DialogTitle>
+            <DialogDescription>
+              From now on, <span className="break-all font-mono text-xs text-foreground">{provider.endpoint}</span> receives data from private projects
+              too: locked projects and modules, whenever you use AI on them.
+            </DialogDescription>
+          </DialogHeader>
+          <p className="m-0 text-[13px] leading-relaxed text-muted-foreground">
+            Only do this for a model you run or control, such as one on your own machine or network that only looks like an OpenAI endpoint. If the
+            endpoint changes, Relay turns this off again.
+          </p>
+          <DialogFooter>
+            <Button variant="ghost" size="md" onClick={() => setConfirmPrivate(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="md"
+              onClick={() => {
+                setConfirmPrivate(false);
+                setPrivate(true);
+              }}
+            >
+              Mark as private
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
