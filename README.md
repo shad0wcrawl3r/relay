@@ -44,10 +44,15 @@ frontend. Runs on macOS, Windows and Linux.
   - Panes, tabs, splits and zoom, with tmux-style keybindings
   - Quick terminal (⌘/) over any view
   - ⌘T opens a tab; `exit` closes the pane, or the tab if it was the last one
+  - Pick from the shells installed on the machine: `/etc/shells` on macOS and
+    Linux; PowerShell, Command Prompt, Git Bash and WSL on Windows
 - **Privacy and app**
   - Setup guide: a small window that floats over the browser and walks through
-    Buffer, an AI provider, Dev.to and Plane, one step at a time. Opens on first
-    run; Settings → Run setup guide brings it back
+    Buffer, an AI provider, Dev.to, Plane and the terminal shell, one step at a
+    time. Opens on first run; Settings → Run setup guide brings it back
+  - Move to another computer: export settings and API keys to a file locked
+    with six words (Argon2id + AES-256-GCM, fully offline), then import it
+    there. The same settings always get the same words
   - API keys and client secrets live in the OS keychain, never in `config.toml`
   - Everything written to disk is encrypted (AES-256-GCM), with the key in the
     OS keychain
@@ -115,3 +120,6 @@ Never commit `config.toml`. It is already in `.gitignore`.
 ## License
 
 [BSD 3-Clause](LICENSE).
+
+The passphrase words come from the [EFF large wordlist](https://www.eff.org/dice)
+(`internal/backup/words.txt`), CC BY 3.0, by the Electronic Frontier Foundation.

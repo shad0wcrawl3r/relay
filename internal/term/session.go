@@ -84,15 +84,8 @@ func newID() string {
 	return hex.EncodeToString(b)
 }
 
-func defaultShell() string {
-	if s := os.Getenv("SHELL"); s != "" {
-		return s
-	}
-	return "/bin/zsh"
-}
-
 func start(o Options, scrollback int, onEvent func()) (*Session, error) {
-	if o.Shell == "" {
+	if !Usable(o.Shell) {
 		o.Shell = defaultShell()
 	}
 	if o.Cwd == "" {
@@ -112,7 +105,7 @@ func start(o Options, scrollback int, onEvent func()) (*Session, error) {
 		p.Close()
 		return nil, err
 	}
-	cmd := p.Command(o.Shell, "-l")
+	cmd := p.Command(o.Shell, shellArgs(o.Shell)...)
 	cmd.Dir = o.Cwd
 	cmd.Env = append(os.Environ(), "TERM=xterm-256color", "COLORTERM=truecolor", "TERM_PROGRAM=Relay")
 	if err := cmd.Start(); err != nil {

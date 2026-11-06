@@ -13,7 +13,9 @@ import {
   GuideService,
   PlaneService,
   SettingsService,
+  TerminalService,
   type AIStatus,
+  type Shell,
   type BufferStatus,
   type Settings,
 } from "@/lib/api";
@@ -24,6 +26,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SecretInput } from "@/components/ui/secret-input";
 import { AISettings } from "@/components/AISettings";
+import { ShellPicker } from "@/components/ShellPicker";
+import { ImportSettingsButton } from "@/components/SettingsTransfer";
 import { BufferLogo } from "@/components/icons/BufferLogo";
 import {
   planeAppSteps,
@@ -34,13 +38,14 @@ import {
 // user creates apps and copies keys there. Each step checks the real state
 // (is Buffer connected, is a key saved), so it resumes wherever it was left.
 
-type StepId = "welcome" | "buffer" | "ai" | "devto" | "plane" | "done";
+type StepId = "welcome" | "buffer" | "ai" | "devto" | "plane" | "terminal" | "done";
 const STEPS: { id: StepId; label: string }[] = [
   { id: "welcome", label: "Welcome" },
   { id: "buffer", label: "Buffer" },
   { id: "ai", label: "AI" },
   { id: "devto", label: "Dev.to" },
   { id: "plane", label: "Plane" },
+  { id: "terminal", label: "Terminal" },
   { id: "done", label: "Done" },
 ];
 
@@ -49,6 +54,8 @@ export function Guide() {
   const { buffer, devto } = useIntegrations();
   const planeOn = !!snapshot?.connected;
   const [ai, setAi] = useState<AIStatus | null>(null);
+  // The saved shell; "" until one is picked here or in Settings.
+  const [shell, setShell] = useState<string | null>(null);
   const [step, setStep] = useState<number | null>(null);
   const [error, setError] = useState("");
 
@@ -58,15 +65,21 @@ export function Guide() {
     ai: !!ai?.ready,
     devto: devto === true,
     plane: planeOn,
+    terminal: !!shell,
     done: false,
   };
 
-  useEffect(() => {
+  const refresh = useCallback(() => {
     AIService.Status().then(setAi, () => {});
+    TerminalService.Shells().then(
+      (c) => setShell(c.chosen),
+      () => setShell(""),
+    );
   }, []);
+  useEffect(refresh, [refresh]);
 
   // Resume at the first service that isn't set up, once the states are known.
-  const known = buffer !== null && devto !== null && !!snapshot && ai !== null;
+  const known = buffer !== null && devto !== null && !!snapshot && ai !== null && shell !== null;
   useEffect(() => {
     if (step !== null || !known) return;
     const any = done.buffer || done.ai || done.devto || done.plane;
@@ -144,7 +157,14 @@ export function Guide() {
         {step === null ? (
           <Loader2 className="mx-auto mt-16 size-4 animate-spin text-dim" />
         ) : id === "welcome" ? (
-          <Welcome />
+          <Welcome
+            setError={setError}
+            onImported={() => {
+              // Start over from the first step the import didn't cover.
+              setStep(null);
+              refresh();
+            }}
+          />
         ) : id === "buffer" ? (
           <BufferStep connected={done.buffer} setError={setError} />
         ) : id === "ai" ? (
@@ -158,6 +178,8 @@ export function Guide() {
           <DevtoStep saved={done.devto} setError={setError} />
         ) : id === "plane" ? (
           <PlaneStep connected={planeOn} setError={setError} />
+        ) : id === "terminal" ? (
+          <TerminalStep shell={shell ?? ""} onSaved={setShell} setError={setError} />
         ) : (
           <DoneStep done={done} />
         )}
@@ -246,7 +268,7 @@ function Status({ ok, children }: { ok: boolean; children: React.ReactNode }) {
   );
 }
 
-function Welcome() {
+function Welcome({ setError, onImported }: { setError: (e: string) => void; onImported: () => void }) {
   return (
     <Section
       title="Welcome to Relay"
@@ -265,6 +287,11 @@ function Welcome() {
         This window stays on top while you work in the browser, so you can
         follow the steps and copy values from here. Close it any time; it picks
         up where you left off.
+      </p>
+      <p className="m-0 rounded-[10px] border border-column-border bg-column px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
+        Moving from another computer?{" "}
+        <ImportSettingsButton variant="link" label="Import your settings" onError={setError} onImported={onImported} /> with the six words from
+        your export, then sign in to Buffer and Plane.
       </p>
     </Section>
   );
@@ -664,12 +691,54 @@ function PlaneStep({
   );
 }
 
+function TerminalStep({
+  shell,
+  onSaved,
+  setError,
+}: {
+  shell: string;
+  onSaved: (path: string) => void;
+  setError: (e: string) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [shells, setShells] = useState<Shell[]>([]);
+  useEffect(() => {
+    TerminalService.Shells().then(
+      (c) => setShells(c.shells),
+      () => {},
+    );
+  }, []);
+  const pick = async (path: string) => {
+    setBusy(true);
+    setError("");
+    try {
+      // Save the default by its path too, so the step counts as done.
+      const target = path || shells.find((s) => s.default)?.path || "";
+      onSaved((await TerminalService.SetShell(target)).chosen);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Section
+      title="Pick a shell"
+      lead="Relay's terminal runs this for new sessions. These are the shells on this computer; change it any time in Settings → Terminal."
+    >
+      <ShellPicker value={shell} onChange={pick} disabled={busy} />
+      {!shell && <p className="m-0 text-xs text-dim">Click one to use it, the default included.</p>}
+    </Section>
+  );
+}
+
 function DoneStep({ done }: { done: Record<StepId, boolean> }) {
   const rows: [StepId, string][] = [
     ["buffer", "Buffer"],
     ["ai", "Model provider"],
     ["devto", "Dev.to"],
     ["plane", "Plane"],
+    ["terminal", "Terminal shell"],
   ];
   return (
     <Section

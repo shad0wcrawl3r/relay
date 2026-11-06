@@ -128,6 +128,16 @@ func HasKey(id string) bool {
 	return err == nil
 }
 
+// Key returns the provider's stored API key, or "" when there is none. Only
+// for a settings export; requests read the key themselves.
+func Key(id string) (string, error) {
+	key, err := keyring.Get(keyringService, keyName(id))
+	if errors.Is(err, keyring.ErrNotFound) {
+		return "", nil
+	}
+	return key, err
+}
+
 // SetKey stores a provider's API key in the keychain.
 func SetKey(id, key string) error {
 	if _, ok := Find(id); !ok {

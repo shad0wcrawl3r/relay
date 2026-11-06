@@ -14,6 +14,9 @@ import (
 
 const keyringService = "relay"
 
+// KeyringService is the keychain service every Relay secret is stored under.
+const KeyringService = keyringService
+
 // stuck holds secrets the keychain refused at startup: they stay in the file
 // rather than being lost. Guarded by writeMu.
 var stuck = map[string]bool{}

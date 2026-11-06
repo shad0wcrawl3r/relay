@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -91,6 +92,31 @@ func (s *TerminalService) Create(o term.Options) (term.Info, error) {
 }
 
 func (s *TerminalService) List() []term.Info { return s.m.List() }
+
+// ShellChoice is the shells on this machine and the one new sessions use.
+type ShellChoice struct {
+	Shells []term.Shell `json:"shells"`
+	// Chosen is the saved shell; empty means the default (Shells[0]).
+	Chosen string `json:"chosen"`
+}
+
+// Shells lists the shells installed here, the default first.
+func (s *TerminalService) Shells() ShellChoice {
+	chosen := config.GetConfig().Terminal.Shell
+	if !term.Usable(chosen) {
+		chosen = ""
+	}
+	return ShellChoice{Shells: term.Shells(), Chosen: chosen}
+}
+
+// SetShell saves the shell for new sessions; empty uses the default.
+func (s *TerminalService) SetShell(path string) (ShellChoice, error) {
+	if path != "" && !term.Usable(path) {
+		return s.Shells(), fmt.Errorf("%s isn't a file on this computer", path)
+	}
+	err := config.Update(func(c *config.Config) { c.Terminal.Shell = path })
+	return s.Shells(), err
+}
 
 func (s *TerminalService) Kill(id string) error {
 	termLog.Info("session killed", "id", id)

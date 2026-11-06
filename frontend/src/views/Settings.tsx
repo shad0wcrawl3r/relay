@@ -8,6 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { usePlane } from "@/lib/store";
 import { errorMessage } from "@/lib/utils";
 import { useToast } from "@/components/Toaster";
+import { ShellPicker } from "@/components/ShellPicker";
+import { ExportSettingsButton, ImportSettingsButton } from "@/components/SettingsTransfer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SecretInput } from "@/components/ui/secret-input";
@@ -56,6 +58,7 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
       agentName: next.agentName,
       agentLabel: next.agentLabel,
       terminalTmuxKeys: next.terminalTmuxKeys,
+      terminalShell: next.terminalShell,
       autoLockMinutes: next.autoLockMinutes,
     });
   };
@@ -92,6 +95,7 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
     form.agentName !== s.agentName ||
     form.agentLabel !== s.agentLabel ||
     form.terminalTmuxKeys !== s.terminalTmuxKeys ||
+    form.terminalShell !== s.terminalShell ||
     form.autoLockMinutes !== s.autoLockMinutes;
 
   const save = async () => {
@@ -447,6 +451,9 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
 
           <TabsContent value="terminal">
         <Section title="Terminal" description="Sessions run in Relay itself; tmux isn't needed.">
+          <Row label="Shell" hint="Used for new sessions. Open ones keep their shell.">
+            <ShellPicker value={form.terminalShell} onChange={(terminalShell) => set({ terminalShell })} />
+          </Row>
           <Row
             label="tmux keybindings"
             hint={
@@ -493,6 +500,21 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
           <Row label="Posts folder" hint="Each post is a markdown file. Plane data is never stored.">
             <Input readOnly value={s.postsDir} className="font-mono text-xs text-muted-foreground" />
           </Row>
+        </Section>
+        <Section
+          title="Move to another computer"
+          description="Export saves your settings and API keys to Downloads, locked with six words. Import them on the other computer. Nothing leaves this one unless you move the file."
+        >
+          <div className="flex gap-2">
+            <ExportSettingsButton onError={(body) => toast({ tone: "error", title: "Couldn't export settings", body })} />
+            <ImportSettingsButton
+              onError={(body) => toast({ tone: "error", title: "Couldn't import settings", body })}
+              onImported={async () => {
+                load(await SettingsService.Get());
+                reloadKeymap();
+              }}
+            />
+          </div>
         </Section>
           </TabsContent>
 
