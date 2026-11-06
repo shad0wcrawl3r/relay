@@ -18,6 +18,11 @@ import (
 
 func TestMain(m *testing.M) {
 	keyring.MockInit()
+	// Ignore the developer's own AI settings: a custom endpoint in their
+	// config.toml would send these tests to a real server.
+	config.Override(func(c *config.Config) {
+		c.AI.Endpoints, c.AI.Provider, c.AI.Model = nil, "", ""
+	})
 	os.Exit(m.Run())
 }
 
