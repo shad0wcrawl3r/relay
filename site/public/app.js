@@ -18,6 +18,15 @@ const PLATFORMS = [
   { os: "linux", name: "Linux", note: "x64" },
 ];
 
+// "alpha", "beta" or "pre-release" for a pre-release, from its name or tag;
+// "" for a full release.
+function stage(status) {
+  if (!status.prerelease) return "";
+  const named = `${status.name ?? ""} ${status.version ?? ""}`.toLowerCase();
+  return named.includes("beta") ? "beta" : named.includes("alpha") ? "alpha" : "pre-release";
+}
+const tagged = (status) => (stage(status) ? ` (${stage(status)})` : "");
+
 function ago(iso) {
   const seconds = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
   if (seconds < 3600) return `${Math.max(1, Math.round(seconds / 60))} min ago`;
@@ -77,7 +86,7 @@ function renderDownloads(status) {
     button.href = asset.url;
     button.textContent = `Download for ${PLATFORMS.find((p) => p.os === mine).name}`;
     document.getElementById("hero-note").textContent =
-      `${status.version}${status.prerelease ? " (alpha)" : ""} · ${size(asset.size)} · other platforms below.`;
+      `${status.version}${tagged(status)} · ${size(asset.size)} · other platforms below.`;
   }
 }
 
@@ -106,7 +115,7 @@ function renderStatus(status) {
 
   const version = document.getElementById("version");
   if (status.version && RELEASE.test(status.release_url ?? "")) {
-    version.replaceChildren(el("a", { href: status.release_url, rel: "noopener", textContent: status.version + (status.prerelease ? " (alpha)" : "") }));
+    version.replaceChildren(el("a", { href: status.release_url, rel: "noopener", textContent: status.version + tagged(status) }));
   } else {
     version.textContent = status.version ?? "Not released yet";
   }
@@ -118,8 +127,9 @@ function render(status) {
   const line = document.getElementById("release-line");
   if (status.version) {
     const when = status.published_at ? new Date(status.published_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "";
-    line.textContent = `${status.version}${status.prerelease ? " is an alpha" : ""}${when ? `, released ${when}` : ""}. Relay is early: expect rough edges, and please report them.`;
-    document.getElementById("hero-version").textContent = `${status.version}${status.prerelease ? " alpha" : ""} · macOS, Windows and Linux`;
+    const article = stage(status) === "alpha" ? "an alpha" : stage(status) === "beta" ? "a beta" : stage(status) ? "a pre-release" : "";
+    line.textContent = `${status.version}${article ? ` is ${article}` : ""}${when ? `, released ${when}` : ""}. Relay is early: expect rough edges, and please report them.`;
+    document.getElementById("hero-version").textContent = `${status.version}${stage(status) ? ` ${stage(status)}` : ""} · macOS, Windows and Linux`;
   } else {
     line.textContent = "No release yet. Check back soon.";
   }
@@ -146,6 +156,7 @@ async function liveStatus() {
   if (!release) return {};
   const status = {
     version: release.tag_name,
+    name: release.name,
     prerelease: release.prerelease,
     published_at: release.published_at,
     release_url: release.html_url,

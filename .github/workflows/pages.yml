@@ -59,6 +59,7 @@ jobs:
           fi
           jq -n --argjson release "$release" --argjson run "$run" --argjson jobs "$jobs" '{
             version: ($release.tag_name // null),
+            name: ($release.name // null),
             prerelease: ($release.prerelease // false),
             published_at: ($release.published_at // null),
             release_url: ($release.html_url // null),

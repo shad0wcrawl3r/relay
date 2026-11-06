@@ -62,15 +62,14 @@ frontend. Runs on macOS, Windows and Linux.
     addresses). Unlocking a project doesn't change that
   - Per-subsystem logs, held in memory only
   - Runs in the background with a tray icon
-  - CI builds for macOS, Windows and Linux
+  - CI builds for macOS, Windows and Linux, published as releases with a
+    `SHA256SUMS` file and steps for opening unsigned builds
 
 ### Planned
 
 For the Buffer Commit contest:
 
-- Keep locked project data away from cloud AI providers
 - Ship log: turn finished Plane work into Buffer drafts
-- Public releases, with steps for opening unsigned builds
 - `relay` CLI and MCP server
 
 Later:

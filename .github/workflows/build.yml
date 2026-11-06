@@ -123,4 +123,20 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           ls -la dist
-          gh release create "$TAG" dist/* -R "$GITHUB_REPOSITORY" --draft --verify-tag --generate-notes --title "Relay $TAG"
+          # Builds aren't code-signed, so a checksum list lets people check
+          # a download is the file CI built.
+          (cd dist && sha256sum * > SHA256SUMS && cat SHA256SUMS)
+          cat > notes.md <<'NOTES'
+          ## Opening Relay the first time
+
+          These builds aren't code-signed, so your system asks before running them.
+
+          **macOS (Apple silicon):** unzip, move `relay.app` to Applications and open it. When macOS says it can't check it for malware, click **Done**, then open **System Settings → Privacy & Security** and click **Open Anyway** next to Relay. Or run `xattr -dr com.apple.quarantine /Applications/relay.app`.
+
+          **Windows:** run the installer (or the portable `relay.exe`). If SmartScreen says "Windows protected your PC", click **More info**, then **Run anyway**.
+
+          **Linux:** `sudo apt install ./relay.deb` on Debian or Ubuntu; elsewhere extract the `.tar.gz` (needs GTK 4 and WebKitGTK 6).
+
+          **Check a download:** compare it with `SHA256SUMS`: `shasum -a 256 <file>` on macOS, `sha256sum <file>` on Linux, `Get-FileHash <file>` in PowerShell.
+          NOTES
+          gh release create "$TAG" dist/* -R "$GITHUB_REPOSITORY" --draft --verify-tag --generate-notes --notes-file notes.md --title "Relay $TAG"
