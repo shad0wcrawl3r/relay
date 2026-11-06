@@ -26,6 +26,10 @@ const (
 
 	anthropicVersion = "2023-06-01"
 	maxTokens        = 1024
+	// replyTokens caps OpenAI-style replies. A post needs a few hundred
+	// tokens; the rest is room for models that think before answering. The
+	// cap also stops a model that wandered off topic.
+	replyTokens = 2048
 )
 
 var log = logs.For("ai")
@@ -348,13 +352,22 @@ func (c *Client) openAICompatible(ctx context.Context, p Provider, model, system
 			CompletionTokens int `json:"completion_tokens"`
 		} `json:"usage"`
 	}
-	err := c.request(ctx, p, http.MethodPost, "/chat/completions", map[string]any{
+	body := map[string]any{
 		"model": model,
 		"messages": []map[string]string{
 			{"role": "system", "content": system},
 			{"role": "user", "content": user},
 		},
-	}, &out)
+	}
+	// OpenAI's own API refuses max_tokens for its newer models; everything
+	// else that speaks this API (OpenRouter, Ollama, LM Studio, proxies)
+	// takes max_tokens.
+	if p.ID == "openai" && c.Endpoint(p.ID) == c.Default(p.ID) {
+		body["max_completion_tokens"] = replyTokens
+	} else {
+		body["max_tokens"] = replyTokens
+	}
+	err := c.request(ctx, p, http.MethodPost, "/chat/completions", body, &out)
 	if err != nil {
 		return reply{}, err
 	}
@@ -393,18 +406,45 @@ func (c *Client) Complete(ctx context.Context, id, model, system, user string) (
 		return "", err
 	}
 	r.text = strings.TrimSpace(r.text)
+	sent := (len(system) + len(user)) / 4
 	fields := []any{
 		"provider", id, "model", model, "upstream", r.upstream, "finish_reason", r.reason,
 		"input_tokens", r.inputTokens, "output_tokens", r.outputTokens,
 		"reply_chars", len(r.text), "reasoning_chars", r.reasoningChars,
 		"ms", time.Since(start).Milliseconds(),
 	}
+	if cutShort(sent, r.inputTokens) {
+		log.Warn("input cut short", append(fields, "estimated_input_tokens", sent)...)
+		return "", contextError(p, sent, r.inputTokens)
+	}
 	if r.text == "" {
 		log.Warn("empty reply", fields...)
 		return "", emptyReply(p, r)
 	}
+	if r.reason == "length" || r.reason == "max_tokens" {
+		log.Warn("reply hit the length cap", fields...)
+		return "", fmt.Errorf("%s ran past Relay's length limit before finishing, which usually means the draft went off topic. Try again, or pick another model", p.Name)
+	}
 	log.Info("completion finished", fields...)
 	return r.text, nil
+}
+
+// cutShort reports whether the provider read far less than was sent: its
+// context window is too small, and it silently kept only part of the prompt.
+// Ollama does this with its default context. The estimate (bytes / 4) runs
+// low for most text, so only a large gap counts, and only for long prompts.
+func cutShort(estimated, read int) bool {
+	return read > 0 && estimated >= 1500 && read*2 < estimated
+}
+
+func contextError(p Provider, estimated, read int) error {
+	msg := fmt.Sprintf("%s only read about %d of roughly %d tokens: its context window is too small for this article, so a draft would miss most of it", p.Name, read, estimated)
+	if p.ID == "ollama" {
+		msg += ". Set OLLAMA_CONTEXT_LENGTH=16384 on the machine running Ollama and restart it"
+	} else {
+		msg += ". Pick a model with a larger context, or raise it on the server"
+	}
+	return errors.New(msg)
 }
 
 func emptyReply(p Provider, r reply) error {
