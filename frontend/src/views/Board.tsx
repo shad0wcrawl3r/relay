@@ -147,7 +147,7 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board({ projec
   };
 
   // Ideas sync with Buffer, but never for private projects (Go refuses too).
-  const showIdeas = buffer === true && !project.private && view === "board";
+  const showIdeas = buffer === true && !project.private && project.source !== "buffer" && view === "board";
 
   const byState = stateById(project);
   const items = useMemo(() => project.items.filter((it) => matches(it, byState.get(it.stateId), filters)), [project, filters]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -168,7 +168,7 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board({ projec
   };
 
   const activeFilters = filters.modules.size + filters.labels.size + filters.priorities.size + filters.cycles.size + +filters.agentOnly + +filters.overdueOnly;
-  const isLab = hasIdeas(project);
+  const ideas = hasIdeas(project);
 
   const filterMenu = (label: string, set: Set<string>, key: "modules" | "labels" | "priorities" | "cycles", options: { id: string; name: string; icon?: React.ReactNode }[]) => (
     <DropdownMenu>
@@ -294,7 +294,7 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board({ projec
         </label>
         <Button className="no-drag" onClick={onNewItem}>
           <Plus className="size-[13px]" strokeWidth={2} />
-          {isLab ? "New idea" : "New item"}
+          {ideas ? "New idea" : "New item"}
         </Button>
       </header>
       {project.hiddenItems > 0 && (

@@ -4,7 +4,7 @@ import { BufferLogo } from "@/components/icons/BufferLogo";
 import { usePlane } from "@/lib/store";
 import { useIntegrations } from "@/lib/integrations";
 import { useTerminal } from "@/lib/terminal";
-import { attentionRows, openCount } from "@/lib/plane";
+import { attentionRows, boardsOn, openCount } from "@/lib/plane";
 import { syncedAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { Dot, PrivateLock, ProjectGlyph } from "@/components/bits";
@@ -22,12 +22,12 @@ function useNow(ms = 5000) {
 
 export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => void; rail: boolean }) {
   const { projects, snapshot, syncing, syncNow, readOnly, lock } = usePlane();
-  const planeOn = !!snapshot?.connected;
+  const planeOn = boardsOn(snapshot);
   const { buffer, devto } = useIntegrations();
   // Unknown counts as on, so nothing jumps sections while loading.
   const bufferOn = buffer !== false;
   const others = [
-    !planeOn && { label: "Plane", icon: <Kanban className="size-[15px]" strokeWidth={1.8} />, onClick: () => go({ name: "settings", tab: "plane" }), active: false },
+    !snapshot?.connected && { label: "Plane", icon: <Kanban className="size-[15px]" strokeWidth={1.8} />, onClick: () => go({ name: "settings", tab: "plane" }), active: false },
     !bufferOn && { label: "Buffer", icon: <BufferLogo className="size-[14px]" />, onClick: () => go({ name: "buffer" }), active: route.name === "buffer" },
     devto === false && { label: "Dev.to", icon: <PenLine className="size-[15px]" strokeWidth={1.8} />, onClick: () => go({ name: "settings", tab: "publishing" }), active: false },
   ].filter((o) => !!o);
@@ -38,10 +38,10 @@ export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => v
   const now = useNow(1000);
   const attention = attentionRows(projects).length;
   const synced = snapshot?.syncedAt && !snapshot.syncedAt.startsWith("0001") ? snapshot.syncedAt : "";
-  const syncLabel = !snapshot?.connected
+  const syncLabel = !planeOn
     ? "Plane not connected"
     : readOnly
-      ? snapshot.error
+      ? snapshot?.error
         ? "Saved data · sync failed"
         : "Saved data · syncing…"
       : syncing
@@ -49,7 +49,7 @@ export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => v
       : synced
         ? `Synced ${syncedAgo(synced, now)}`
         : "Not synced yet";
-  const syncColor = !snapshot?.connected ? "#71717a" : snapshot.error ? "#ef4444" : readOnly ? "#f59e0b" : "#46a758";
+  const syncColor = !planeOn ? "#71717a" : snapshot?.error || snapshot?.bufferPlanError ? "#ef4444" : readOnly ? "#f59e0b" : "#46a758";
 
   const item = (active: boolean, extra?: string) =>
     cn(

@@ -33,6 +33,9 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
   content from a lockable project or module only reaches a private provider: one the user marked (`[ai] PRIVATE`,
   tied to the endpoint), or Ollama / LM Studio at their default endpoints until turned off. A loopback address alone
   isn't trusted. Unlocking doesn't change that. Never log a refused prompt or the project it came from.
+- Planning in Buffer (`[planning] BUFFER`): `internal/planning` maps Buffer content items (an Experimental Buffer API) to a
+  board project (`buffer-plan`, source "buffer"); PlaneService routes its writes to `bufferplan.go`. Columns before
+  posting are "Relay: …" tags; Scheduled/Published come from the item's posts and can't be dragged into. Card text stays in memory.
 - Posts are local markdown files in the OS app-storage dir.
 - Never commit `config.toml` or log secrets.
 - Logs go through `internal/logs`: per-subsystem levels, in memory only. Never log locked project data, prompts, article text or terminal output.

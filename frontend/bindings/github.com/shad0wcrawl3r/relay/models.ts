@@ -73,6 +73,14 @@ export interface BufferOverview {
     "channels": buffer$0.Channel[] | null;
 }
 
+/**
+ * BufferPlanning is the Buffer planning board's setting.
+ */
+export interface BufferPlanning {
+    "enabled": boolean;
+    "orgId": string;
+}
+
 export interface BufferStatus {
     "connected": boolean;
     "account": string;

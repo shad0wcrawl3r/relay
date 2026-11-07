@@ -22,6 +22,7 @@ import type * as UnlockM from "../../bindings/github.com/shad0wcrawl3r/relay/int
 type Clean<T> = T extends (infer U)[] ? Clean<U>[] : T extends object ? { [K in keyof T]: Clean<Exclude<T[K], null>> } : T;
 
 export type Snapshot = Clean<PM.Snapshot>;
+export type BufferPlanning = Clean<M.BufferPlanning>;
 export type Project = Clean<PM.Project>;
 export type Item = Clean<PM.Item>;
 export type ItemDetail = Clean<PM.ItemDetail>;
@@ -90,6 +91,8 @@ export const PlaneService = {
   SetProjectOrder: (identifiers: string[]) => PlaneBindings.SetProjectOrder(identifiers),
   SetProjectColor: (identifier: string, color: string) => PlaneBindings.SetProjectColor(identifier, color),
   SetCaptureProject: (identifier: string) => PlaneBindings.SetCaptureProject(identifier),
+  BufferPlanning: (): Promise<BufferPlanning> => PlaneBindings.BufferPlanning(),
+  SetBufferPlanning: (enabled: boolean, orgId: string): Promise<BufferPlanning> => PlaneBindings.SetBufferPlanning(enabled, orgId),
 };
 
 /** Lock keys, matching internal/plane/locks.go. */

@@ -47,6 +47,7 @@ func main() {
 		log.Fatal(err)
 	}
 	bufferSvc := NewBufferService(postSvc, planeSvc)
+	planeSvc.plan = newBufferPlan(bufferSvc.client)
 	guide := &GuideService{}
 	settingsSvc := &SettingsService{plane: planeSvc, posts: postSvc, buffer: bufferSvc}
 
