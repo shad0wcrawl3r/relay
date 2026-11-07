@@ -19,6 +19,8 @@ frontend. Runs on macOS, Windows and Linux.
   - Module lanes view
   - Item drawer with comments and activity
   - Quick capture palette (⌘K)
+  - Your own project order, colours and quick capture project (Settings →
+    Plane → Projects). Projects with an Idea state capture new work as ideas
   - Connects through a Plane app installation (OAuth)
   - Encrypted cache of the last sync, read-only until the first live sync
 - **Writing**
@@ -70,10 +72,11 @@ frontend. Runs on macOS, Windows and Linux.
 For the Buffer Commit contest:
 
 - Ship log: turn finished Plane work into Buffer drafts
-- `relay` CLI and MCP server
+- `relay mcp`: an MCP server so agents can work with the running app
 
 Later:
 
+- `relay` CLI on the same control socket
 - Shell integration and Warp-style command blocks
 - Session switcher, plus block actions (copy, re-run, save, find, pin)
 - Git: a changes panel, a diff viewer and code review
