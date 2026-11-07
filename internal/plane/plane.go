@@ -39,6 +39,8 @@ type Snapshot struct {
 	// Syncing marks a snapshot sent ahead of a sync that's still running,
 	// such as the one right after connecting.
 	Syncing bool `json:"syncing"`
+	// CaptureProject is the project ID quick capture starts in; set by Arrange.
+	CaptureProject string `json:"captureProject"`
 }
 
 type Member struct {
@@ -55,6 +57,8 @@ type Project struct {
 	// Items is empty. Both are set by Redact.
 	Private bool `json:"private"`
 	Locked  bool `json:"locked"`
+	// Color is a palette name from Settings, or empty for automatic; set by Arrange.
+	Color string `json:"color"`
 	// HiddenItems counts items held back because their module is locked.
 	HiddenItems int      `json:"hiddenItems"`
 	States      []State  `json:"states"`
@@ -302,7 +306,8 @@ func (c *Client) Sync(ctx context.Context, force bool) (Snapshot, error) {
 	if err := g.Wait(); err != nil {
 		return c.fail(snap, err)
 	}
-	sort.Slice(out, func(i, j int) bool { return projectRank(out[i]) < projectRank(out[j]) })
+	// Arrange puts them in the user's order when the snapshot is shown.
+	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
 
 	c.mu.Lock()
 	snap.Me = c.me
@@ -343,14 +348,6 @@ func orEmpty[T any](s []T) []T {
 		return []T{}
 	}
 	return s
-}
-
-func projectRank(p Project) string {
-	order := map[string]string{"WORK": "0", "LAB": "1", "TEACH": "2"}
-	if r, ok := order[p.Identifier]; ok {
-		return r
-	}
-	return "9" + p.Identifier
 }
 
 const metaTTL = 10 * time.Minute

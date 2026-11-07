@@ -117,7 +117,7 @@ export function ItemDrawer({ project, itemId, siblings, focusComposer, onNavigat
       const done = findState(project, "Done") ?? project.states.find((s) => s.group === "completed");
       if (back) acts.push({ label: "Send back", variant: "outline", stateId: back.id, message: `${item.key} sent back to the agent` });
       if (done) acts.push({ label: "Done", variant: "teal", stateId: done.id, message: `${item.key} marked done` });
-    } else if (n === "in debate" || (project.identifier.toUpperCase() === "LAB" && n === "idea")) {
+    } else if (n === "in debate" || n === "idea") {
       const shelve = shelveState(project);
       const approve = findState(project, "Approved");
       if (shelve) acts.push({ label: "Shelve", variant: "outline", stateId: shelve.id, message: `${item.key} shelved` });

@@ -40,7 +40,8 @@ func init() {
 	v.SetDefault("terminal.TMUX_KEYS", false)
 	// Lockable Plane projects ("project:<IDENTIFIER>") and modules
 	// ("module:<id>"): hidden until the device owner unlocks them.
-	v.SetDefault("privacy.LOCKED", []string{"project:TEACH"})
+	// Nothing is locked until the user picks it in Settings → Privacy.
+	v.SetDefault("privacy.LOCKED", []string{})
 	v.SetDefault("privacy.AUTO_LOCK_MINUTES", 15)
 	v.SetDefault("logs.ENABLED", false)
 	if err := v.ReadInConfig(); err != nil {
@@ -135,6 +136,9 @@ func write(next Config) error {
 	v.Set("logs.ENABLED", next.Logs.Enabled)
 	v.Set("logs.LEVELS", next.Logs.Levels)
 	v.Set("onboarding.DONE", next.Onboarding.Done)
+	v.Set("projects.ORDER", next.Projects.Order)
+	v.Set("projects.COLORS", next.Projects.Colors)
+	v.Set("projects.CAPTURE", next.Projects.Capture)
 	path := Path()
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return err
@@ -200,5 +204,15 @@ type Config struct {
 	Onboarding struct {
 		// Done is set once the setup guide is finished or dismissed.
 		Done bool `mapstructure:"DONE"`
+	}
+	// Projects is how Plane projects are shown, keyed by project identifier.
+	Projects struct {
+		// Order lists identifiers in sidebar order; the rest follow by name.
+		Order []string `mapstructure:"ORDER"`
+		// Colors maps an identifier to a palette name (blue, purple, …).
+		// TOML keys come back lowercased, so compare without case.
+		Colors map[string]string `mapstructure:"COLORS"`
+		// Capture is the project quick capture starts in; empty: the first.
+		Capture string `mapstructure:"CAPTURE"`
 	}
 }

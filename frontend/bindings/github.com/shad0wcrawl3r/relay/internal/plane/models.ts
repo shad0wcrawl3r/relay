@@ -141,6 +141,11 @@ export interface Project {
     "locked": boolean;
 
     /**
+     * Color is a palette name from Settings, or empty for automatic; set by Arrange.
+     */
+    "color": string;
+
+    /**
      * HiddenItems counts items held back because their module is locked.
      */
     "hiddenItems": number;
@@ -171,6 +176,11 @@ export interface Snapshot {
      * such as the one right after connecting.
      */
     "syncing": boolean;
+
+    /**
+     * CaptureProject is the project ID quick capture starts in; set by Arrange.
+     */
+    "captureProject": string;
 }
 
 export interface State {

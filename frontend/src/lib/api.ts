@@ -87,6 +87,9 @@ export const PlaneService = {
   Unlock: (key: string) => PlaneBindings.Unlock(key),
   Lock: (key = "") => PlaneBindings.Lock(key),
   SetLockable: (key: string, locked: boolean) => PlaneBindings.SetLockable(key, locked),
+  SetProjectOrder: (identifiers: string[]) => PlaneBindings.SetProjectOrder(identifiers),
+  SetProjectColor: (identifier: string, color: string) => PlaneBindings.SetProjectColor(identifier, color),
+  SetCaptureProject: (identifier: string) => PlaneBindings.SetCaptureProject(identifier),
 };
 
 /** Lock keys, matching internal/plane/locks.go. */

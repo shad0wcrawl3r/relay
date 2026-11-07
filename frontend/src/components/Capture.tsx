@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Plus } from "lucide-react";
 import { usePlane } from "@/lib/store";
-import { captureState, glyphFor } from "@/lib/plane";
+import { captureState, glyphFor, hasIdeas } from "@/lib/plane";
 import { cn } from "@/lib/utils";
 import { Kbd, ProjectGlyph } from "@/components/bits";
 import { Switch } from "@/components/ui/switch";
@@ -38,13 +38,14 @@ export function Capture({ open, onOpenChange, defaultProjectId, go, openItem }: 
     setText("");
     setQueue(false);
     setActive(0);
-    const lab = projects.find((p) => p.identifier.toUpperCase() === "LAB");
-    setTargetId(defaultProjectId ?? lab?.id ?? projects[0]?.id ?? "");
+    // The project picked in Settings → Plane, unless it's locked right now.
+    const preferred = projects.find((p) => p.id === snapshot?.captureProject && !p.locked);
+    setTargetId(defaultProjectId ?? preferred?.id ?? projects.find((p) => !p.locked)?.id ?? projects[0]?.id ?? "");
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const target = projects.find((p) => p.id === targetId);
   const targetState = target ? captureState(target, queue) : undefined;
-  const isLab = target?.identifier.toUpperCase() === "LAB";
+  const isLab = !!target && hasIdeas(target);
 
   const close = () => onOpenChange(false);
 

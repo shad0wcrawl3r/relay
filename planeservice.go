@@ -95,7 +95,7 @@ func (s *PlaneService) sync(ctx context.Context, force bool) plane.Snapshot {
 	} else {
 		planeLog.Debug("synced", "forced", force)
 	}
-	snap = s.locks.Redact(snap)
+	snap = plane.Arrange(s.locks.Redact(snap))
 	if s.app != nil {
 		s.app.Event.Emit("plane:snapshot", snap)
 	}
@@ -108,7 +108,45 @@ func (s *PlaneService) Snapshot() plane.Snapshot {
 	snap.Connected = s.client.Connected()
 	snap.Workspace = s.client.Workspace()
 	snap.AppURL = plane.AppURL()
-	return s.locks.Redact(snap)
+	return plane.Arrange(s.locks.Redact(snap))
+}
+
+// SetProjectOrder saves the sidebar order as project identifiers.
+func (s *PlaneService) SetProjectOrder(identifiers []string) error {
+	return s.updateProjects(func(c *config.Config) { c.Projects.Order = slices.Clone(identifiers) })
+}
+
+// SetProjectColor gives a project one of plane.Colors; "" goes back to automatic.
+func (s *PlaneService) SetProjectColor(identifier, color string) error {
+	if color != "" && !slices.Contains(plane.Colors, color) {
+		return fmt.Errorf("not a project colour: %q", color)
+	}
+	return s.updateProjects(func(c *config.Config) {
+		colors := map[string]string{}
+		for id, v := range c.Projects.Colors {
+			if !strings.EqualFold(id, identifier) {
+				colors[id] = v
+			}
+		}
+		if color != "" {
+			colors[strings.ToLower(identifier)] = color
+		}
+		c.Projects.Colors = colors
+	})
+}
+
+// SetCaptureProject picks the project quick capture starts in; "" for the first.
+func (s *PlaneService) SetCaptureProject(identifier string) error {
+	return s.updateProjects(func(c *config.Config) { c.Projects.Capture = identifier })
+}
+
+func (s *PlaneService) updateProjects(fn func(c *config.Config)) error {
+	if err := config.Update(fn); err != nil {
+		planeLog.Error("could not save project settings", "error", err)
+		return err
+	}
+	s.emit()
+	return nil
 }
 
 // SyncNow fetches everything immediately and returns the result.

@@ -61,3 +61,33 @@ func TestUpdateCallbackCanReadConfig(t *testing.T) {
 		t.Errorf("Agent.Name = %q", got)
 	}
 }
+
+func TestProjectSettingsSurviveAReload(t *testing.T) {
+	t.Chdir(t.TempDir())
+	if err := os.WriteFile("config.toml", nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	err := Update(func(c *Config) {
+		c.Projects.Order = []string{"WEB", "OPS"}
+		c.Projects.Colors = map[string]string{"web": "teal"}
+		c.Projects.Capture = "OPS"
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile("config.toml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := v.ReadConfig(bytes.NewReader(raw)); err != nil {
+		t.Fatal(err)
+	}
+	var reloaded Config
+	if err := v.Unmarshal(&reloaded); err != nil {
+		t.Fatal(err)
+	}
+	p := reloaded.Projects
+	if len(p.Order) != 2 || p.Order[0] != "WEB" || p.Colors["web"] != "teal" || p.Capture != "OPS" {
+		t.Errorf("reloaded %+v", p)
+	}
+}

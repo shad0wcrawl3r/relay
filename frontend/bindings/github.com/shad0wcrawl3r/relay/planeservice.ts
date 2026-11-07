@@ -46,11 +46,32 @@ export function Lock(key: string): $CancellablePromise<void> {
 }
 
 /**
+ * SetCaptureProject picks the project quick capture starts in; "" for the first.
+ */
+export function SetCaptureProject(identifier: string): $CancellablePromise<void> {
+    return $Call.ByID(4268134430, identifier);
+}
+
+/**
  * SetLockable adds key to or removes it from the locked list. Removing a lock
  * needs the same confirmation as unlocking.
  */
 export function SetLockable(key: string, locked: boolean): $CancellablePromise<void> {
     return $Call.ByID(25912794, key, locked);
+}
+
+/**
+ * SetProjectColor gives a project one of plane.Colors; "" goes back to automatic.
+ */
+export function SetProjectColor(identifier: string, color: string): $CancellablePromise<void> {
+    return $Call.ByID(139218757, identifier, color);
+}
+
+/**
+ * SetProjectOrder saves the sidebar order as project identifiers.
+ */
+export function SetProjectOrder(identifiers: string[] | null): $CancellablePromise<void> {
+    return $Call.ByID(2518822858, identifiers);
 }
 
 /**
