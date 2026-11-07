@@ -1,5 +1,5 @@
 // Package planning shows Buffer content items as a board project, so Relay
-// can plan without Plane. Columns before posting are Buffer tags that Relay
+// can plan without Plane. Experimental, like the Buffer API it's built on. Columns before posting are Buffer tags that Relay
 // creates ("Relay: To do", …); untagged items are ideas, and items that
 // already hold channel posts are Scheduled or Published, from their posts.
 package planning

@@ -118,14 +118,14 @@ export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => v
           </div>
 
           <div className="flex flex-col gap-0.5">
-            {!rail && <div className="px-2.5 pb-1.5 text-[11px] font-medium uppercase tracking-[.06em] text-dim">Plane projects</div>}
+            {!rail && <div className="px-2.5 pb-1.5 text-[11px] font-medium uppercase tracking-[.06em] text-dim">{snapshot?.connected ? "Plane projects" : "Projects"}</div>}
             {projects.map((p) => (
               <Item
                 key={p.id}
                 active={route.name === "project" && route.projectId === p.id}
                 onClick={() => go({ name: "project", projectId: p.id })}
                 icon={<ProjectGlyph project={p} />}
-                label={p.name}
+                label={p.source === "buffer" ? `${p.name} (experimental)` : p.name}
                 badge={
                   <span className="ml-auto text-[11px] text-dim" title={p.private ? (p.locked ? "Locked: unlock to see items" : "Unlocked: locks again automatically") : undefined}>
                     {p.private ? p.locked ? <PrivateLock /> : <LockOpen className="size-[13px] text-[#5eead4]" strokeWidth={1.9} aria-label="Unlocked" /> : openCount(p)}

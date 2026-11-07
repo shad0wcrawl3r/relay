@@ -218,7 +218,7 @@ type Config struct {
 		Capture string `mapstructure:"CAPTURE"`
 	}
 	// Planning puts a board backed by Buffer content items next to (or
-	// instead of) Plane.
+	// instead of) Plane. Experimental: Buffer's content item API is.
 	Planning struct {
 		Buffer bool `mapstructure:"BUFFER"`
 		// BufferOrg is the Buffer organization to plan in; empty: the first.

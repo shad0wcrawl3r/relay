@@ -4,6 +4,7 @@ import { usePlane } from "@/lib/store";
 import { useToast } from "@/components/Toaster";
 import { errorMessage } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
+import { ExperimentalBadge } from "@/components/bits";
 
 /**
  * Turns on the Buffer planning board: Buffer content items shown as a board,
@@ -38,12 +39,13 @@ export function BufferPlanningRow() {
       <label className="flex items-center gap-2.5 text-[13px] text-strong">
         <Switch checked={setting.enabled} disabled={busy} onCheckedChange={(v) => save(v, setting.orgId)} />
         Plan in Buffer
-        <span className="rounded bg-[#2a2113] px-1.5 py-px text-[10px] font-medium uppercase tracking-wide text-[#fcd34d]">Experimental</span>
+        <ExperimentalBadge />
       </label>
       <p className="m-0 text-xs text-dim">
         Adds a board of your Buffer content items, so you can plan without Plane. Idea, Todo, In Progress and Ready are Buffer tags Relay
         adds (named “Relay: …”); cards with posts in Buffer move to Scheduled and Published on their own. Buffer marks this part of its API
-        experimental, so it may change.
+        experimental, so this board is experimental in Relay too: it may change or stop working, and isn't for anything
+        you can't afford to redo.
       </p>
       {setting.enabled && orgs.length > 1 && (
         <label className="flex items-center gap-2 text-xs text-muted-foreground">

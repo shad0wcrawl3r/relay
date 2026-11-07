@@ -9,7 +9,7 @@ import { usePlane } from "@/lib/store";
 import { findState, isOverdue, norm, planeURL, PRIORITIES, priorityLabel, stateById, stateColor } from "@/lib/plane";
 import { ago, isoDate, shortDate } from "@/lib/time";
 import { cn, errorMessage } from "@/lib/utils";
-import { Dot, Kbd, PriorityIcon, PrivateLock, ProjectGlyph } from "@/components/bits";
+import { Dot, ExperimentalBadge, Kbd, PriorityIcon, PrivateLock, ProjectGlyph } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DueChip } from "@/components/Reschedule";
@@ -142,6 +142,7 @@ export function ItemDrawer({ project, itemId, siblings, focusComposer, onNavigat
         <div className="drag flex h-[52px] shrink-0 items-center gap-2 border-b border-hairline pl-5 pr-3">
           <ProjectGlyph project={project} />
           <span className="font-mono text-xs text-muted-foreground">{item.key}</span>
+          {fromBuffer && <ExperimentalBadge />}
           {project.private && <PrivateLock size={12} color="#5eead4" />}
           <span className="flex-1" />
           <div className="no-drag flex items-center gap-0.5">

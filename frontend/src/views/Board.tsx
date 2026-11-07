@@ -10,7 +10,7 @@ import { UnlockButton } from "@/components/LockScreen";
 import { usePlane } from "@/lib/store";
 import { collapsedByDefault, hasIdeas, isDoneGroup, isOverdue, PRIORITIES, priorityLabel, stateById, stateColor } from "@/lib/plane";
 import { cn, errorMessage } from "@/lib/utils";
-import { Dot, Kbd, PriorityIcon, PrivateLock, ProjectGlyph } from "@/components/bits";
+import { Dot, ExperimentalBadge, Kbd, PriorityIcon, PrivateLock, ProjectGlyph } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -209,6 +209,7 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board({ projec
           <ProjectGlyph project={project} />
           <h1 className="m-0 text-[15px] font-semibold text-strong">{project.name}</h1>
           <span className="font-mono text-[11px] text-dim">{project.identifier}</span>
+          {project.source === "buffer" && <ExperimentalBadge />}
           {project.private && <PrivateLock size={13} color="#5eead4" />}
           {project.private && (
             <button

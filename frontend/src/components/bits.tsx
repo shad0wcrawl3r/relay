@@ -80,3 +80,12 @@ export function Kbd({ children }: { children: React.ReactNode }) {
 export function SectionLabel({ children, className }: { children: React.ReactNode; className?: string }) {
   return <div className={cn("text-[11px] font-medium uppercase tracking-[.06em] text-dim", className)}>{children}</div>;
 }
+
+/** Marks a feature built on an API its provider calls experimental. */
+export function ExperimentalBadge({ title = "Built on an experimental Buffer API, which may change without notice." }: { title?: string }) {
+  return (
+    <span title={title} className="rounded bg-[#2a2113] px-1.5 py-px text-[10px] font-medium uppercase tracking-wide text-[#fcd34d]">
+      Experimental
+    </span>
+  );
+}
