@@ -18,12 +18,14 @@ type BufferService struct {
 	posts  *PostService
 	plane  *PlaneService
 	links  *ideaLinks
+	cache  *bufferCache
 }
 
 func NewBufferService(posts *PostService, plane *PlaneService) *BufferService {
-	s := &BufferService{client: buffer.New(), posts: posts, plane: plane, links: newIdeaLinks(ideaLinksPath())}
+	s := &BufferService{client: buffer.New(), posts: posts, plane: plane, links: newIdeaLinks(ideaLinksPath()), cache: newBufferCache(bufferCachePath())}
 	// Buffer can end the sign-in on its side (revoked, refresh refused).
 	s.client.OnSignOut = func() {
+		s.cache.clear()
 		integrationsChanged(s)
 		go s.plane.reloadBufferPlan(context.Background())
 	}
@@ -70,6 +72,7 @@ func (s *BufferService) Connect(ctx context.Context) (BufferStatus, error) {
 
 func (s *BufferService) Disconnect() error {
 	err := s.client.Disconnect()
+	s.cache.clear()
 	integrationsChanged(s)
 	s.plane.reloadBufferPlan(context.Background())
 	return err
@@ -84,6 +87,7 @@ type Promotion struct {
 	PostID    string        `json:"postId"`
 	ChannelID string        `json:"channelId"`
 	Channel   string        `json:"channel"`
+	Service   string        `json:"service"`
 	Text      string        `json:"text"`
 	Timing    buffer.Timing `json:"timing"`
 	DueAt     time.Time     `json:"dueAt"`
@@ -124,7 +128,7 @@ func (s *BufferService) Promote(ctx context.Context, in Promotion) (posts.Post, 
 		return posts.Post{}, err
 	}
 	return s.posts.RecordPromotion(in.PostID, posts.Promotion{
-		BufferID: bufferID, Channel: in.Channel, Timing: string(in.Timing), DueAt: in.DueAt, At: time.Now(),
+		BufferID: bufferID, Channel: in.Channel, ChannelID: in.ChannelID, Service: in.Service, Timing: string(in.Timing), DueAt: in.DueAt, At: time.Now(),
 	})
 }
 
@@ -205,15 +209,56 @@ func (s *BufferService) Overview(ctx context.Context) (BufferOverview, error) {
 	if orgs == nil {
 		orgs = []buffer.Organization{}
 	}
-	return BufferOverview{Account: name, Organizations: orgs, Channels: channels}, nil
+	o := BufferOverview{Account: name, Organizations: orgs, Channels: channels}
+	s.cache.setOverview(o)
+	return o, nil
+}
+
+// BufferCached is what the Buffer tab shows while fresh data loads: the
+// last overview, if Buffer is still signed in. No network calls.
+type BufferCached struct {
+	Connected bool            `json:"connected"`
+	Overview  *BufferOverview `json:"overview"`
+}
+
+func (s *BufferService) Cached() BufferCached {
+	if !s.client.Connected() {
+		return BufferCached{}
+	}
+	return BufferCached{Connected: true, Overview: s.cache.overview()}
+}
+
+// CachedPosts is the last first page of a post list, or nil.
+func (s *BufferService) CachedPosts(q buffer.PostQuery) *buffer.PostPage {
+	if !s.client.Connected() {
+		return nil
+	}
+	q.After = ""
+	return s.cache.posts(q)
+}
+
+// CachedIdeas is the last first page of an organization's ideas, or nil.
+func (s *BufferService) CachedIdeas(orgID string) *buffer.IdeaPage {
+	if !s.client.Connected() {
+		return nil
+	}
+	return s.cache.ideas(orgID)
 }
 
 func (s *BufferService) Posts(ctx context.Context, q buffer.PostQuery) (buffer.PostPage, error) {
-	return s.client.Posts(ctx, q)
+	page, err := s.client.Posts(ctx, q)
+	if err == nil && q.After == "" {
+		s.cache.setPosts(q, page)
+	}
+	return page, err
 }
 
 func (s *BufferService) DeletePost(ctx context.Context, id string) error {
-	return s.client.DeletePost(ctx, id)
+	err := s.client.DeletePost(ctx, id)
+	if err == nil {
+		s.cache.removePost(id)
+	}
+	return err
 }
 
 // EditPost changes a post in Buffer. A post Relay sent about an article keeps
@@ -222,7 +267,11 @@ func (s *BufferService) EditPost(ctx context.Context, e buffer.PostEdit) (buffer
 	if url := s.posts.PromotionURL(e.ID); url != "" {
 		e.Text = promotionText(e.Text, url)
 	}
-	return s.client.EditPost(ctx, e)
+	p, err := s.client.EditPost(ctx, e)
+	if err == nil {
+		s.cache.replacePost(p)
+	}
+	return p, err
 }
 
 // Organizations lists the account's organizations, for views that only
@@ -239,7 +288,56 @@ func (s *BufferService) Organizations(ctx context.Context) ([]buffer.Organizatio
 }
 
 func (s *BufferService) Ideas(ctx context.Context, orgID, after string) (buffer.IdeaPage, error) {
-	return s.client.Ideas(ctx, orgID, after)
+	page, err := s.client.Ideas(ctx, orgID, after)
+	if err == nil && after == "" {
+		s.cache.setIdeas(orgID, page)
+	}
+	return page, err
+}
+
+// PromotionPost is one promotion of a local article, with its Buffer post as
+// Buffer has it now.
+type PromotionPost struct {
+	posts.Promotion
+	// Found is false once the post is gone from Buffer (deleted there).
+	Found        bool   `json:"found"`
+	Status       string `json:"status"`
+	DueAt        string `json:"dueAt"`
+	SentAt       string `json:"sentAt"`
+	ExternalLink string `json:"externalLink"`
+	Error        string `json:"error"`
+	// LookupError is set when Buffer couldn't be asked.
+	LookupError string `json:"lookupError"`
+}
+
+// PromotionPosts looks up the Buffer posts a local article was promoted
+// with, newest first.
+func (s *BufferService) PromotionPosts(ctx context.Context, postID string) ([]PromotionPost, error) {
+	p, err := s.posts.store.Get(postID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]PromotionPost, 0, len(p.Promotions))
+	for i := len(p.Promotions) - 1; i >= 0; i-- {
+		pr := p.Promotions[i]
+		row := PromotionPost{Promotion: pr}
+		bp, found, err := s.client.Post(ctx, pr.BufferID)
+		switch {
+		case err != nil:
+			row.LookupError = err.Error()
+		case found:
+			row.Found, row.Status, row.DueAt, row.SentAt = true, bp.Status, bp.DueAt, bp.SentAt
+			row.ExternalLink, row.Error = bp.ExternalLink, bp.Error
+			if row.ChannelID == "" {
+				row.ChannelID = bp.ChannelID
+			}
+			if row.Service == "" {
+				row.Service = bp.ChannelService
+			}
+		}
+		out = append(out, row)
+	}
+	return out, nil
 }
 
 func (s *BufferService) CreateIdea(ctx context.Context, n buffer.NewIdea) (buffer.Idea, error) {

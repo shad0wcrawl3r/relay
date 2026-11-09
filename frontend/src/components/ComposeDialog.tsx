@@ -1,22 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
-import { Loader2 } from "lucide-react";
-import { BufferService, type BufferChannel, type BufferTiming } from "@/lib/api";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CancelError, type CancellablePromise } from "@wailsio/runtime";
+import { Loader2, Sparkles } from "lucide-react";
+import { AIService, BufferService, type AIStatus, type BufferChannel, type BufferTiming } from "@/lib/api";
+import { LIMITS, PostPreview, PREVIEW_NOTE } from "@/components/PostPreview";
 import { cn, errorMessage } from "@/lib/utils";
 import { useToast } from "@/components/Toaster";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-// Text limits per network, as Buffer enforces them.
-const LIMITS: Record<string, number> = {
-  twitter: 280,
-  bluesky: 300,
-  threads: 500,
-  mastodon: 500,
-  linkedin: 3000,
-  facebook: 63206,
-  googlebusiness: 1500,
-};
 // Networks that won't take a text-only post. Relay can't attach media yet.
 const NEEDS_MEDIA = new Set(["instagram", "tiktok", "youtube", "pinterest"]);
 
@@ -65,9 +57,16 @@ export function ComposeDialog({
   const [review, setReview] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [ai, setAi] = useState<AIStatus | null>(null);
+  const [drafting, setDrafting] = useState(false);
+  const draft = useRef<CancellablePromise<string> | null>(null);
 
   useEffect(() => {
     BufferService.EvalNote().then(setEvalNote, () => {});
+    AIService.Status().then(setAi, () => {});
+    return () => {
+      draft.current?.cancel();
+    };
   }, []);
 
   const chosen = channels.filter((c) => picked.includes(c.id));
@@ -78,7 +77,23 @@ export function ComposeDialog({
     return n && (!min || n < min.n) ? { n, who: label(c) } : min;
   }, null);
   const tooLong = !!limit && length > limit.n;
-  const ready = chosen.length > 0 && text.trim() !== "" && !tooLong && (timing !== "schedule" || dueAt);
+  const ready = chosen.length > 0 && text.trim() !== "" && !tooLong && !drafting && (timing !== "schedule" || dueAt);
+
+  // Room for the dev-build note, so the draft still fits once it's added.
+  const draftWithAI = async () => {
+    setDrafting(true);
+    setError("");
+    const request = AIService.DraftPost(text, (limit?.n ?? 3000) - (evalNote ? evalNote.length + 2 : 0));
+    draft.current = request;
+    try {
+      setText(await request);
+    } catch (err) {
+      if (!(err instanceof CancelError)) setError(errorMessage(err));
+    } finally {
+      draft.current = null;
+      setDrafting(false);
+    }
+  };
 
   const toggle = (id: string) => setPicked((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
 
@@ -135,9 +150,14 @@ export function ComposeDialog({
         </DialogHeader>
 
         {review !== null ? (
-          <p className="m-0 max-h-[52vh] overflow-y-auto whitespace-pre-wrap break-words rounded-md border border-border bg-[#0f0f11] p-3 text-[13px] leading-relaxed text-strong">
-            {review}
-          </p>
+          <div className="flex flex-col gap-2">
+            <div className="flex max-h-[56vh] flex-col gap-3 overflow-y-auto">
+              {chosen.map((c) => (
+                <PostPreview key={c.id} channel={c} text={review} />
+              ))}
+            </div>
+            <p className="m-0 text-xs text-dim">{PREVIEW_NOTE}</p>
+          </div>
         ) : channels.length === 0 ? (
           <p className="m-0 text-[13px] text-muted-foreground">No channels in this organization. Connect one in Buffer, then refresh.</p>
         ) : (
@@ -170,7 +190,7 @@ export function ComposeDialog({
                 value={text}
                 rows={9}
                 autoFocus
-                placeholder="What do you want to say?"
+                placeholder="What do you want to say? Write the post, or rough notes for AI to draft from."
                 onChange={(e) => setText(e.target.value)}
                 className="w-full resize-none rounded-md border border-border bg-transparent px-3 py-2 text-[13px] leading-relaxed text-strong outline-none placeholder:text-dim focus:border-[#52525b]"
               />
@@ -185,6 +205,28 @@ export function ComposeDialog({
                 <p className="m-0 text-xs text-dim">Dev build: “{evalNote}” is added at the end, so a test post left in Buffer still says what it is.</p>
               )}
             </div>
+
+            {ai?.ready ? (
+              <div className="flex items-center gap-3">
+                {drafting ? (
+                  <Button variant="outline" size="md" onClick={() => draft.current?.cancel()}>
+                    <Loader2 className="size-3.5 animate-spin" />
+                    Cancel
+                  </Button>
+                ) : (
+                  <Button variant="outline" size="md" disabled={!text.trim()} onClick={draftWithAI}>
+                    <Sparkles className="size-3.5" />
+                    Draft with AI
+                  </Button>
+                )}
+                <span className="text-xs text-dim">
+                  Rewrites your notes{limit ? ` to fit ${limit.who}` : ""}.{" "}
+                  {ai.local ? `Runs on this machine with ${ai.label}.` : `Sends them to ${ai.label}.`}
+                </span>
+              </div>
+            ) : (
+              <p className="m-0 text-xs text-dim">Connect a model provider in Settings → AI to draft posts from your notes.</p>
+            )}
 
             <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="When to post">
               {TIMINGS.map((t) => (

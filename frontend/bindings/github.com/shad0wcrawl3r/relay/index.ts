@@ -25,6 +25,7 @@ export {
 export type {
     AIProvider,
     AIStatus,
+    BufferCached,
     BufferOverview,
     BufferPlanning,
     BufferStatus,
@@ -45,6 +46,7 @@ export type {
     PostList,
     PostSummary,
     Promotion,
+    PromotionPost,
     SendResult,
     Settings,
     SettingsInput,

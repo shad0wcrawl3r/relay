@@ -29,6 +29,10 @@ frontend. Runs on macOS, Windows and Linux.
   - Markdown editor with preview and image placeholders
   - Sends to Dev.to as an unpublished draft, and syncs your articles back
   - Publishing is a separate, confirmed step
+  - AI use per post (none, assisted or generated; new posts start as
+    assisted): Dev.to's API has no field for it, so Relay adds the matching
+    disclosure line at the end of the article, as DEV's guidelines ask
+  - Delete a draft that hasn't gone to Dev.to yet from the editor's footer
   - Spots edits made on Dev.to: Update draft shows a diff (unified or side by
     side) and asks whether to keep Dev.to's version or replace it
 - **Promotion**
@@ -37,7 +41,13 @@ frontend. Runs on macOS, Windows and Linux.
   - Review and edit each draft before it goes to Buffer
   - Every post carries the article's public link
   - Or write a post straight for Buffer, no article needed: one text to one or
-    more channels (or from an idea), queued, scheduled or saved as a draft
+    more channels (or from an idea), queued, scheduled or saved as a draft.
+    AI can draft it from rough notes to fit the strictest channel, and the
+    review shows a preview per channel
+  - "Promoted once" on an article lists its Buffer posts with their status,
+    linking to the post in the Buffer tab and on the network once it's out
+  - The Buffer tab opens on its last data (an encrypted cache, like Plane's)
+    and refreshes in the background
   - Buffer tab: channels with posting schedules and weekly goals; the queue,
     drafts, approvals, sent and failed posts; edit, reschedule and delete;
     ideas, drafted with AI from any pasted text
@@ -79,9 +89,9 @@ frontend. Runs on macOS, Windows and Linux.
     quits. The Windows uninstaller offers the same as an option. On macOS and
     Linux, clear data before deleting the app
   - Runs in the background with a tray icon
-  - Checks GitHub's releases at launch and offers a newer version's
-    download page; nothing is downloaded or installed automatically. Turn it
-    off in Settings → Privacy
+  - Checks GitHub's releases at launch; Update now downloads the new
+    release, checks it against `SHA256SUMS`, installs it and relaunches.
+    Turn the check off in Settings → Privacy
   - CI builds for macOS, Windows and Linux, published as releases with a
     `SHA256SUMS` file and steps for opening unsigned builds (Windows:
     [SmartScreen guide](docs/windows-smartscreen.md))
@@ -103,7 +113,6 @@ Later:
 - More promotion channels, plus threads for X, Threads and Bluesky
 - Image upload for Dev.to and Buffer
 - Unlock on Windows and Linux
-- Auto-update
 
 ## Getting started
 

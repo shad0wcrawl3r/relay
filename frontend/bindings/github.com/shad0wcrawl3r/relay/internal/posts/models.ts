@@ -8,6 +8,12 @@ export interface Post {
     "series": string;
     "description": string;
     "canonicalUrl": string;
+
+    /**
+     * AI is how much AI went into the post: "none", "assisted" or
+     * "generated". Sending adds a matching line for Dev.to; empty is "none".
+     */
+    "ai": string;
     "devtoId": number;
     "devtoUrl": string;
     "sentAt": string;
@@ -32,6 +38,13 @@ export interface Post {
 export interface Promotion {
     "bufferId": string;
     "channel": string;
+
+    /**
+     * ChannelID and Service are empty on promotions from before Relay
+     * kept them.
+     */
+    "channelId": string;
+    "service": string;
     "timing": string;
     "dueAt": string;
     "at": string;

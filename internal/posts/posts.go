@@ -19,14 +19,17 @@ import (
 )
 
 type Meta struct {
-	Title        string    `yaml:"title" json:"title"`
-	Tags         []string  `yaml:"tags,flow" json:"tags"`
-	Series       string    `yaml:"series,omitempty" json:"series"`
-	Description  string    `yaml:"description,omitempty" json:"description"`
-	CanonicalURL string    `yaml:"canonical_url,omitempty" json:"canonicalUrl"`
-	DevtoID      int       `yaml:"devto_id,omitempty" json:"devtoId"`
-	DevtoURL     string    `yaml:"devto_url,omitempty" json:"devtoUrl"`
-	SentAt       time.Time `yaml:"sent_at,omitempty" json:"sentAt"`
+	Title        string   `yaml:"title" json:"title"`
+	Tags         []string `yaml:"tags,flow" json:"tags"`
+	Series       string   `yaml:"series,omitempty" json:"series"`
+	Description  string   `yaml:"description,omitempty" json:"description"`
+	CanonicalURL string   `yaml:"canonical_url,omitempty" json:"canonicalUrl"`
+	// AI is how much AI went into the post: "none", "assisted" or
+	// "generated". Sending adds a matching line for Dev.to; empty is "none".
+	AI       string    `yaml:"ai,omitempty" json:"ai"`
+	DevtoID  int       `yaml:"devto_id,omitempty" json:"devtoId"`
+	DevtoURL string    `yaml:"devto_url,omitempty" json:"devtoUrl"`
+	SentAt   time.Time `yaml:"sent_at,omitempty" json:"sentAt"`
 	// DevtoHash fingerprints Dev.to's copy (title and body) as of the last
 	// send or pull, so edits made on Dev.to since then can be spotted.
 	DevtoHash string `yaml:"devto_hash,omitempty" json:"devtoHash"`
@@ -37,11 +40,15 @@ type Meta struct {
 
 // Promotion is one post sent to Buffer about this article.
 type Promotion struct {
-	BufferID string    `yaml:"buffer_id" json:"bufferId"`
-	Channel  string    `yaml:"channel" json:"channel"`
-	Timing   string    `yaml:"timing" json:"timing"`
-	DueAt    time.Time `yaml:"due_at,omitempty" json:"dueAt"`
-	At       time.Time `yaml:"at" json:"at"`
+	BufferID string `yaml:"buffer_id" json:"bufferId"`
+	Channel  string `yaml:"channel" json:"channel"`
+	// ChannelID and Service are empty on promotions from before Relay
+	// kept them.
+	ChannelID string    `yaml:"channel_id,omitempty" json:"channelId"`
+	Service   string    `yaml:"service,omitempty" json:"service"`
+	Timing    string    `yaml:"timing" json:"timing"`
+	DueAt     time.Time `yaml:"due_at,omitempty" json:"dueAt"`
+	At        time.Time `yaml:"at" json:"at"`
 }
 
 type Post struct {

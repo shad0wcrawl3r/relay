@@ -25,6 +25,24 @@ import * as posts$0 from "./internal/posts/models.js";
 // @ts-ignore: Unused imports
 import * as $models from "./models.js";
 
+export function Cached(): $CancellablePromise<$models.BufferCached> {
+    return $Call.ByID(2530073113);
+}
+
+/**
+ * CachedIdeas is the last first page of an organization's ideas, or nil.
+ */
+export function CachedIdeas(orgID: string): $CancellablePromise<buffer$0.IdeaPage | null> {
+    return $Call.ByID(639211655, orgID);
+}
+
+/**
+ * CachedPosts is the last first page of a post list, or nil.
+ */
+export function CachedPosts(q: buffer$0.PostQuery): $CancellablePromise<buffer$0.PostPage | null> {
+    return $Call.ByID(3017772344, q);
+}
+
 export function Channels(): $CancellablePromise<buffer$0.Channel[] | null> {
     return $Call.ByID(3644032715);
 }
@@ -132,6 +150,14 @@ export function PreviewPromotion(postID: string, text: string): $CancellableProm
  */
 export function Promote($in: $models.Promotion): $CancellablePromise<posts$0.Post> {
     return $Call.ByID(4047106609, $in);
+}
+
+/**
+ * PromotionPosts looks up the Buffer posts a local article was promoted
+ * with, newest first.
+ */
+export function PromotionPosts(postID: string): $CancellablePromise<$models.PromotionPost[] | null> {
+    return $Call.ByID(528841899, postID);
 }
 
 /**

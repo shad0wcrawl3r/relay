@@ -64,6 +64,15 @@ export interface AIStatus {
 }
 
 /**
+ * BufferCached is what the Buffer tab shows while fresh data loads: the
+ * last overview, if Buffer is still signed in. No network calls.
+ */
+export interface BufferCached {
+    "connected": boolean;
+    "overview": BufferOverview | null;
+}
+
+/**
  * BufferOverview is what the Buffer tab opens with: the account, its
  * organizations (with plan limits) and every channel.
  */
@@ -264,9 +273,43 @@ export interface Promotion {
     "postId": string;
     "channelId": string;
     "channel": string;
+    "service": string;
     "text": string;
     "timing": buffer$0.Timing;
     "dueAt": string;
+}
+
+/**
+ * PromotionPost is one promotion of a local article, with its Buffer post as
+ * Buffer has it now.
+ */
+export interface PromotionPost {
+    "bufferId": string;
+    "channel": string;
+
+    /**
+     * ChannelID and Service are empty on promotions from before Relay
+     * kept them.
+     */
+    "channelId": string;
+    "service": string;
+    "timing": string;
+    "at": string;
+
+    /**
+     * Found is false once the post is gone from Buffer (deleted there).
+     */
+    "found": boolean;
+    "status": string;
+    "dueAt": string;
+    "sentAt": string;
+    "externalLink": string;
+    "error": string;
+
+    /**
+     * LookupError is set when Buffer couldn't be asked.
+     */
+    "lookupError": string;
 }
 
 /**
