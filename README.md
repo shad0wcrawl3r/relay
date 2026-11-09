@@ -39,6 +39,9 @@ frontend. Runs on macOS, Windows and Linux.
   - Buffer tab: channels with posting schedules and weekly goals; the queue,
     drafts, approvals, sent and failed posts; edit, reschedule and delete;
     ideas, drafted with AI from any pasted text
+  - Plan in Buffer (**experimental**, because Buffer's content item API is): a board of Buffer content items, with or
+    without Plane. Idea, Todo, In Progress and Ready are Buffer tags Relay
+    adds ("Relay: …"); cards with posts follow them to Scheduled and Published
   - Buffer column on Plane boards: drag work items in to save them as Buffer
     ideas, or drag ideas out to make work items (never for private projects)
   - AI providers: Anthropic, OpenAI, OpenRouter, Ollama and LM Studio, with

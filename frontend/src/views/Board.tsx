@@ -10,7 +10,7 @@ import { UnlockButton } from "@/components/LockScreen";
 import { usePlane } from "@/lib/store";
 import { collapsedByDefault, hasIdeas, isDoneGroup, isOverdue, PRIORITIES, priorityLabel, stateById, stateColor } from "@/lib/plane";
 import { cn, errorMessage } from "@/lib/utils";
-import { Dot, Kbd, PriorityIcon, PrivateLock, ProjectGlyph } from "@/components/bits";
+import { Dot, ExperimentalBadge, Kbd, PriorityIcon, PrivateLock, ProjectGlyph } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -147,7 +147,7 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board({ projec
   };
 
   // Ideas sync with Buffer, but never for private projects (Go refuses too).
-  const showIdeas = buffer === true && !project.private && view === "board";
+  const showIdeas = buffer === true && !project.private && project.source !== "buffer" && view === "board";
 
   const byState = stateById(project);
   const items = useMemo(() => project.items.filter((it) => matches(it, byState.get(it.stateId), filters)), [project, filters]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -168,7 +168,7 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board({ projec
   };
 
   const activeFilters = filters.modules.size + filters.labels.size + filters.priorities.size + filters.cycles.size + +filters.agentOnly + +filters.overdueOnly;
-  const isLab = hasIdeas(project);
+  const ideas = hasIdeas(project);
 
   const filterMenu = (label: string, set: Set<string>, key: "modules" | "labels" | "priorities" | "cycles", options: { id: string; name: string; icon?: React.ReactNode }[]) => (
     <DropdownMenu>
@@ -209,6 +209,7 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board({ projec
           <ProjectGlyph project={project} />
           <h1 className="m-0 text-[15px] font-semibold text-strong">{project.name}</h1>
           <span className="font-mono text-[11px] text-dim">{project.identifier}</span>
+          {project.source === "buffer" && <ExperimentalBadge />}
           {project.private && <PrivateLock size={13} color="#5eead4" />}
           {project.private && (
             <button
@@ -294,7 +295,7 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board({ projec
         </label>
         <Button className="no-drag" onClick={onNewItem}>
           <Plus className="size-[13px]" strokeWidth={2} />
-          {isLab ? "New idea" : "New item"}
+          {ideas ? "New idea" : "New item"}
         </Button>
       </header>
       {project.hiddenItems > 0 && (

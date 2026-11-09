@@ -30,6 +30,7 @@ import { ShellPicker } from "@/components/ShellPicker";
 import { ImportSettingsButton } from "@/components/SettingsTransfer";
 import { DevtoKeyField, DevtoKeyLink } from "@/components/DevtoKeyField";
 import { BufferLogo } from "@/components/icons/BufferLogo";
+import { BufferPlanningRow } from "@/components/BufferPlanningRow";
 import {
   planeAppSteps,
   planeIntegrationsUrl,
@@ -369,7 +370,10 @@ function BufferStep({
       lead="Relay sends LinkedIn posts through your Buffer account. Nothing is posted until you review it."
     >
       {connected ? (
-        <Status ok>Connected{account && ` as ${account}`}</Status>
+        <>
+          <Status ok>Connected{account && ` as ${account}`}</Status>
+          <BufferPlanningRow title="Also use Buffer to plan your work" />
+        </>
       ) : (
         <>
           <ol className="m-0 flex flex-col gap-1.5 pl-4 text-muted-foreground">
@@ -531,9 +535,11 @@ function PlaneStep({
       <Input
         value={workspace}
         placeholder="my-workspace"
-        onChange={(e) => setWorkspace(e.target.value)}
+        onChange={(e) => setWorkspace(slugFrom(e.target.value, s.planeAppUrl))}
         spellCheck={false}
+        aria-label="Workspace slug"
       />
+      <WorkspaceHelp appUrl={s.planeAppUrl} />
       <Button
         variant="outline"
         size="md"
@@ -718,5 +724,51 @@ function DoneStep({ done }: { done: Record<StepId, boolean> }) {
         ))}
       </ul>
     </Section>
+  );
+}
+
+/** A pasted Plane address becomes its workspace slug: the first path part. */
+function slugFrom(input: string, appUrl: string): string {
+  const host = appUrl.replace(/^https?:\/\//, "").replace(/\/+$/, "");
+  const t = input.trim();
+  const rest = t.replace(/^https?:\/\//, "");
+  if (!rest.toLowerCase().startsWith(host.toLowerCase() + "/")) return input;
+  return rest.slice(host.length + 1).split(/[/?#]/)[0] ?? "";
+}
+
+/** "Don't know your workspace slug?": opens Plane and shows where to look. */
+function WorkspaceHelp({ appUrl }: { appUrl: string }) {
+  const [open, setOpen] = useState(false);
+  const host = appUrl.replace(/^https?:\/\//, "").replace(/\/+$/, "");
+  if (!open) {
+    return (
+      <button className="self-start text-xs text-[#93c5fd] hover:underline" onClick={() => setOpen(true)}>
+        Don't know your workspace slug?
+      </button>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-2 rounded-md border border-border bg-[#111114] p-3 text-xs leading-relaxed text-muted-foreground">
+      <ol className="m-0 flex list-decimal flex-col gap-1.5 pl-4">
+        <li>
+          Open Plane and sign in. It opens on your workspace.
+          <Button variant="outline" size="md" className="mt-1.5 flex" onClick={() => Browser.OpenURL(appUrl)}>
+            <ExternalLink className="size-3.5" />
+            Open {host}
+          </Button>
+        </li>
+        <li>
+          Look at the address bar. The slug is the first part after <code className="font-mono">{host}/</code>:
+          <div className="mt-1 rounded bg-background px-2 py-1 font-mono text-[11.5px] text-foreground">
+            {host}/<span className="rounded bg-[#2e1a47] px-0.5 text-[#d8b4fe]">acme-team</span>/projects/
+          </div>
+        </li>
+        <li>Type it above, or paste the whole address and Relay keeps just the slug.</li>
+      </ol>
+      <p className="m-0 text-dim">
+        The slug isn't always the workspace's display name: "Acme Team" may be <code className="font-mono">acme-team</code>. In more than one
+        workspace? Switch to the one you want from the menu at the top left in Plane first.
+      </p>
+    </div>
   );
 }

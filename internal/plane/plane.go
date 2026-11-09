@@ -41,6 +41,10 @@ type Snapshot struct {
 	Syncing bool `json:"syncing"`
 	// CaptureProject is the project ID quick capture starts in; set by Arrange.
 	CaptureProject string `json:"captureProject"`
+	// BufferPlan is set when the Buffer planning board is on; BufferPlanError
+	// holds its last load error.
+	BufferPlan      bool   `json:"bufferPlan"`
+	BufferPlanError string `json:"bufferPlanError"`
 }
 
 type Member struct {
@@ -59,6 +63,8 @@ type Project struct {
 	Locked  bool `json:"locked"`
 	// Color is a palette name from Settings, or empty for automatic; set by Arrange.
 	Color string `json:"color"`
+	// Source is "buffer" for the Buffer planning board; empty for Plane.
+	Source string `json:"source"`
 	// HiddenItems counts items held back because their module is locked.
 	HiddenItems int      `json:"hiddenItems"`
 	States      []State  `json:"states"`

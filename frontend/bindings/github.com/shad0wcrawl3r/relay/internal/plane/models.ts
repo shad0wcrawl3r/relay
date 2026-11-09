@@ -146,6 +146,11 @@ export interface Project {
     "color": string;
 
     /**
+     * Source is "buffer" for the Buffer planning board; empty for Plane.
+     */
+    "source": string;
+
+    /**
      * HiddenItems counts items held back because their module is locked.
      */
     "hiddenItems": number;
@@ -181,6 +186,13 @@ export interface Snapshot {
      * CaptureProject is the project ID quick capture starts in; set by Arrange.
      */
     "captureProject": string;
+
+    /**
+     * BufferPlan is set when the Buffer planning board is on; BufferPlanError
+     * holds its last load error.
+     */
+    "bufferPlan": boolean;
+    "bufferPlanError": string;
 }
 
 export interface State {

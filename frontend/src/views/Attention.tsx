@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { usePlane } from "@/lib/store";
-import { ATTENTION_GROUPS, attentionRows, findState, findStateByGroup, isOverdue, type AttentionRow } from "@/lib/plane";
+import { ATTENTION_GROUPS, attentionRows, boardsOn, findState, findStateByGroup, isOverdue, type AttentionRow } from "@/lib/plane";
 import { ago, daysLate, duration, isoDate, shortDate } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { Dot, PrivateLock, ProjectGlyph, StatePill } from "@/components/bits";
@@ -81,8 +81,8 @@ export function Attention({ openItem }: { openItem: (o: OpenItem) => void }) {
           <div className="flex-[1_1_320px]">
             <h1 className="m-0 text-[22px] font-semibold tracking-[-.01em] text-strong">Attention</h1>
             <p className="mt-1 text-[13px] text-dim">
-              {!snapshot?.connected
-                ? "Connect Plane in Settings to see what's waiting on you."
+              {!boardsOn(snapshot)
+                ? "Connect Plane, or turn on planning in Buffer, in Settings to see what's waiting on you."
                 : rows.length === 0
                   ? "Nothing is waiting on you."
                   : `${rows.length} item${rows.length === 1 ? "" : "s"} across ${projectCount} project${projectCount === 1 ? "" : "s"} ${rows.length === 1 ? "is" : "are"} waiting on you.`}

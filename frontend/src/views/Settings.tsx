@@ -21,6 +21,7 @@ import { AISettings } from "@/components/AISettings";
 import { LogSettings } from "@/components/LogSettings";
 import { PlaneAppGuide, planeIntegrationsUrl } from "@/components/PlaneAppGuide";
 import { ProjectSettings } from "@/components/ProjectSettings";
+import { BufferPlanningRow } from "@/components/BufferPlanningRow";
 import { UpdateCheck, useAutoCheck } from "@/components/Updates";
 import type { Route } from "@/App";
 
@@ -331,7 +332,7 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
           </Row>
         </Section>
 
-        {s.planeConnected && (
+        {(s.planeConnected || snapshot?.bufferPlan) && (
           <Section title="Projects" description="Order and colour in the sidebar, and where quick capture (⌘K) starts. Projects with an Idea state get New idea instead of New item.">
             <ProjectSettings />
           </Section>
@@ -382,6 +383,7 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
               <Button onClick={connectBuffer}>Connect Buffer</Button>
             )}
           </div>
+          {buffer.connected && <BufferPlanningRow />}
         </Section>
 
           </TabsContent>

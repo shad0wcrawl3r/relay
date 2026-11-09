@@ -18,6 +18,14 @@ import * as plane$0 from "./internal/plane/models.js";
 // @ts-ignore: Unused imports
 import * as unlock$0 from "./internal/unlock/models.js";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as $models from "./models.js";
+
+export function BufferPlanning(): $CancellablePromise<$models.BufferPlanning> {
+    return $Call.ByID(1264566536);
+}
+
 export function Comment(projectID: string, itemID: string, html: string): $CancellablePromise<void> {
     return $Call.ByID(1830150044, projectID, itemID, html);
 }
@@ -43,6 +51,14 @@ export function Disconnect(): $CancellablePromise<void> {
  */
 export function Lock(key: string): $CancellablePromise<void> {
     return $Call.ByID(1995652964, key);
+}
+
+/**
+ * SetBufferPlanning turns the Buffer board on or off and picks its
+ * organization ("" for the first), then reloads it.
+ */
+export function SetBufferPlanning(enabled: boolean, orgID: string): $CancellablePromise<$models.BufferPlanning> {
+    return $Call.ByID(2699080270, enabled, orgID);
 }
 
 /**

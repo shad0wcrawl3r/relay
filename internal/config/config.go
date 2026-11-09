@@ -144,6 +144,8 @@ func write(next Config) error {
 	v.Set("projects.COLORS", next.Projects.Colors)
 	v.Set("projects.CAPTURE", next.Projects.Capture)
 	v.Set("appearance.ZOOM", next.Appearance.Zoom)
+	v.Set("planning.BUFFER", next.Planning.Buffer)
+	v.Set("planning.BUFFER_ORG", next.Planning.BufferOrg)
 	v.Set("updates.CHECK", next.Updates.Check)
 	path := Path()
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
@@ -224,6 +226,13 @@ type Config struct {
 	Appearance struct {
 		// Zoom is the page zoom of every Relay window; 1 is 100%.
 		Zoom float64 `mapstructure:"ZOOM"`
+	}
+	// Planning puts a board backed by Buffer content items next to (or
+	// instead of) Plane. Experimental: Buffer's content item API is.
+	Planning struct {
+		Buffer bool `mapstructure:"BUFFER"`
+		// BufferOrg is the Buffer organization to plan in; empty: the first.
+		BufferOrg string `mapstructure:"BUFFER_ORG"`
 	}
 	Updates struct {
 		// Check: look for a newer GitHub release when Relay starts.

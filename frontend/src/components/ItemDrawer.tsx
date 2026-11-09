@@ -9,7 +9,7 @@ import { usePlane } from "@/lib/store";
 import { findState, isOverdue, norm, planeURL, PRIORITIES, priorityLabel, stateById, stateColor } from "@/lib/plane";
 import { ago, isoDate, shortDate } from "@/lib/time";
 import { cn, errorMessage } from "@/lib/utils";
-import { Dot, Kbd, PriorityIcon, PrivateLock, ProjectGlyph } from "@/components/bits";
+import { Dot, ExperimentalBadge, Kbd, PriorityIcon, PrivateLock, ProjectGlyph } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DueChip } from "@/components/Reschedule";
@@ -93,6 +93,8 @@ export function ItemDrawer({ project, itemId, siblings, focusComposer, onNavigat
   const modules = project.modules.filter((m) => item?.moduleIds?.includes(m.id));
   const agentName = detail?.comments.find((c) => c.agent)?.author.name;
   const comments = detail?.comments ?? [];
+  // Cards on the Buffer planning board have no priority, comments or activity.
+  const fromBuffer = project.source === "buffer";
 
   const send = async (then?: { stateId: string; message: string }) => {
     if (!item) return;
@@ -140,6 +142,7 @@ export function ItemDrawer({ project, itemId, siblings, focusComposer, onNavigat
         <div className="drag flex h-[52px] shrink-0 items-center gap-2 border-b border-hairline pl-5 pr-3">
           <ProjectGlyph project={project} />
           <span className="font-mono text-xs text-muted-foreground">{item.key}</span>
+          {fromBuffer && <ExperimentalBadge />}
           {project.private && <PrivateLock size={12} color="#5eead4" />}
           <span className="flex-1" />
           <div className="no-drag flex items-center gap-0.5">
@@ -149,9 +152,11 @@ export function ItemDrawer({ project, itemId, siblings, focusComposer, onNavigat
             <IconBtn label="Next item" disabled={idx < 0 || idx >= siblings.length - 1} onClick={() => onNavigate(siblings[idx + 1])}>
               <ChevronDown className="size-3.5" strokeWidth={2} />
             </IconBtn>
-            <IconBtn label="Open in Plane" onClick={() => snapshot && Browser.OpenURL(planeURL(snapshot.appUrl, snapshot.workspace, item))}>
-              <ExternalLink className="size-3.5" strokeWidth={1.8} />
-            </IconBtn>
+            {!fromBuffer && (
+              <IconBtn label="Open in Plane" onClick={() => snapshot && Browser.OpenURL(planeURL(snapshot.appUrl, snapshot.workspace, item))}>
+                <ExternalLink className="size-3.5" strokeWidth={1.8} />
+              </IconBtn>
+            )}
             <IconBtn label="Close" onClick={onClose}>
               <X className="size-[15px]" strokeWidth={2} />
             </IconBtn>
@@ -183,6 +188,8 @@ export function ItemDrawer({ project, itemId, siblings, focusComposer, onNavigat
               </DropdownMenu>
             </dd>
 
+            {!fromBuffer && (
+              <>
             <dt className="flex min-h-[26px] items-center text-dim">Priority</dt>
             <dd className="m-0 flex min-h-[26px] items-center">
               <DropdownMenu>
@@ -204,6 +211,8 @@ export function ItemDrawer({ project, itemId, siblings, focusComposer, onNavigat
                 </DropdownMenuContent>
               </DropdownMenu>
             </dd>
+              </>
+            )}
 
             <dt className="flex min-h-[26px] items-center text-dim">Labels</dt>
             <dd className="m-0 flex min-h-[26px] flex-wrap items-center gap-1.5">
@@ -294,6 +303,13 @@ export function ItemDrawer({ project, itemId, siblings, focusComposer, onNavigat
             )}
           </div>
 
+          {fromBuffer ? (
+            <p className="m-0 text-xs text-dim">
+              This card is a Buffer content item. Move it between Idea, Todo, In Progress and Ready here; once it has posts in Buffer it
+              follows them to Scheduled and Published.
+            </p>
+          ) : (
+            <>
           <div className="flex gap-[18px] border-b border-hairline" role="tablist">
             {(["comments", "activity"] as const).map((t) => (
               <button
@@ -318,8 +334,11 @@ export function ItemDrawer({ project, itemId, siblings, focusComposer, onNavigat
           ) : (
             <ActivityList activity={detail?.activity ?? []} project={project} />
           )}
+            </>
+          )}
         </div>
 
+        {!fromBuffer && (
         <div className="flex flex-col gap-2.5 border-t border-hairline bg-[#0c0c0f] px-5 pb-4 pt-3.5">
           <label className="sr-only" htmlFor="reply">
             Reply
@@ -353,6 +372,7 @@ export function ItemDrawer({ project, itemId, siblings, focusComposer, onNavigat
             </Button>
           </div>
         </div>
+        )}
       </aside>
     </>
   );
