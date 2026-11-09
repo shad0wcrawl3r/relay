@@ -46,7 +46,21 @@ to the portable `relay.exe`.
 
 ### There's no Run anyway button
 
-Clear the downloaded file's tag, then run it again:
+**Turn on Developer Mode, then restart.** This worked on a Windows 11 PC
+that had no Run anyway button and no Unblock box:
+
+1. Open **Settings → System → For developers**. On Windows 10 it's
+   **Settings → Update & Security → For developers**.
+2. Turn on **Developer Mode** and confirm.
+3. Restart the PC. The change doesn't apply until you do.
+4. Run the installer again.
+
+Developer Mode also allows other developer features, such as installing
+unsigned app packages, so turn it off afterwards if you don't need it. We
+haven't checked whether turning it off blocks the installed Relay again.
+If it does, please [open an issue](https://github.com/shad0wcrawl3r/relay/issues).
+
+**Or clear the file's download tag**, if your PC offers it:
 
 1. Right-click the file and open **Properties**.
 2. On the **General** tab, tick **Unblock** next to Security, then click
@@ -58,8 +72,8 @@ Or in PowerShell:
 Unblock-File .\relay-amd64-installer.exe
 ```
 
-If there's no **Unblock** box, the file has no tag, and SmartScreen
-isn't what's blocking it. See the next sections.
+Some PCs don't show the **Unblock** box at all. Use Developer Mode
+there.
 
 ### "Smart App Control blocked an app that may be unsafe" (Windows 11)
 
@@ -88,7 +102,7 @@ detection name.
 
 ### A work or school PC
 
-Your organisation's policy can remove **Run anyway** and **Unblock**. Ask
+Your organisation's policy can remove **Run anyway** and **Unblock**, and block Developer Mode. Ask
 your IT team, or use a personal machine.
 
 ## Fixing it properly
