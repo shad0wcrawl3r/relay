@@ -133,7 +133,7 @@ jobs:
 
           **macOS (Apple silicon):** unzip, move `relay.app` to Applications and open it. When macOS says it can't check it for malware, click **Done**, then open **System Settings → Privacy & Security** and click **Open Anyway** next to Relay. Or run `xattr -dr com.apple.quarantine /Applications/relay.app`.
 
-          **Windows:** run the installer (or the portable `relay.exe`). If SmartScreen says "Windows protected your PC", click **More info**, then **Run anyway**. No **Run anyway** button? Right-click the file → **Properties**, tick **Unblock**, click **OK** and run it again. Browser download warnings, Smart App Control and Defender are covered in the [Windows guide](https://github.com/shad0wcrawl3r/relay/blob/main/docs/windows-smartscreen.md).
+          **Windows:** run the installer (or the portable `relay.exe`). If SmartScreen says "Windows protected your PC", click **More info**, then **Run anyway**. No **Run anyway** button? Turn on **Settings → System → For developers → Developer Mode**, restart the PC, and run the installer again. Browser download warnings, Smart App Control and Defender are covered in the [Windows guide](https://github.com/shad0wcrawl3r/relay/blob/main/docs/windows-smartscreen.md).
 
           **Linux:** `sudo apt install ./relay.deb` on Debian or Ubuntu; elsewhere extract the `.tar.gz` (needs GTK 4 and WebKitGTK 6).
 
