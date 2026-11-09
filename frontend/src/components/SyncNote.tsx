@@ -1,4 +1,5 @@
-import { RefreshCcw } from "lucide-react";
+import { Browser } from "@wailsio/runtime";
+import { ExternalLink, Info, RefreshCcw } from "lucide-react";
 import { Tooltip } from "@/components/ui/tooltip";
 
 /** Explains how Buffer ideas and Plane work items sync. */
@@ -23,5 +24,33 @@ export function SyncNote({ compact }: { compact?: boolean }) {
         {!compact && "Synced with Buffer"}
       </span>
     </Tooltip>
+  );
+}
+
+/** Buffer's Create space, where ideas are edited, moved and deleted. */
+export const BUFFER_IDEAS_URL = "https://publish.buffer.com/create";
+
+export const openIdeasInBuffer = () => Browser.OpenURL(BUFFER_IDEAS_URL);
+
+/** Says why ideas are changed in Buffer, with a link there. */
+export function IdeasInBufferNote({ compact }: { compact?: boolean }) {
+  if (compact) {
+    return (
+      <button onClick={openIdeasInBuffer} className="inline-flex items-center gap-1 self-start px-1 text-[11px] text-dim hover:text-strong">
+        Edit or delete ideas in Buffer <ExternalLink className="size-3" />
+      </button>
+    );
+  }
+  return (
+    <div role="note" className="flex items-start gap-2.5 rounded-[10px] border border-[#1e3a5f] bg-[#0c1726] px-3.5 py-2.5 text-xs leading-relaxed text-[#bfdbfe]">
+      <Info className="mt-0.5 size-3.5 shrink-0 text-[#93c5fd]" />
+      <p className="m-0 flex-1">
+        <strong className="font-medium text-strong">Edit, move and delete ideas in Buffer.</strong> Buffer's API lets apps like Relay create ideas
+        and read them, but not change or remove them, so those happen in Buffer's own app. Changes there show up here at the next reload.
+      </p>
+      <button onClick={openIdeasInBuffer} className="inline-flex shrink-0 items-center gap-1 text-[#93c5fd] hover:underline">
+        Open Buffer <ExternalLink className="size-3" />
+      </button>
+    </div>
   );
 }

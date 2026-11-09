@@ -5,7 +5,7 @@ import { useIntegrations } from "@/lib/integrations";
 import { addIdea, addLink, loadIdeas, loadMoreIdeas, useIdeas } from "@/lib/ideas";
 import { useToast } from "@/components/Toaster";
 import { IdeaDialog } from "@/components/IdeaDialog";
-import { SyncNote } from "@/components/SyncNote";
+import { IdeasInBufferNote, SyncNote } from "@/components/SyncNote";
 import { UnlockButton } from "@/components/LockScreen";
 import { usePlane } from "@/lib/store";
 import { collapsedByDefault, hasIdeas, isDoneGroup, isOverdue, PRIORITIES, priorityLabel, stateById, stateColor } from "@/lib/plane";
@@ -539,6 +539,7 @@ function BufferColumn({ project, readOnly, openItem }: { project: Project; readO
         )}
         {!loading && !error && ideas.length === 0 && <p className="m-0 px-1 text-xs text-dim">No ideas yet. Drop a work item here to save it as one.</p>}
       </div>
+      <IdeasInBufferNote compact />
       {composing && (
         <IdeaDialog
           orgId={orgId}

@@ -23,7 +23,10 @@ type BufferService struct {
 func NewBufferService(posts *PostService, plane *PlaneService) *BufferService {
 	s := &BufferService{client: buffer.New(), posts: posts, plane: plane, links: newIdeaLinks(ideaLinksPath())}
 	// Buffer can end the sign-in on its side (revoked, refresh refused).
-	s.client.OnSignOut = func() { integrationsChanged(s) }
+	s.client.OnSignOut = func() {
+		integrationsChanged(s)
+		go s.plane.reloadBufferPlan(context.Background())
+	}
 	return s
 }
 
@@ -61,12 +64,14 @@ func (s *BufferService) Connect(ctx context.Context) (BufferStatus, error) {
 		return BufferStatus{}, err
 	}
 	integrationsChanged(s)
+	s.plane.reloadBufferPlan(ctx)
 	return s.Status(ctx), nil
 }
 
 func (s *BufferService) Disconnect() error {
 	err := s.client.Disconnect()
 	integrationsChanged(s)
+	s.plane.reloadBufferPlan(context.Background())
 	return err
 }
 

@@ -150,6 +150,17 @@ func (s *PlaneService) SetBufferPlanning(ctx context.Context, enabled bool, orgI
 	return s.BufferPlanning(), nil
 }
 
+// reloadBufferPlan reloads the Buffer board and pushes it to the UI. Buffer
+// signing in or out calls it, so the board comes and goes with the sign-in
+// rather than waiting for the next Plane sync.
+func (s *PlaneService) reloadBufferPlan(ctx context.Context) {
+	if s == nil || s.plan == nil {
+		return
+	}
+	s.plan.refresh(ctx)
+	s.emit()
+}
+
 // planWrite runs a write on the Buffer board, then reloads it.
 func (s *PlaneService) planWrite(ctx context.Context, fn func() error) error {
 	if !s.plan.on() {

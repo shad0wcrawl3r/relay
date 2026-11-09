@@ -17,7 +17,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { IdeaDialog } from "@/components/IdeaDialog";
 import { ComposeDialog } from "@/components/ComposeDialog";
-import { SyncNote } from "@/components/SyncNote";
+import { IdeasInBufferNote, SyncNote, openIdeasInBuffer } from "@/components/SyncNote";
 import { addIdea, loadIdeas, loadMoreIdeas, useIdeas } from "@/lib/ideas";
 
 type TabId = "queue" | "approval" | "drafts" | "sent" | "failed" | "ideas";
@@ -580,6 +580,7 @@ function Ideas({ orgId, onWrite }: { orgId: string; onWrite: (text: string) => v
           <RefreshCw className={cn("size-3.5", loading && "animate-spin")} />
         </Button>
       </div>
+      <IdeasInBufferNote />
       {error && <p className="text-xs text-overdue">{error}</p>}
       {current && !loading && !error && ideas.length === 0 && <p className="px-1 text-[13px] text-dim">No ideas yet.</p>}
       {current &&
@@ -597,12 +598,17 @@ function Ideas({ orgId, onWrite }: { orgId: string; onWrite: (text: string) => v
                     {i.createdAt > 0 && <span>{ago(new Date(i.createdAt > 1e12 ? i.createdAt : i.createdAt * 1000))}</span>}
                     {i.services.length > 0 && <span>· {i.services.map(serviceName).join(", ")}</span>}
                     {links[i.id] && <span className="text-[#93c5fd]">· In Plane as {links[i.id].key}</span>}
-                    <button
-                      className="ml-auto inline-flex items-center gap-1 text-dim hover:text-strong"
-                      onClick={() => onWrite([i.title, i.text].filter(Boolean).join("\n\n"))}
-                    >
-                      <PenLine className="size-3" /> Write a post
-                    </button>
+                    <span className="ml-auto inline-flex items-center gap-2.5">
+                      <button className="inline-flex items-center gap-1 text-dim hover:text-strong" onClick={openIdeasInBuffer} title="Edit or delete it in Buffer">
+                        <ExternalLink className="size-3" /> Open in Buffer
+                      </button>
+                      <button
+                        className="inline-flex items-center gap-1 text-dim hover:text-strong"
+                        onClick={() => onWrite([i.title, i.text].filter(Boolean).join("\n\n"))}
+                      >
+                        <PenLine className="size-3" /> Write a post
+                      </button>
+                    </span>
                   </div>
                 </div>
               ))}
