@@ -24,6 +24,7 @@ declare module "@wailsio/runtime" {
             "plane:snapshot": plane$0.Snapshot;
             "term:sessions": term$0.Info[] | null;
             "update:available": main$0.UpdateInfo;
+            "update:progress": main$0.UpdateProgress;
         }
     }
 }

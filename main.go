@@ -34,6 +34,7 @@ func init() {
 	application.RegisterEvent[string]("guide:show")
 	application.RegisterEvent[string]("buffer:signin")
 	application.RegisterEvent[UpdateInfo]("update:available")
+	application.RegisterEvent[UpdateProgress]("update:progress")
 }
 
 // quitting is set just before Relay quits for real, so closing the window

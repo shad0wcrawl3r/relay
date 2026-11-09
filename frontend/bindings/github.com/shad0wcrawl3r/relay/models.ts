@@ -325,6 +325,20 @@ export interface UpdateInfo {
      */
     "url": string;
     "checkedAt": string;
+
+    /**
+     * CanInstall: Relay can download and install this update itself
+     * (release builds on Windows and macOS).
+     */
+    "canInstall": boolean;
+}
+
+/**
+ * UpdateProgress is sent as "update:progress" while downloading.
+ */
+export interface UpdateProgress {
+    "done": number;
+    "total": number;
 }
 
 export interface UpdateStatus {

@@ -38,3 +38,8 @@ export const TermSessions = "term:sessions";
  */
 export const UpdateAvailable = "update:available";
 
+/**
+ * Name of the custom event "update:progress".
+ */
+export const UpdateProgress = "update:progress";
+

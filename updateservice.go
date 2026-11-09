@@ -49,6 +49,9 @@ type UpdateInfo struct {
 	// URL is the newer release's page; empty when there's none.
 	URL       string `json:"url"`
 	CheckedAt string `json:"checkedAt"`
+	// CanInstall: Relay can download and install this update itself
+	// (release builds on Windows and macOS).
+	CanInstall bool `json:"canInstall"`
 }
 
 type UpdateStatus struct {
@@ -65,6 +68,9 @@ type UpdateService struct {
 
 	mu   sync.Mutex
 	last *UpdateInfo
+	// assets of the newer release in last, by file name.
+	assets     map[string]ghAsset
+	installing bool
 }
 
 func NewUpdateService() *UpdateService {
@@ -109,9 +115,16 @@ func (s *UpdateService) SetAutoCheck(on bool) (UpdateStatus, error) {
 }
 
 type ghRelease struct {
-	TagName string `json:"tag_name"`
-	HTMLURL string `json:"html_url"`
-	Draft   bool   `json:"draft"`
+	TagName string    `json:"tag_name"`
+	HTMLURL string    `json:"html_url"`
+	Draft   bool      `json:"draft"`
+	Assets  []ghAsset `json:"assets"`
+}
+
+type ghAsset struct {
+	Name string `json:"name"`
+	URL  string `json:"browser_download_url"`
+	Size int64  `json:"size"`
 }
 
 // Check asks GitHub for the newest published release, pre-releases
@@ -143,19 +156,30 @@ func (s *UpdateService) Check(ctx context.Context) (UpdateInfo, error) {
 		return UpdateInfo{}, errors.New("couldn't read GitHub's list of releases")
 	}
 	info := UpdateInfo{Current: current, Latest: current, CheckedAt: time.Now().Format(time.RFC3339)}
+	var assets []ghAsset
 	for _, r := range releases {
 		if r.Draft {
 			continue
 		}
 		v := strings.TrimPrefix(r.TagName, "v")
 		if newer(v, info.Latest) {
-			info.Latest, info.URL = v, r.HTMLURL
+			info.Latest, info.URL, assets = v, r.HTMLURL, r.Assets
 		}
 	}
 	info.Available = info.URL != ""
-	log.Info("checked", "current", current, "latest", info.Latest)
+	byName := map[string]ghAsset{}
+	for _, a := range assets {
+		byName[a.Name] = a
+	}
+	if info.Available && releaseBuild {
+		if plan, err := planInstall(byName); err == nil && plan.asset.URL != "" {
+			info.CanInstall = true
+		}
+	}
+	log.Info("checked", "current", current, "latest", info.Latest, "can_install", info.CanInstall)
 	s.mu.Lock()
 	s.last = &info
+	s.assets = byName
 	s.mu.Unlock()
 	return info, nil
 }

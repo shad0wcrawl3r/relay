@@ -153,6 +153,7 @@ export type AIStatus = Clean<M.AIStatus>;
 export type ModelTest = Clean<M.ModelTest>;
 export type UpdateInfo = Clean<M.UpdateInfo>;
 export type UpdateStatus = Clean<M.UpdateStatus>;
+export type UpdateProgress = Clean<M.UpdateProgress>;
 
 export const BufferService = {
   Status: (): Promise<BufferStatus> => BufferBindings.Status(),
@@ -266,4 +267,5 @@ export const UpdateService = {
   Status: (): Promise<UpdateStatus> => UpdateBindings.Status() as Promise<UpdateStatus>,
   Check: (): Promise<UpdateInfo> => UpdateBindings.Check(),
   SetAutoCheck: (on: boolean): Promise<UpdateStatus> => UpdateBindings.SetAutoCheck(on) as Promise<UpdateStatus>,
+  Install: (): Promise<void> => UpdateBindings.Install(),
 };

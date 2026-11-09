@@ -17,6 +17,14 @@ export function Check(): $CancellablePromise<$models.UpdateInfo> {
     return $Call.ByID(688929688);
 }
 
+/**
+ * Install downloads the update found by the last check, verifies it and
+ * starts the hand-over, then quits Relay. The new version opens by itself.
+ */
+export function Install(): $CancellablePromise<void> {
+    return $Call.ByID(3897086627);
+}
+
 export function SetAutoCheck(on: boolean): $CancellablePromise<$models.UpdateStatus> {
     return $Call.ByID(1532024281, on);
 }

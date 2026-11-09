@@ -47,5 +47,6 @@ export type {
     SettingsInput,
     ShellChoice,
     UpdateInfo,
+    UpdateProgress,
     UpdateStatus
 } from "./models.js";
