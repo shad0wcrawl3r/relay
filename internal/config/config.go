@@ -44,6 +44,8 @@ func init() {
 	v.SetDefault("privacy.LOCKED", []string{})
 	v.SetDefault("privacy.AUTO_LOCK_MINUTES", 15)
 	v.SetDefault("logs.ENABLED", false)
+	// Page zoom for Relay's windows, set with ⌘/Ctrl + and -.
+	v.SetDefault("appearance.ZOOM", 1.0)
 	// Ask GitHub for a newer release when a release build starts.
 	v.SetDefault("updates.CHECK", true)
 	if err := v.ReadInConfig(); err != nil {
@@ -141,6 +143,7 @@ func write(next Config) error {
 	v.Set("projects.ORDER", next.Projects.Order)
 	v.Set("projects.COLORS", next.Projects.Colors)
 	v.Set("projects.CAPTURE", next.Projects.Capture)
+	v.Set("appearance.ZOOM", next.Appearance.Zoom)
 	v.Set("planning.BUFFER", next.Planning.Buffer)
 	v.Set("planning.BUFFER_ORG", next.Planning.BufferOrg)
 	v.Set("updates.CHECK", next.Updates.Check)
@@ -219,6 +222,10 @@ type Config struct {
 		Colors map[string]string `mapstructure:"COLORS"`
 		// Capture is the project quick capture starts in; empty: the first.
 		Capture string `mapstructure:"CAPTURE"`
+	}
+	Appearance struct {
+		// Zoom is the page zoom of every Relay window; 1 is 100%.
+		Zoom float64 `mapstructure:"ZOOM"`
 	}
 	// Planning puts a board backed by Buffer content items next to (or
 	// instead of) Plane. Experimental: Buffer's content item API is.
