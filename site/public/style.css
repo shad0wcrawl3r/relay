@@ -162,3 +162,27 @@ footer a { color: var(--muted); }
   .hero { padding-top: 56px; }
   ul.plain { grid-template-columns: 1fr; }
 }
+
+/* The release's version and kind, wherever the page names it. */
+.release-badges { align-items: center; display: inline-flex; gap: 6px; vertical-align: middle; }
+.release-version {
+  background: var(--raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--strong);
+  font: 600 13px var(--mono);
+  padding: 2px 8px;
+}
+.release-type {
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  padding: 1px 8px;
+  text-transform: uppercase;
+}
+.release-type[data-state="ok"] { background: rgb(74 222 128 / .1); color: var(--ok); }
+.release-type[data-state="warn"] { background: rgb(251 191 36 / .1); color: var(--warn); }
+.eyebrow .release-badges { margin-right: 6px; }
+a:hover .release-version { border-color: var(--accent); }

@@ -7,6 +7,7 @@ import { PlaneProvider } from "@/lib/store";
 import { IntegrationsProvider } from "@/lib/integrations";
 import { TerminalProvider } from "@/lib/terminal";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ZoomKeys } from "@/lib/zoom";
 import "./index.css";
 
 // The setup guide is a second window on the same bundle (guide.go).
@@ -15,6 +16,7 @@ const isGuide = new URLSearchParams(window.location.search).get("window") === "g
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <ToastProvider>
+      <ZoomKeys />
       <TooltipProvider>
         <PlaneProvider>
           <IntegrationsProvider>
