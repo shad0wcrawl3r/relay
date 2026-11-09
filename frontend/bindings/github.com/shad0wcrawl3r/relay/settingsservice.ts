@@ -17,6 +17,14 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
 import * as $models from "./models.js";
 
 /**
+ * ApplyZoom applies the saved zoom to every window; a window calls it once
+ * its page has loaded.
+ */
+export function ApplyZoom(): $CancellablePromise<number> {
+    return $Call.ByID(1286915787);
+}
+
+/**
  * CheckDevtoKey asks Dev.to whether a key works, without saving it.
  */
 export function CheckDevtoKey(key: string): $CancellablePromise<$models.DevtoKeyCheck> {
@@ -86,4 +94,18 @@ export function SaveDevtoKey(key: string): $CancellablePromise<$models.Settings>
  */
 export function SavePlaneApp(clientID: string, secret: string, workspace: string): $CancellablePromise<$models.Settings> {
     return $Call.ByID(2029454664, clientID, secret, workspace);
+}
+
+/**
+ * SetZoom saves and applies a zoom level, clamped to 50–200%.
+ */
+export function SetZoom(z: number): $CancellablePromise<number> {
+    return $Call.ByID(2957563495, z);
+}
+
+/**
+ * Zoom is the saved zoom level.
+ */
+export function Zoom(): $CancellablePromise<number> {
+    return $Call.ByID(2387388847);
 }

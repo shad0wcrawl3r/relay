@@ -19,6 +19,8 @@ frontend. Runs on macOS, Windows and Linux.
   - Module lanes view
   - Item drawer with comments and activity
   - Quick capture palette (⌘K)
+  - Zoom every view with ⌘ + / ⌘ - and reset with ⌘ 0 (Ctrl on Windows and
+    Linux); the level is remembered
   - Your own project order, colours and quick capture project (Settings →
     Plane → Projects). Projects with an Idea state capture new work as ideas
   - Connects through a Plane app installation (OAuth)

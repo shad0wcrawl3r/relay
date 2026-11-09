@@ -44,6 +44,8 @@ func init() {
 	v.SetDefault("privacy.LOCKED", []string{})
 	v.SetDefault("privacy.AUTO_LOCK_MINUTES", 15)
 	v.SetDefault("logs.ENABLED", false)
+	// Page zoom for Relay's windows, set with ⌘/Ctrl + and -.
+	v.SetDefault("appearance.ZOOM", 1.0)
 	if err := v.ReadInConfig(); err != nil {
 		// A missing file is fine: the user fills it in from Settings.
 		var notFound viper.ConfigFileNotFoundError
@@ -139,6 +141,7 @@ func write(next Config) error {
 	v.Set("projects.ORDER", next.Projects.Order)
 	v.Set("projects.COLORS", next.Projects.Colors)
 	v.Set("projects.CAPTURE", next.Projects.Capture)
+	v.Set("appearance.ZOOM", next.Appearance.Zoom)
 	path := Path()
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return err
@@ -214,5 +217,9 @@ type Config struct {
 		Colors map[string]string `mapstructure:"COLORS"`
 		// Capture is the project quick capture starts in; empty: the first.
 		Capture string `mapstructure:"CAPTURE"`
+	}
+	Appearance struct {
+		// Zoom is the page zoom of every Relay window; 1 is 100%.
+		Zoom float64 `mapstructure:"ZOOM"`
 	}
 }

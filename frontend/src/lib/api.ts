@@ -209,6 +209,9 @@ export const SettingsService = {
   Get: async (): Promise<Settings> => SettingsBindings.Get(),
   Save: async (s: SettingsInput): Promise<Settings> => SettingsBindings.Save(s as M.SettingsInput),
   ClearDevtoKey: async (): Promise<Settings> => SettingsBindings.ClearDevtoKey(),
+  Zoom: (): Promise<number> => SettingsBindings.Zoom(),
+  ApplyZoom: (): Promise<number> => SettingsBindings.ApplyZoom(),
+  SetZoom: (z: number): Promise<number> => SettingsBindings.SetZoom(z),
   Integrations: (): Promise<M.Integrations> => SettingsBindings.Integrations(),
   SavePlaneApp: async (clientId: string, secret: string, workspace: string): Promise<Settings> =>
     SettingsBindings.SavePlaneApp(clientId, secret, workspace),
