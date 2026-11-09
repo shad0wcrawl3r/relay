@@ -63,6 +63,10 @@ frontend. Runs on macOS, Windows and Linux.
     marked in Settings → AI (Ollama and LM Studio start marked at their local
     addresses). Unlocking a project doesn't change that
   - Per-subsystem logs, held in memory only
+  - Settings → Storage → Clear all data deletes everything Relay stores (posts,
+    sign-ins and keys in the keychain, settings, caches, webview storage) and
+    quits. The Windows uninstaller offers the same as an option. On macOS and
+    Linux, clear data before deleting the app
   - Runs in the background with a tray icon
   - CI builds for macOS, Windows and Linux, published as releases with a
     `SHA256SUMS` file and steps for opening unsigned builds (Windows:

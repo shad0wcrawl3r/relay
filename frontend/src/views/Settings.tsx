@@ -11,6 +11,7 @@ import { useToast } from "@/components/Toaster";
 import { ShellPicker } from "@/components/ShellPicker";
 import { ExportSettingsButton, ImportSettingsButton } from "@/components/SettingsTransfer";
 import { DevtoKeyField } from "@/components/DevtoKeyField";
+import { ClearDataButton } from "@/components/ClearDataButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SecretInput } from "@/components/ui/secret-input";
@@ -501,6 +502,14 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
                 reloadKeymap();
               }}
             />
+          </div>
+        </Section>
+        <Section
+          title="Clear all data"
+          description="Deletes everything Relay stores on this computer: posts, sign-ins and keys, settings and caches. Relay quits afterwards."
+        >
+          <div>
+            <ClearDataButton />
           </div>
         </Section>
           </TabsContent>
