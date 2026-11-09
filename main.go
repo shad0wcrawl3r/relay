@@ -54,6 +54,9 @@ func main() {
 	// with it the terminal sessions).
 	var quitting atomic.Bool
 
+	// Set once the window exists; a second launch brings it forward.
+	var window *application.WebviewWindow
+
 	app := application.New(application.Options{
 		Name:        "Relay",
 		Description: "Plane kanban, Dev.to writing and terminal workbench",
@@ -74,6 +77,20 @@ func main() {
 			ApplicationShouldTerminateAfterLastWindowClosed: false,
 		},
 		// ⌘Q and the tray's Quit both end up here.
+		// One Relay per user: a second launch (Start menu, Dock, a double
+		// click while it's in the tray) shows this one and exits, instead of
+		// running a second set of terminal sessions, syncs and token
+		// refreshes against the same files and keychain entries.
+		SingleInstance: &application.SingleInstanceOptions{
+			UniqueID: instanceID(),
+			OnSecondInstanceLaunch: func(application.SecondInstanceData) {
+				logs.For("app").Info("second launch; showing this instance")
+				if window != nil {
+					window.Show()
+					window.Focus()
+				}
+			},
+		},
 		ShouldQuit: func() bool {
 			logs.For("app").Notice("quitting")
 			quitting.Store(true)
@@ -83,7 +100,7 @@ func main() {
 
 	// The designs assume 1280–1440 wide; 1100 is the narrowest the board and
 	// editor still lay out cleanly.
-	window := app.Window.NewWithOptions(application.WebviewWindowOptions{
+	window = app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Name:      "main",
 		Title:     "Relay",
 		Width:     1440,
@@ -159,4 +176,13 @@ func main() {
 	if err := app.Run(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+// instanceID names the single-instance lock. Dev builds get their own, so
+// `wails3 dev` still starts while an installed Relay is running.
+func instanceID() string {
+	if releaseBuild {
+		return "dev.shadowcrawler.relay"
+	}
+	return "dev.shadowcrawler.relay.dev"
 }
