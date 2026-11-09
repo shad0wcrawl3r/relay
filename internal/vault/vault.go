@@ -15,7 +15,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/zalando/go-keyring"
+	"github.com/shad0wcrawl3r/relay/internal/keychain"
 )
 
 const (
@@ -42,7 +42,7 @@ func dataKey() ([]byte, error) {
 	if key != nil {
 		return key, nil
 	}
-	raw, err := keyring.Get(keyringService, keyringUser)
+	raw, err := keychain.Get(keyringService, keyringUser)
 	switch {
 	case err == nil:
 		k, derr := base64.StdEncoding.DecodeString(raw)
@@ -50,12 +50,12 @@ func dataKey() ([]byte, error) {
 			return nil, errors.New("vault: keychain item is corrupt")
 		}
 		key = k
-	case errors.Is(err, keyring.ErrNotFound):
+	case errors.Is(err, keychain.ErrNotFound):
 		k := make([]byte, 32)
 		if _, err := rand.Read(k); err != nil {
 			return nil, err
 		}
-		if err := keyring.Set(keyringService, keyringUser, base64.StdEncoding.EncodeToString(k)); err != nil {
+		if err := keychain.Set(keyringService, keyringUser, base64.StdEncoding.EncodeToString(k)); err != nil {
 			return nil, fmt.Errorf("vault: could not store key in the keychain: %w", err)
 		}
 		key = k

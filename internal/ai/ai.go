@@ -17,8 +17,8 @@ import (
 	"time"
 
 	"github.com/shad0wcrawl3r/relay/internal/config"
+	"github.com/shad0wcrawl3r/relay/internal/keychain"
 	"github.com/shad0wcrawl3r/relay/internal/logs"
-	"github.com/zalando/go-keyring"
 )
 
 const (
@@ -131,15 +131,15 @@ func NormaliseEndpoint(raw string) (string, error) {
 
 // HasKey reports whether a key is stored for the provider.
 func HasKey(id string) bool {
-	_, err := keyring.Get(keyringService, keyName(id))
+	_, err := keychain.Get(keyringService, keyName(id))
 	return err == nil
 }
 
 // Key returns the provider's stored API key, or "" when there is none. Only
 // for a settings export; requests read the key themselves.
 func Key(id string) (string, error) {
-	key, err := keyring.Get(keyringService, keyName(id))
-	if errors.Is(err, keyring.ErrNotFound) {
+	key, err := keychain.Get(keyringService, keyName(id))
+	if errors.Is(err, keychain.ErrNotFound) {
 		return "", nil
 	}
 	return key, err
@@ -150,13 +150,13 @@ func SetKey(id, key string) error {
 	if _, ok := Find(id); !ok {
 		return fmt.Errorf("unknown provider %q", id)
 	}
-	return keyring.Set(keyringService, keyName(id), strings.TrimSpace(key))
+	return keychain.Set(keyringService, keyName(id), strings.TrimSpace(key))
 }
 
 // ClearKey removes a provider's API key.
 func ClearKey(id string) error {
-	err := keyring.Delete(keyringService, keyName(id))
-	if errors.Is(err, keyring.ErrNotFound) {
+	err := keychain.Delete(keyringService, keyName(id))
+	if errors.Is(err, keychain.ErrNotFound) {
 		return nil
 	}
 	return err
@@ -178,7 +178,7 @@ func (c *Client) request(ctx context.Context, p Provider, method, path string, b
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	key, err := keyring.Get(keyringService, keyName(p.ID))
+	key, err := keychain.Get(keyringService, keyName(p.ID))
 	if err != nil && p.NeedsKey {
 		return fmt.Errorf("add your %s API key in Settings", p.Name)
 	}

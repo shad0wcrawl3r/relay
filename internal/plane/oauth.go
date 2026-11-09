@@ -18,8 +18,8 @@ import (
 	"time"
 
 	"github.com/shad0wcrawl3r/relay/internal/config"
+	"github.com/shad0wcrawl3r/relay/internal/keychain"
 	"github.com/shad0wcrawl3r/relay/internal/logs"
-	"github.com/zalando/go-keyring"
 )
 
 const keyringService = "relay"
@@ -56,7 +56,7 @@ func (a *auth) load() (*Token, error) {
 	if a.token != nil {
 		return a.token, nil
 	}
-	raw, err := keyring.Get(keyringService, keyringUser)
+	raw, err := keychain.Get(keyringService, keyringUser)
 	if err != nil {
 		return nil, ErrNotConnected
 	}
@@ -76,15 +76,15 @@ func (a *auth) store(t *Token) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.token = t
-	return keyring.Set(keyringService, keyringUser, string(raw))
+	return keychain.Set(keyringService, keyringUser, string(raw))
 }
 
 func (a *auth) clear() error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.token = nil
-	err := keyring.Delete(keyringService, keyringUser)
-	if errors.Is(err, keyring.ErrNotFound) {
+	err := keychain.Delete(keyringService, keyringUser)
+	if errors.Is(err, keychain.ErrNotFound) {
 		return nil
 	}
 	return err
