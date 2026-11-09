@@ -14,7 +14,10 @@ const FILES = [
 ];
 const PLATFORMS = [
   { os: "macos", name: "macOS", note: "12 or later" },
-  { os: "windows", name: "Windows", note: "10 and 11, x64" },
+  {
+    os: "windows", name: "Windows", note: "10 and 11, x64",
+    warning: "Not guaranteed to work. Windows is flaky with unsigned apps, and Relay isn't signed yet. With Smart App Control on, Windows 11 refuses to run it (\u201cAn Application Control policy has blocked this file\u201d), and on many PCs turning Smart App Control off can't be undone without resetting Windows.",
+  },
   { os: "linux", name: "Linux", note: "x64" },
 ];
 
@@ -72,7 +75,9 @@ function renderDownloads(status) {
               el("span", { className: "size", textContent: size(a.size) })))))
         : el("p", { className: "none", textContent: "Not in this release." });
       const card = el("div", { className: "platform" },
-        el("h3", {}, p.name, el("span", { textContent: p.note })), list);
+        el("h3", {}, p.name, el("span", { textContent: p.note })),
+        ...(p.warning ? [el("p", { className: "platform-warning", textContent: p.warning })] : []),
+        list);
       card.dataset.current = String(p.os === mine);
       return card;
     }),
@@ -86,7 +91,8 @@ function renderDownloads(status) {
     button.href = asset.url;
     button.textContent = `Download for ${PLATFORMS.find((p) => p.os === mine).name}`;
     document.getElementById("hero-note").textContent =
-      `${status.version}${tagged(status)} · ${size(asset.size)} · other platforms below.`;
+      `${status.version}${tagged(status)} · ${size(asset.size)} · other platforms below.` +
+      (mine === "windows" ? " Windows isn't guaranteed to work; read the warning below first." : "");
   }
 }
 
