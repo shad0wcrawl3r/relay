@@ -73,3 +73,11 @@ export function SummarizePost(id: string): $CancellablePromise<string> {
 export function SummarizeText(title: string, text: string): $CancellablePromise<string> {
     return $Call.ByID(3941173339, title, text);
 }
+
+/**
+ * TestModel sends a one-line prompt to provider and model, so Settings can
+ * check a choice works before saving it. The prompt holds no user data.
+ */
+export function TestModel(provider: string, model: string): $CancellablePromise<$models.ModelTest> {
+    return $Call.ByID(1128257904, provider, model);
+}
