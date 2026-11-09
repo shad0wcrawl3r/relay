@@ -50,6 +50,7 @@ VIAddVersionKey "ProductName"     "${INFO_PRODUCTNAME}"
 ManifestDPIAware true
 
 !include "MUI.nsh"
+!include "LogicLib.nsh"
 
 !define MUI_ICON "..\icon.ico"
 !define MUI_UNICON "..\icon.ico"
@@ -63,6 +64,7 @@ ManifestDPIAware true
 !insertmacro MUI_PAGE_INSTFILES # Installing page.
 !insertmacro MUI_PAGE_FINISH # Finished installation page.
 
+!insertmacro MUI_UNPAGE_COMPONENTS # Choose whether to delete Relay's data too
 !insertmacro MUI_UNPAGE_INSTFILES # Uninstalling page
 
 !insertmacro MUI_LANGUAGE "English" # Set the Language of the installer
@@ -102,7 +104,36 @@ Section
     !insertmacro wails.writeUninstaller
 SectionEnd
 
-Section "uninstall" 
+# Relay runs in the tray, so it may still be open: its files can't be removed
+# while it is, and its data must not be rewritten while it's being deleted.
+Function un.onInit
+    nsExec::ExecToStack 'cmd /c tasklist /FI "IMAGENAME eq ${PRODUCT_EXECUTABLE}" /NH | find /I "${PRODUCT_EXECUTABLE}"'
+    Pop $0
+    Pop $1
+    ${If} $0 == 0
+        MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION "Relay is running. Click OK to close it (open terminal sessions end), or Cancel to stop uninstalling." IDOK closeRelay
+        Abort
+        closeRelay:
+        nsExec::Exec 'taskkill /IM ${PRODUCT_EXECUTABLE} /T /F'
+        Pop $0
+        Sleep 1000
+    ${EndIf}
+FunctionEnd
+
+# Off by default. Runs before the app's files go, because it uses relay.exe
+# itself (`relay --clear-data`, see cleardata.go) so it deletes exactly what
+# "Clear all data" in Settings does. It runs as the user uninstalling, so it
+# clears that user's data and Credential Manager entries.
+Section /o "un.Delete my Relay data too" SecUnData
+    DetailPrint "Deleting Relay's data (posts, settings, saved sign-ins and keys)..."
+    ExecWait '"$INSTDIR\${PRODUCT_EXECUTABLE}" --clear-data' $0
+    ${If} $0 != 0
+        DetailPrint "Some of Relay's data couldn't be deleted (exit code $0)."
+    ${EndIf}
+SectionEnd
+
+Section "un.Relay" SecUnApp
+    SectionIn RO
     !insertmacro wails.setShellContext
 
     RMDir /r "$AppData\${PRODUCT_EXECUTABLE}" # Remove the WebView2 DataPath
@@ -117,3 +148,8 @@ Section "uninstall"
 
     !insertmacro wails.deleteUninstaller
 SectionEnd
+
+!insertmacro MUI_UNFUNCTION_DESCRIPTION_BEGIN
+    !insertmacro MUI_DESCRIPTION_TEXT ${SecUnData} "Also deletes your posts, settings and caches, and the Plane, Buffer, Dev.to and AI provider sign-ins and keys Relay saved in Windows Credential Manager. Your accounts on those services aren't touched."
+    !insertmacro MUI_DESCRIPTION_TEXT ${SecUnApp} "Removes the Relay app and its shortcuts. Your data stays unless you tick the option above."
+!insertmacro MUI_UNFUNCTION_DESCRIPTION_END

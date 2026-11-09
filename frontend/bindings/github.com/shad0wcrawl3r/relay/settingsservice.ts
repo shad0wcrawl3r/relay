@@ -31,6 +31,15 @@ export function ChooseSettingsFile(): $CancellablePromise<string> {
 }
 
 /**
+ * ClearAllData deletes everything Relay stores (see cleardata.go), then
+ * quits. A copy of Relay clears again once this one has exited, catching
+ * anything written on the way out.
+ */
+export function ClearAllData(): $CancellablePromise<void> {
+    return $Call.ByID(3313801680);
+}
+
+/**
  * ClearDevtoKey removes the stored Dev.to key.
  */
 export function ClearDevtoKey(): $CancellablePromise<$models.Settings> {

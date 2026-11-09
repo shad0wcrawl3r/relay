@@ -44,6 +44,8 @@ func init() {
 	v.SetDefault("privacy.LOCKED", []string{})
 	v.SetDefault("privacy.AUTO_LOCK_MINUTES", 15)
 	v.SetDefault("logs.ENABLED", false)
+	// Ask GitHub for a newer release when a release build starts.
+	v.SetDefault("updates.CHECK", true)
 	if err := v.ReadInConfig(); err != nil {
 		// A missing file is fine: the user fills it in from Settings.
 		var notFound viper.ConfigFileNotFoundError
@@ -141,6 +143,7 @@ func write(next Config) error {
 	v.Set("projects.CAPTURE", next.Projects.Capture)
 	v.Set("planning.BUFFER", next.Planning.Buffer)
 	v.Set("planning.BUFFER_ORG", next.Planning.BufferOrg)
+	v.Set("updates.CHECK", next.Updates.Check)
 	path := Path()
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return err
@@ -223,5 +226,9 @@ type Config struct {
 		Buffer bool `mapstructure:"BUFFER"`
 		// BufferOrg is the Buffer organization to plan in; empty: the first.
 		BufferOrg string `mapstructure:"BUFFER_ORG"`
+	}
+	Updates struct {
+		// Check: look for a newer GitHub release when Relay starts.
+		Check bool `mapstructure:"CHECK"`
 	}
 }

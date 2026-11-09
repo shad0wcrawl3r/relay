@@ -9,6 +9,7 @@ import * as PlaneService from "./planeservice.js";
 import * as PostService from "./postservice.js";
 import * as SettingsService from "./settingsservice.js";
 import * as TerminalService from "./terminalservice.js";
+import * as UpdateService from "./updateservice.js";
 export {
     AIService,
     BufferService,
@@ -17,7 +18,8 @@ export {
     PlaneService,
     PostService,
     SettingsService,
-    TerminalService
+    TerminalService,
+    UpdateService
 };
 
 export type {
@@ -44,5 +46,8 @@ export type {
     SendResult,
     Settings,
     SettingsInput,
-    ShellChoice
+    ShellChoice,
+    UpdateInfo,
+    UpdateProgress,
+    UpdateStatus
 } from "./models.js";
