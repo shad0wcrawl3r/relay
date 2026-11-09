@@ -31,7 +31,7 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
 - Locked projects/modules (`[privacy] LOCKED`, empty by default; picked in Settings → Privacy) never reach the UI until unlocked via
   `internal/unlock` (Touch ID / login password); unlocks expire. Never log their data.
 - Dev.to: send as `published: false`; publishing is a separate, confirmed user action, refused while image placeholders remain. No image upload in v1 (insert `<INSERT IMAGE HERE: …>` placeholders).
-- Buffer: promotions need a live Dev.to article; Go adds its public link, so one can never go out without it. Articles reach a model provider only when the user asks.
+- Buffer: promotions need a live Dev.to article; Go adds its public link, so one can never go out without it. Posts written in the Buffer view (`BufferService.Compose`) aren't promotions: no article, no link. Articles reach a model provider only when the user asks.
 - AI: every prompt goes through `ai.Client.Complete` with an `ai.Origin`. Plane content uses `ai.Plane(plane.PrivacyKeys(...))`;
   content from a lockable project or module only reaches a private provider: one the user marked (`[ai] PRIVATE`,
   tied to the endpoint), or Ollama / LM Studio at their default endpoints until turned off. A loopback address alone

@@ -87,6 +87,27 @@ export interface BufferStatus {
 }
 
 /**
+ * ComposeResult is how one channel's post went: PostID when Buffer took
+ * it, Error when it didn't.
+ */
+export interface ComposeResult {
+    "channelId": string;
+    "postId": string;
+    "error": string;
+}
+
+/**
+ * Composed is a post written in Relay's Buffer view, not about an article:
+ * the same text to each channel.
+ */
+export interface Composed {
+    "channelIds": string[] | null;
+    "text": string;
+    "timing": buffer$0.Timing;
+    "dueAt": string;
+}
+
+/**
  * DevtoKeyCheck is the account a Dev.to key belongs to.
  */
 export interface DevtoKeyCheck {
