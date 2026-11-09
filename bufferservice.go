@@ -123,6 +123,58 @@ func (s *BufferService) Promote(ctx context.Context, in Promotion) (posts.Post, 
 	})
 }
 
+// Composed is a post written in Relay's Buffer view, not about an article:
+// the same text to each channel.
+type Composed struct {
+	ChannelIDs []string      `json:"channelIds"`
+	Text       string        `json:"text"`
+	Timing     buffer.Timing `json:"timing"`
+	DueAt      time.Time     `json:"dueAt"`
+}
+
+// ComposeResult is how one channel's post went: PostID when Buffer took
+// it, Error when it didn't.
+type ComposeResult struct {
+	ChannelID string `json:"channelId"`
+	PostID    string `json:"postId"`
+	Error     string `json:"error"`
+}
+
+// ComposedText is exactly what Compose sends: the text, and the note in dev
+// builds.
+func (s *BufferService) ComposedText(text string) string {
+	return withEvalNote(strings.TrimSpace(text))
+}
+
+// Compose sends a post to each channel. One channel refusing doesn't stop
+// the rest; the results say which went through.
+func (s *BufferService) Compose(ctx context.Context, in Composed) ([]ComposeResult, error) {
+	if strings.TrimSpace(in.Text) == "" {
+		return nil, errors.New("the post is empty")
+	}
+	if len(in.ChannelIDs) == 0 {
+		return nil, errors.New("choose a channel")
+	}
+	text := s.ComposedText(in.Text)
+	seen := map[string]bool{}
+	var results []ComposeResult
+	for _, id := range in.ChannelIDs {
+		if id == "" || seen[id] {
+			continue
+		}
+		seen[id] = true
+		r := ComposeResult{ChannelID: id}
+		postID, err := s.client.CreatePost(ctx, buffer.NewPost{ChannelID: id, Text: text, Timing: in.Timing, DueAt: in.DueAt})
+		if err != nil {
+			r.Error = err.Error()
+		} else {
+			r.PostID = postID
+		}
+		results = append(results, r)
+	}
+	return results, nil
+}
+
 // BufferOverview is what the Buffer tab opens with: the account, its
 // organizations (with plan limits) and every channel.
 type BufferOverview struct {

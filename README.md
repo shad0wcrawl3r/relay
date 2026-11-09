@@ -36,6 +36,8 @@ frontend. Runs on macOS, Windows and Linux.
   - Turns a Dev.to post into social drafts per channel. AI summaries are optional
   - Review and edit each draft before it goes to Buffer
   - Every post carries the article's public link
+  - Or write a post straight for Buffer, no article needed: one text to one or
+    more channels (or from an idea), queued, scheduled or saved as a draft
   - Buffer tab: channels with posting schedules and weekly goals; the queue,
     drafts, approvals, sent and failed posts; edit, reschedule and delete;
     ideas, drafted with AI from any pasted text

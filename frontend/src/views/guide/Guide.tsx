@@ -277,7 +277,7 @@ function Welcome({ setError, onImported }: { setError: (e: string) => void; onIm
       lead="Write on Dev.to, promote on LinkedIn through Buffer, and keep your Plane board beside it. This guide sets each one up. Every step is optional."
     >
       <ul className="m-0 flex list-none flex-col gap-2 p-0 text-muted-foreground">
-        <li>• Buffer: schedule LinkedIn posts about your articles.</li>
+        <li>• Buffer: write and schedule posts for any of your channels, or promote your articles on LinkedIn.</li>
         <li>
           • AI: draft those posts from the article (optional, local models
           work).

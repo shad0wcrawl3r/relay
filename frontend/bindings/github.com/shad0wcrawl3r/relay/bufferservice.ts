@@ -29,6 +29,22 @@ export function Channels(): $CancellablePromise<buffer$0.Channel[] | null> {
     return $Call.ByID(3644032715);
 }
 
+/**
+ * Compose sends a post to each channel. One channel refusing doesn't stop
+ * the rest; the results say which went through.
+ */
+export function Compose($in: $models.Composed): $CancellablePromise<$models.ComposeResult[] | null> {
+    return $Call.ByID(3395441325, $in);
+}
+
+/**
+ * ComposedText is exactly what Compose sends: the text, and the note in dev
+ * builds.
+ */
+export function ComposedText(text: string): $CancellablePromise<string> {
+    return $Call.ByID(2737348988, text);
+}
+
 export function Connect(): $CancellablePromise<$models.BufferStatus> {
     return $Call.ByID(4086719047);
 }

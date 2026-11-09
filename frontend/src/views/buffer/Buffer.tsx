@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Browser } from "@wailsio/runtime";
-import { AlertTriangle, ExternalLink, Lightbulb, Loader2, Pause, Pencil, RefreshCw, Trash2, Unplug } from "lucide-react";
+import { AlertTriangle, ExternalLink, Lightbulb, Loader2, Pause, Pencil, PenLine, RefreshCw, Trash2, Unplug } from "lucide-react";
 import {
   BufferService,
   type BufferChannel,
@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { IdeaDialog } from "@/components/IdeaDialog";
+import { ComposeDialog } from "@/components/ComposeDialog";
 import { SyncNote } from "@/components/SyncNote";
 import { addIdea, loadIdeas, loadMoreIdeas, useIdeas } from "@/lib/ideas";
 
@@ -90,6 +91,9 @@ export function Buffer({ goSettings }: { goSettings: () => void }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [connecting, setConnecting] = useState(false);
+  // The composer's starting text while it's open; null when closed.
+  const [composing, setComposing] = useState<string | null>(null);
+  const [sentCount, setSentCount] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -167,6 +171,11 @@ export function Buffer({ goSettings }: { goSettings: () => void }) {
               ))}
             </select>
           )}
+          {overview && orgId && (
+            <Button onClick={() => setComposing("")}>
+              <PenLine className="size-3.5" /> New post
+            </Button>
+          )}
           <Button variant="outline" size="icon" aria-label="Refresh" onClick={load} disabled={loading}>
             <RefreshCw className={cn("size-3.5", loading && "animate-spin")} />
           </Button>
@@ -203,10 +212,10 @@ export function Buffer({ goSettings }: { goSettings: () => void }) {
             )}
           </TabsList>
           {tab === "ideas" ? (
-            <Ideas key={orgId} orgId={orgId} />
+            <Ideas key={orgId} orgId={orgId} onWrite={(text) => setComposing(text)} />
           ) : (
             <PostList
-              key={`${orgId}:${tab}:${channelFilter}`}
+              key={`${orgId}:${tab}:${channelFilter}:${sentCount}`}
               orgId={orgId}
               tab={TABS.find((t) => t.id === tab)!}
               channelIds={channelFilter ? [channelFilter] : []}
@@ -214,6 +223,15 @@ export function Buffer({ goSettings }: { goSettings: () => void }) {
             />
           )}
         </Tabs>
+      )}
+
+      {composing !== null && (
+        <ComposeDialog
+          channels={channels}
+          initialText={composing}
+          onClose={() => setComposing(null)}
+          onSent={() => setSentCount((n) => n + 1)}
+        />
       )}
 
       {org && (
@@ -532,7 +550,7 @@ function EditDialog({ post, onClose, onSaved }: { post: BufferPost; onClose: () 
   );
 }
 
-function Ideas({ orgId }: { orgId: string }) {
+function Ideas({ orgId, onWrite }: { orgId: string; onWrite: (text: string) => void }) {
   const toast = useToast();
   const { ideas, groups, links, more, loading, error, orgId: loadedOrg } = useIdeas(true, orgId);
   const [composing, setComposing] = useState(false);
@@ -579,6 +597,12 @@ function Ideas({ orgId }: { orgId: string }) {
                     {i.createdAt > 0 && <span>{ago(new Date(i.createdAt > 1e12 ? i.createdAt : i.createdAt * 1000))}</span>}
                     {i.services.length > 0 && <span>· {i.services.map(serviceName).join(", ")}</span>}
                     {links[i.id] && <span className="text-[#93c5fd]">· In Plane as {links[i.id].key}</span>}
+                    <button
+                      className="ml-auto inline-flex items-center gap-1 text-dim hover:text-strong"
+                      onClick={() => onWrite([i.title, i.text].filter(Boolean).join("\n\n"))}
+                    >
+                      <PenLine className="size-3" /> Write a post
+                    </button>
                   </div>
                 </div>
               ))}

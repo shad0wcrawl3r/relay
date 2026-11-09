@@ -28,6 +28,8 @@ export type {
     BufferOverview,
     BufferPlanning,
     BufferStatus,
+    ComposeResult,
+    Composed,
     DevtoKeyCheck,
     Drift,
     Endpoint,

@@ -195,7 +195,13 @@ export const BufferService = {
   EvalNote: (): Promise<string> => BufferBindings.EvalNote(),
   Promote: async (p: { postId: string; channelId: string; channel: string; text: string; timing: BufferTiming; dueAt: string }) =>
     post(await BufferBindings.Promote(p as M.Promotion)),
+  /** Exactly the text Compose sends (adds the note in dev builds). */
+  ComposedText: (text: string): Promise<string> => BufferBindings.ComposedText(text),
+  /** A post not about an article, to each channel. dueAt is ISO, used when timing is "schedule". */
+  Compose: async (p: { channelIds: string[]; text: string; timing: BufferTiming; dueAt: string }): Promise<ComposeResult[]> =>
+    arr(await BufferBindings.Compose({ ...p, dueAt: p.dueAt || "0001-01-01T00:00:00Z" } as M.Composed)),
 };
+export type ComposeResult = Clean<M.ComposeResult>;
 
 const aiStatus = (s: M.AIStatus): AIStatus => ({ ...s, providers: arr(s.providers) });
 
