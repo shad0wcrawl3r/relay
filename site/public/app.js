@@ -25,7 +25,16 @@ function stage(status) {
   const named = `${status.name ?? ""} ${status.version ?? ""}`.toLowerCase();
   return named.includes("beta") ? "beta" : named.includes("alpha") ? "alpha" : "pre-release";
 }
-const tagged = (status) => (stage(status) ? ` (${stage(status)})` : "");
+
+// The version and the kind of release, as two chips: "v0.0.4" and
+// "Pre-release" (amber) or "Stable" (green).
+function badges(status) {
+  const kind = stage(status);
+  const label = kind ? kind[0].toUpperCase() + kind.slice(1) : "Stable";
+  const chip = el("span", { className: "release-type", textContent: label });
+  chip.dataset.state = kind ? "warn" : "ok";
+  return el("span", { className: "release-badges" }, el("span", { className: "release-version", textContent: status.version }), chip);
+}
 
 function ago(iso) {
   const seconds = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
@@ -85,8 +94,7 @@ function renderDownloads(status) {
     const button = document.getElementById("hero-download");
     button.href = asset.url;
     button.textContent = `Download for ${PLATFORMS.find((p) => p.os === mine).name}`;
-    document.getElementById("hero-note").textContent =
-      `${status.version}${tagged(status)} · ${size(asset.size)} · other platforms below.`;
+    document.getElementById("hero-note").textContent = `${size(asset.size)} · other platforms below.`;
   }
 }
 
@@ -115,9 +123,11 @@ function renderStatus(status) {
 
   const version = document.getElementById("version");
   if (status.version && RELEASE.test(status.release_url ?? "")) {
-    version.replaceChildren(el("a", { href: status.release_url, rel: "noopener", textContent: status.version + tagged(status) }));
+    version.replaceChildren(el("a", { href: status.release_url, rel: "noopener" }, badges(status)));
+  } else if (status.version) {
+    version.replaceChildren(badges(status));
   } else {
-    version.textContent = status.version ?? "Not released yet";
+    version.textContent = "Not released yet";
   }
   document.getElementById("updated").textContent = status.updated_at ? ago(status.updated_at) : "Unknown";
   document.getElementById("commit").textContent = status.commit ?? "Unknown";
@@ -127,9 +137,9 @@ function render(status) {
   const line = document.getElementById("release-line");
   if (status.version) {
     const when = status.published_at ? new Date(status.published_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "";
-    const article = stage(status) === "alpha" ? "an alpha" : stage(status) === "beta" ? "a beta" : stage(status) ? "a pre-release" : "";
-    line.textContent = `${status.version}${article ? ` is ${article}` : ""}${when ? `, released ${when}` : ""}. Relay is early: expect rough edges, and please report them.`;
-    document.getElementById("hero-version").textContent = `${status.version}${stage(status) ? ` ${stage(status)}` : ""} · macOS, Windows and Linux`;
+    line.replaceChildren(badges(status),
+      `${when ? ` Released ${when}.` : ""} Relay is early: expect rough edges, and please report them.`);
+    document.getElementById("hero-version").replaceChildren(badges(status), " macOS, Windows and Linux");
   } else {
     line.textContent = "No release yet. Check back soon.";
   }
@@ -170,7 +180,7 @@ async function liveStatus() {
     status.updated_at = build.updated_at;
     status.commit = sha.slice(0, 7);
     status.platforms = jobs
-      .filter((j) => j.conclusion !== "skipped" && j.name !== "Draft release")
+      .filter((j) => j.conclusion !== "skipped" && !["Release", "Draft release"].includes(j.name))
       .map((j) => ({ name: j.name.split(" ")[0], conclusion: j.conclusion }));
   }
   return status;
