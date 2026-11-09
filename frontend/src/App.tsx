@@ -14,6 +14,7 @@ import { Settings, type SettingsTab } from "@/views/Settings";
 import { Buffer } from "@/views/buffer/Buffer";
 import { Terminal } from "@/views/terminal/Terminal";
 import { QuickTerminal } from "@/views/terminal/QuickTerminal";
+import { UpdateNotifier } from "@/components/Updates";
 
 export type Route = { name: "attention" } | { name: "project"; projectId: string } | { name: "editor" } | { name: "buffer" } | { name: "terminal" } | { name: "settings"; tab?: SettingsTab };
 
@@ -179,6 +180,7 @@ export default function App() {
           onOpenInTerminal={() => go({ name: "terminal" })}
         />
       )}
+      <UpdateNotifier />
       <Capture
         open={capture}
         onOpenChange={setCapture}
