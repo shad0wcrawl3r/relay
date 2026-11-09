@@ -1,4 +1,4 @@
-import type { Item, Project, State } from "./api";
+import type { Item, Project, Snapshot, State } from "./api";
 import { daysLate, parseDate, startOfToday } from "./time";
 
 /** Normalised state name used for behaviour (attention groups, actions). */
@@ -160,3 +160,6 @@ export const priorityLabel = (p: string) => (p ? p.charAt(0).toUpperCase() + p.s
 export function planeURL(appUrl: string, workspace: string, it: Item): string {
   return `${appUrl}/${workspace}/browse/${it.key}/`;
 }
+
+/** Boards are on with Plane connected, or with planning in Buffer turned on. */
+export const boardsOn = (s?: Snapshot | null) => !!s && (s.connected || s.bufferPlan);

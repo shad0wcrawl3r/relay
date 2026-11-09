@@ -141,6 +141,8 @@ func write(next Config) error {
 	v.Set("projects.ORDER", next.Projects.Order)
 	v.Set("projects.COLORS", next.Projects.Colors)
 	v.Set("projects.CAPTURE", next.Projects.Capture)
+	v.Set("planning.BUFFER", next.Planning.Buffer)
+	v.Set("planning.BUFFER_ORG", next.Planning.BufferOrg)
 	v.Set("updates.CHECK", next.Updates.Check)
 	path := Path()
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
@@ -217,6 +219,13 @@ type Config struct {
 		Colors map[string]string `mapstructure:"COLORS"`
 		// Capture is the project quick capture starts in; empty: the first.
 		Capture string `mapstructure:"CAPTURE"`
+	}
+	// Planning puts a board backed by Buffer content items next to (or
+	// instead of) Plane. Experimental: Buffer's content item API is.
+	Planning struct {
+		Buffer bool `mapstructure:"BUFFER"`
+		// BufferOrg is the Buffer organization to plan in; empty: the first.
+		BufferOrg string `mapstructure:"BUFFER_ORG"`
 	}
 	Updates struct {
 		// Check: look for a newer GitHub release when Relay starts.

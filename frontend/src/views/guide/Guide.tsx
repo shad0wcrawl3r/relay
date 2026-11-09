@@ -30,6 +30,7 @@ import { ShellPicker } from "@/components/ShellPicker";
 import { ImportSettingsButton } from "@/components/SettingsTransfer";
 import { DevtoKeyField, DevtoKeyLink } from "@/components/DevtoKeyField";
 import { BufferLogo } from "@/components/icons/BufferLogo";
+import { BufferPlanningRow } from "@/components/BufferPlanningRow";
 import {
   planeAppSteps,
   planeIntegrationsUrl,
@@ -369,7 +370,10 @@ function BufferStep({
       lead="Relay sends LinkedIn posts through your Buffer account. Nothing is posted until you review it."
     >
       {connected ? (
-        <Status ok>Connected{account && ` as ${account}`}</Status>
+        <>
+          <Status ok>Connected{account && ` as ${account}`}</Status>
+          <BufferPlanningRow title="Also use Buffer to plan your work" />
+        </>
       ) : (
         <>
           <ol className="m-0 flex flex-col gap-1.5 pl-4 text-muted-foreground">

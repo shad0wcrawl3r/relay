@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/shad0wcrawl3r/relay/internal/config"
 	"github.com/shad0wcrawl3r/relay/internal/logs"
 	"github.com/shad0wcrawl3r/relay/internal/plane"
+	"github.com/shad0wcrawl3r/relay/internal/planning"
 	"github.com/shad0wcrawl3r/relay/internal/unlock"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
@@ -31,6 +33,9 @@ type PlaneService struct {
 
 	syncMu sync.Mutex
 	kick   chan struct{}
+
+	// plan is the Buffer planning board; set in main once Buffer exists.
+	plan *bufferPlan
 }
 
 func NewPlaneService() *PlaneService {
@@ -95,7 +100,8 @@ func (s *PlaneService) sync(ctx context.Context, force bool) plane.Snapshot {
 	} else {
 		planeLog.Debug("synced", "forced", force)
 	}
-	snap = plane.Arrange(s.locks.Redact(snap))
+	s.plan.refresh(ctx)
+	snap = s.present(snap)
 	if s.app != nil {
 		s.app.Event.Emit("plane:snapshot", snap)
 	}
@@ -108,7 +114,51 @@ func (s *PlaneService) Snapshot() plane.Snapshot {
 	snap.Connected = s.client.Connected()
 	snap.Workspace = s.client.Workspace()
 	snap.AppURL = plane.AppURL()
-	return plane.Arrange(s.locks.Redact(snap))
+	return s.present(snap)
+}
+
+// present is what the UI may see: locked data removed, the Buffer board
+// added, and projects in the user's order.
+func (s *PlaneService) present(snap plane.Snapshot) plane.Snapshot {
+	return plane.Arrange(s.plan.apply(s.locks.Redact(snap)))
+}
+
+// BufferPlanning is the Buffer planning board's setting.
+type BufferPlanning struct {
+	Enabled bool   `json:"enabled"`
+	OrgID   string `json:"orgId"`
+}
+
+func (s *PlaneService) BufferPlanning() BufferPlanning {
+	c := config.GetConfig().Planning
+	return BufferPlanning{Enabled: c.Buffer, OrgID: c.BufferOrg}
+}
+
+// SetBufferPlanning turns the Buffer board on or off and picks its
+// organization ("" for the first), then reloads it.
+func (s *PlaneService) SetBufferPlanning(ctx context.Context, enabled bool, orgID string) (BufferPlanning, error) {
+	err := config.Update(func(c *config.Config) {
+		c.Planning.Buffer = enabled
+		c.Planning.BufferOrg = orgID
+	})
+	if err != nil {
+		planeLog.Error("could not save the planning setting", "error", err)
+		return s.BufferPlanning(), err
+	}
+	s.plan.refresh(ctx)
+	s.emit()
+	return s.BufferPlanning(), nil
+}
+
+// planWrite runs a write on the Buffer board, then reloads it.
+func (s *PlaneService) planWrite(ctx context.Context, fn func() error) error {
+	if !s.plan.on() {
+		return errors.New("planning in Buffer is off; turn it on in Settings → Publishing")
+	}
+	err := fn()
+	s.plan.refresh(ctx)
+	s.emit()
+	return err
 }
 
 // SetProjectOrder saves the sidebar order as project identifiers.
@@ -186,6 +236,9 @@ func (s *PlaneService) allowed(projectID, itemID string) bool {
 }
 
 func (s *PlaneService) Detail(ctx context.Context, projectID, itemID string) (plane.ItemDetail, error) {
+	if projectID == planning.ProjectID {
+		return s.plan.detail(itemID)
+	}
 	if !s.allowed(projectID, itemID) {
 		return plane.ItemDetail{}, plane.ErrLocked
 	}
@@ -193,6 +246,9 @@ func (s *PlaneService) Detail(ctx context.Context, projectID, itemID string) (pl
 }
 
 func (s *PlaneService) Update(ctx context.Context, projectID, itemID string, patch plane.ItemPatch) error {
+	if projectID == planning.ProjectID {
+		return s.planWrite(ctx, func() error { return s.plan.update(ctx, itemID, patch) })
+	}
 	if !s.allowed(projectID, itemID) {
 		return plane.ErrLocked
 	}
@@ -204,6 +260,11 @@ func (s *PlaneService) Update(ctx context.Context, projectID, itemID string, pat
 }
 
 func (s *PlaneService) Create(ctx context.Context, item plane.NewItem) (plane.Item, error) {
+	if item.ProjectID == planning.ProjectID {
+		var it plane.Item
+		err := s.planWrite(ctx, func() (err error) { it, err = s.plan.create(ctx, item); return err })
+		return it, err
+	}
 	if !s.allowed(item.ProjectID, "") {
 		return plane.Item{}, plane.ErrLocked
 	}
@@ -216,6 +277,9 @@ func (s *PlaneService) Create(ctx context.Context, item plane.NewItem) (plane.It
 }
 
 func (s *PlaneService) Comment(ctx context.Context, projectID, itemID, html string) error {
+	if projectID == planning.ProjectID {
+		return errors.New("Buffer cards don't have comments")
+	}
 	if !s.allowed(projectID, itemID) {
 		return plane.ErrLocked
 	}

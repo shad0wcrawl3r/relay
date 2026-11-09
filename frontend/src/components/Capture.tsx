@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Plus } from "lucide-react";
 import { usePlane } from "@/lib/store";
-import { captureState, glyphFor, hasIdeas } from "@/lib/plane";
+import { boardsOn, captureState, glyphFor, hasIdeas } from "@/lib/plane";
 import { useIntegrations } from "@/lib/integrations";
 import { BufferService } from "@/lib/api";
 import { addIdea, ideasOrg } from "@/lib/ideas";
@@ -33,7 +33,7 @@ interface Option {
 
 export function Capture({ open, onOpenChange, defaultProjectId, go, openItem }: Props) {
   const { projects, create, syncNow, snapshot } = usePlane();
-  const planeOn = !!snapshot?.connected;
+  const planeOn = boardsOn(snapshot);
   const bufferOn = useIntegrations().buffer === true;
   const toast = useToast();
   const [text, setText] = useState("");
@@ -54,7 +54,7 @@ export function Capture({ open, onOpenChange, defaultProjectId, go, openItem }: 
 
   const target = projects.find((p) => p.id === targetId);
   const targetState = target ? captureState(target, queue) : undefined;
-  const isLab = !!target && hasIdeas(target);
+  const ideas = !!target && hasIdeas(target);
 
   const close = () => onOpenChange(false);
 
@@ -68,7 +68,7 @@ export function Capture({ open, onOpenChange, defaultProjectId, go, openItem }: 
         icon: <Plus className="size-[13px]" strokeWidth={2} />,
         label: (
           <>
-            Create {isLab ? "idea" : "item"}{" "}
+            Create {ideas ? "idea" : "item"}{" "}
             <span className="text-dim">
               in {target.name} → {targetState?.name ?? "default"}
             </span>
@@ -135,7 +135,7 @@ export function Capture({ open, onOpenChange, defaultProjectId, go, openItem }: 
     ];
     const matched = q ? nav.filter((o) => String(o.label).toLowerCase().includes(q)) : nav;
     return [...opts, ...matched];
-  }, [text, target, targetState, projects, isLab, busy, planeOn, bufferOn]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [text, target, targetState, projects, ideas, busy, planeOn, bufferOn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => setActive(0), [text]);
 

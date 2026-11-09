@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Events } from "@wailsio/runtime";
 import { usePlane } from "@/lib/store";
-import { stateById } from "@/lib/plane";
+import { boardsOn, stateById } from "@/lib/plane";
 import { Sidebar } from "@/components/Sidebar";
 import { CachedBanner } from "@/components/CachedBanner";
 import { LockScreen } from "@/components/LockScreen";
@@ -77,7 +77,7 @@ export default function App() {
 
   // Plane is optional. Without it there's no Attention or boards, so open on
   // the editor, and leave Plane views if it's disconnected later.
-  const planeOn = !!snapshot?.connected;
+  const planeOn = boardsOn(snapshot);
   useEffect(() => {
     if (snapshot && !planeOn && (route.name === "attention" || route.name === "project")) setRoute({ name: "editor" });
   }, [snapshot, planeOn, route.name]);
