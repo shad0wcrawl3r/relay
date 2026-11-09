@@ -104,6 +104,8 @@ h4 { color: var(--dim); font-size: 11px; font-weight: 600; letter-spacing: .06em
 .platform a.file:hover { border-color: #3f3f46; text-decoration: none; }
 .platform a.file .kind { color: var(--strong); font-weight: 500; }
 .platform a.file .size { color: var(--dim); font-size: 12px; margin-left: auto; }
+.platform-warning { border-left: 2px solid var(--warn); color: var(--warn); font-size: 13px; margin-bottom: 12px; padding-left: 10px; }
+.unsigned-body .platform-warning { margin: 0 0 10px; }
 .platform .none { color: var(--dim); font-size: 13px; }
 
 details.unsigned { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-top: 14px; }

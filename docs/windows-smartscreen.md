@@ -3,6 +3,12 @@
 Relay's Windows builds aren't code-signed yet, so Windows warns before
 running them. This page explains why and how to get past each warning.
 
+> **Windows support isn't guaranteed.** Windows is flaky with unsigned
+> apps, and on some PCs nothing on this page gets Relay running. If Smart
+> App Control is on, Windows 11 refuses to run it (see
+> [below](#smart-app-control-blocks-relay-windows-11)). Use
+> macOS or Linux if you can.
+
 ## Why it happens
 
 - Windows tags every file downloaded from the internet (the "Mark of the
@@ -75,7 +81,13 @@ Unblock-File .\relay-amd64-installer.exe
 Some PCs don't show the **Unblock** box at all. Use Developer Mode
 there.
 
-### "Smart App Control blocked an app that may be unsafe" (Windows 11)
+### Smart App Control blocks Relay (Windows 11)
+
+Windows shows "Smart App Control blocked an app that may be unsafe", or
+PowerShell says "An Application Control policy has blocked this file". Unblock and
+Developer Mode don't help, and neither does building Relay yourself on that
+PC, because Smart App Control blocks unsigned programs wherever they came
+from. To check that it's on, run `(Get-MpComputerStatus).SmartAppControlState`.
 
 Smart App Control blocks unsigned apps, and there's no per-app exception.
 Your options:
