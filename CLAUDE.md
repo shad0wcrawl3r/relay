@@ -15,8 +15,9 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
 - Backend: Go, Wails v3 (`github.com/wailsapp/wails/v3`), module `github.com/shad0wcrawl3r/relay`.
   Config via viper from `config.toml` (`[plane] BASE_URL/CLIENT_ID`, …), env prefix `RELAY`.
   Secrets (Dev.to key, Plane client secret) live in the OS keychain (`internal/config/secrets.go`), never in the file.
-  `internal/api` (gin, currently unused), `internal/config`, `internal/plane` (OAuth — empty stub).
-- Frontend: `frontend/` — React 18 + TS + Vite. **Target: Tailwind + shadcn/ui (zinc, dark)**; not installed yet.
+  Packages under `internal/`: `ai`, `backup`, `buffer`, `config`, `devto`, `logs`, `plane` (OAuth app-installation
+  flow, API client, locks), `posts`, `term`, `unlock`, `vault`. Wails services live in the root package (`*service.go`).
+- Frontend: `frontend/` — React 18 + TS + Vite, Tailwind v4 + shadcn/ui (zinc, dark).
 - Build/run: `wails3 dev`, `wails3 build` (Taskfile).
 
 ## Rules
