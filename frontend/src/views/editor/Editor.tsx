@@ -20,6 +20,7 @@ import { SeriesSelect } from "./SeriesSelect";
 import { countPlaceholders } from "./highlight";
 import { AIUseSelect, aiUse } from "./AIUseSelect";
 import { Promotions } from "./Promotions";
+import { ShipLogDialog } from "./ShipLogDialog";
 import type { BufferFocus } from "@/views/buffer/Buffer";
 
 const MAX_TAGS = 4;
@@ -51,6 +52,7 @@ export function Editor({ goSettings, goBuffer }: { goSettings: () => void; goBuf
   const [drift, setDrift] = useState<Drift | null>(null);
   const [disclosures, setDisclosures] = useState<Record<string, string>>({});
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [shipLog, setShipLog] = useState(false);
   const [, tick] = useState(0);
   const editor = useRef<EditorHandle>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -293,7 +295,7 @@ export function Editor({ goSettings, goBuffer }: { goSettings: () => void; goBuf
 
   return (
     <>
-      <PostsSidebar list={list} activeId={post?.id} syncing={syncing} onOpen={open} onNew={newPost} onSync={sync} onAddKey={goSettings} />
+      <PostsSidebar list={list} activeId={post?.id} syncing={syncing} onOpen={open} onNew={newPost} onShipLog={() => setShipLog(true)} onSync={sync} onAddKey={goSettings} />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="drag flex h-[84px] shrink-0 items-end gap-4 border-b border-border px-6 pb-[13px]">
           <div className="min-w-0 grow truncate pb-1.5 text-sm text-muted-foreground">
@@ -428,6 +430,16 @@ export function Editor({ goSettings, goBuffer }: { goSettings: () => void; goBuf
           </>
         )}
       </div>
+      {shipLog && (
+        <ShipLogDialog
+          onClose={() => setShipLog(false)}
+          onDrafted={async (p) => {
+            setShipLog(false);
+            await open(p.id);
+            toast({ tone: "success", title: "Ship log drafted", body: "Review and edit it, then send it to Dev.to when it's ready." });
+          }}
+        />
+      )}
       <DriftDialog drift={drift} onOpenChange={(o) => !o && setDrift(null)} onPull={pull} onOverwrite={() => send(true)} />
       <ImageDialog open={imageOpen} onOpenChange={setImageOpen} onInsert={(t) => setTimeout(() => editor.current?.insertAtCursor(t), 0)} />
       {post && <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} onPublish={publish} />}

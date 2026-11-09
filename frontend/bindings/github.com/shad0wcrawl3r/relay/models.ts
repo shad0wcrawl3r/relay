@@ -390,6 +390,77 @@ export interface ShellChoice {
     "chosen": string;
 }
 
+export interface ShipCommit {
+    "hash": string;
+    "date": string;
+    "subject": string;
+}
+
+export interface ShipItem {
+    "id": string;
+    "projectId": string;
+    "projectName": string;
+    "key": string;
+    "name": string;
+    "doneAt": string;
+}
+
+/**
+ * ShipLogDraft is what the user kept from the material, plus their notes.
+ */
+export interface ShipLogDraft {
+    "query": ShipLogQuery;
+
+    /**
+     * ItemIDs and Commits are the ones the user kept; Go looks them up again
+     * rather than trusting text from the UI.
+     */
+    "itemIds": string[] | null;
+    "commits": string[] | null;
+    "notes": string;
+}
+
+/**
+ * ShipLogMaterial is what a query found.
+ */
+export interface ShipLogMaterial {
+    "items": ShipItem[] | null;
+    "commits": ShipCommit[] | null;
+
+    /**
+     * RepoError explains why commits couldn't be read; items still load.
+     */
+    "repoError": string;
+
+    /**
+     * Skipped counts projects left out because they're lockable.
+     */
+    "skipped": number;
+}
+
+/**
+ * ShipLogQuery picks the window and the sources.
+ */
+export interface ShipLogQuery {
+    "since": string;
+    "until": string;
+    "projectIds": string[] | null;
+
+    /**
+     * Repo is a folder inside a git repository, or "" for no commits.
+     */
+    "repo": string;
+}
+
+/**
+ * ShipProject is a project the ship log can read.
+ */
+export interface ShipProject {
+    "id": string;
+    "name": string;
+    "source": string;
+}
+
 /**
  * UpdateInfo is what the last check found.
  */

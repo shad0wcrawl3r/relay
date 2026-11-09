@@ -33,6 +33,12 @@ frontend. Runs on macOS, Windows and Linux.
     assisted): Dev.to's API has no field for it, so Relay adds the matching
     disclosure line at the end of the article, as DEV's guidelines ask
   - Delete a draft that hasn't gone to Dev.to yet from the editor's footer
+  - Ship log (the ship icon above the post list): pick a date range, the
+    projects and optionally a git repository; Relay lists the items finished
+    in that range and the commit subjects, you untick what stays out and add
+    notes, and the AI model drafts a build-in-public post that opens as a new,
+    AI-assisted draft. Private projects and modules never take part, and only
+    item titles and commit subjects reach the model
   - Spots edits made on Dev.to: Update draft shows a diff (unified or side by
     side) and asks whether to keep Dev.to's version or replace it
 - **Promotion**
@@ -100,7 +106,6 @@ frontend. Runs on macOS, Windows and Linux.
 
 For the Buffer Commit contest:
 
-- Ship log: turn finished Plane work into Buffer drafts
 - `relay mcp`: an MCP server so agents can work with the running app
 
 Later:

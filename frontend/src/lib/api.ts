@@ -9,6 +9,7 @@ import * as GuideBindings from "../../bindings/github.com/shad0wcrawl3r/relay/gu
 import * as LogBindings from "../../bindings/github.com/shad0wcrawl3r/relay/logservice";
 import * as PlaneBindings from "../../bindings/github.com/shad0wcrawl3r/relay/planeservice";
 import * as PostBindings from "../../bindings/github.com/shad0wcrawl3r/relay/postservice";
+import * as ShipLogBindings from "../../bindings/github.com/shad0wcrawl3r/relay/shiplogservice";
 import * as SettingsBindings from "../../bindings/github.com/shad0wcrawl3r/relay/settingsservice";
 import * as TerminalBindings from "../../bindings/github.com/shad0wcrawl3r/relay/terminalservice";
 import * as UpdateBindings from "../../bindings/github.com/shad0wcrawl3r/relay/updateservice";
@@ -239,6 +240,27 @@ export const AIService = {
   SummarizeText: (title: string, text: string) => AIBindings.SummarizeText(title, text),
   /** Rewrites notes as a social post under limit characters. */
   DraftPost: (notes: string, limit: number) => AIBindings.DraftPost(notes, limit),
+};
+
+export type ShipProject = Clean<M.ShipProject>;
+export type ShipItem = Clean<M.ShipItem>;
+export type ShipCommit = Clean<M.ShipCommit>;
+export type ShipLogMaterial = Clean<M.ShipLogMaterial>;
+export type ShipLogQuery = { since: string; until: string; projectIds: string[]; repo: string };
+
+export const ShipLogService = {
+  Projects: async (): Promise<ShipProject[]> => arr(await ShipLogBindings.Projects()),
+  /** Finished items and commits in the window. since and until are ISO times. */
+  Material: async (q: ShipLogQuery): Promise<ShipLogMaterial> => {
+    const m = await ShipLogBindings.Material(q as M.ShipLogQuery);
+    return { ...m, items: arr(m.items), commits: arr(m.commits) };
+  },
+  ChooseRepo: (): Promise<string> => ShipLogBindings.ChooseRepo(),
+  RecentRepo: (): Promise<string> => ShipLogBindings.RecentRepo(),
+  SetRecentRepo: (dir: string) => ShipLogBindings.SetRecentRepo(dir),
+  /** Drafts a post from the kept items and commits, and saves it locally. */
+  Draft: async (d: { query: ShipLogQuery; itemIds: string[]; commits: string[]; notes: string }) =>
+    post(await ShipLogBindings.Draft(d as M.ShipLogDraft)),
 };
 
 export const SettingsService = {
