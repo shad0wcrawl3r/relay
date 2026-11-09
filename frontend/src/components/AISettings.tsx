@@ -20,6 +20,8 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [key, setKey] = useState("");
+  // Saving or removing the key failed; shown under the key field.
+  const [keyError, setKeyError] = useState("");
   const [endpoint, setEndpoint] = useState("");
   // The model picked for this provider; it's only saved once it passes a
   // test (or the user saves it anyway).
@@ -54,6 +56,7 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
       setKey("");
       setEndpoint(custom);
       setChosen(savedModel);
+      setKeyError("");
       setTested(null);
       setTestError("");
       setModels([]);
@@ -77,21 +80,23 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
 
   const saveKey = async () => {
     try {
+      setKeyError("");
       setStatus(await AIService.SetKey(provider.id, key));
       setKey("");
       loadModels(provider.id);
     } catch (err) {
-      toast({ tone: "error", title: "Couldn't save the key", body: errorMessage(err) });
+      setKeyError(`Couldn't save the key: ${errorMessage(err)}`);
     }
   };
 
   const removeKey = async () => {
     try {
+      setKeyError("");
       setStatus(await AIService.ClearKey(provider.id));
       setModels([]);
       setError("");
     } catch (err) {
-      toast({ tone: "error", title: "Couldn't remove the key", body: errorMessage(err) });
+      setKeyError(`Couldn't remove the key: ${errorMessage(err)}`);
     }
   };
 
@@ -156,6 +161,37 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
     }
   };
 
+  // What the provider said when Relay listed its models: right under the
+  // field that caused it (the key, or the endpoint when there's no key), so
+  // it's seen without scrolling past the rest.
+  const keyRow = provider.needsKey || provider.custom;
+  const connecting = !provider.needsKey || provider.keySet;
+  const connection = (
+    <>
+      {keyError && <span className="text-xs text-overdue">{keyError}</span>}
+      {connecting && loading && (
+        <span className="flex items-center gap-1.5 text-xs text-dim">
+          <Loader2 className="size-3 animate-spin" />
+          Connecting to {provider.name}…
+        </span>
+      )}
+      {connecting && !loading && error && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-overdue">{error}</span>
+          <Button variant="outline" size="md" onClick={() => loadModels(provider.id)}>
+            Retry
+          </Button>
+        </div>
+      )}
+      {connecting && !loading && !error && models.length > 0 && (
+        <span className="flex items-center gap-1 text-xs text-[#4ade80]">
+          <Check className="size-3" />
+          Connected: {models.length} {models.length === 1 ? "model" : "models"} available.
+        </span>
+      )}
+    </>
+  );
+
   return (
     <section className="flex flex-col gap-4">
       <div>
@@ -216,6 +252,7 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
             Leave empty to use the default. {provider.keySet ? "Your API key is sent to this address." : ""}
           </span>
           {insecure && <span className="text-xs text-[#fbbf24]">This address is unencrypted, so articles{provider.keySet ? " and your API key" : ""} travel in plain text.</span>}
+          {!keyRow && connection}
         </div>
       </div>
 
@@ -247,6 +284,7 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
               )}
             </form>
             <span className="text-xs text-dim">Stored in the system keychain.</span>
+            {connection}
           </div>
         </div>
       )}
@@ -282,12 +320,7 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
         <div className={row}>
           <span className="pt-2.5 text-[13px] text-muted-foreground">Model</span>
           <div className="flex flex-col gap-1.5">
-            {loading ? (
-              <span className="flex h-9 items-center gap-1.5 text-xs text-dim">
-                <Loader2 className="size-3 animate-spin" />
-                Connecting…
-              </span>
-            ) : (
+            {!loading && (
               <div className="flex gap-2">
                 <div className="min-w-0 grow">
                   <ModelPicker models={models} value={chosen} onChange={pickModel} />
@@ -318,14 +351,6 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
                   {unsaved ? "Not saved yet. Relay sends a one-line test prompt, then saves the model." : savedModel ? "Saved. Used when you ask for a summary." : "Pick a model, then test it."}
                 </span>
               )
-            )}
-            {error && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-overdue">{error}</span>
-                <Button variant="outline" size="md" onClick={() => loadModels(provider.id)}>
-                  Retry
-                </Button>
-              </div>
             )}
           </div>
         </div>
