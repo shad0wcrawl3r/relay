@@ -121,7 +121,7 @@ func main() {
 	// editor still lay out cleanly.
 	window = app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Name:      "main",
-		Title:     "Relay",
+		Title:     windowTitle("Relay"),
 		Width:     1440,
 		Height:    900,
 		MinWidth:  1100,

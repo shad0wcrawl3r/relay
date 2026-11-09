@@ -7,6 +7,7 @@ import { PlaneProvider } from "@/lib/store";
 import { IntegrationsProvider } from "@/lib/integrations";
 import { TerminalProvider } from "@/lib/terminal";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { DevMarker } from "@/components/DevMarker";
 import { ZoomKeys } from "@/lib/zoom";
 import "./index.css";
 
@@ -17,6 +18,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <ToastProvider>
       <ZoomKeys />
+      <DevMarker />
       <TooltipProvider>
         <PlaneProvider>
           <IntegrationsProvider>

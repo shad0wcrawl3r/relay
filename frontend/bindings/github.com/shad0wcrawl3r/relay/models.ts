@@ -380,6 +380,11 @@ export interface UpdateStatus {
     "current": string;
 
     /**
+     * Dev: not a release build (wails3 dev, go run, go build).
+     */
+    "dev": boolean;
+
+    /**
      * AutoCheck: check when a release build starts.
      */
     "autoCheck": boolean;

@@ -56,6 +56,8 @@ type UpdateInfo struct {
 
 type UpdateStatus struct {
 	Current string `json:"current"`
+	// Dev: not a release build (wails3 dev, go run, go build).
+	Dev bool `json:"dev"`
 	// AutoCheck: check when a release build starts.
 	AutoCheck bool `json:"autoCheck"`
 	// Last is the most recent check this session, if any.
@@ -104,7 +106,7 @@ func (s *UpdateService) ServiceStartup(ctx context.Context, _ application.Servic
 func (s *UpdateService) Status() UpdateStatus {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return UpdateStatus{Current: appVersion(), AutoCheck: config.GetConfig().Updates.Check, Last: s.last}
+	return UpdateStatus{Current: appVersion(), Dev: !releaseBuild, AutoCheck: config.GetConfig().Updates.Check, Last: s.last}
 }
 
 func (s *UpdateService) SetAutoCheck(on bool) (UpdateStatus, error) {
@@ -219,4 +221,13 @@ func parseVersion(v string) ([3]int, string, bool) {
 		out[i] = n
 	}
 	return out, suffix, true
+}
+
+// windowTitle marks dev builds in the title bar and taskbar, where the
+// in-window "Dev mode" tag can't be seen.
+func windowTitle(title string) string {
+	if releaseBuild {
+		return title
+	}
+	return title + " (dev)"
 }

@@ -51,7 +51,7 @@ func (g *GuideService) Open() {
 	}
 	opts := application.WebviewWindowOptions{
 		Name:             "guide",
-		Title:            "Set up Relay",
+		Title:            windowTitle("Set up Relay"),
 		Width:            guideWidth,
 		Height:           guideHeight,
 		MinWidth:         360,
