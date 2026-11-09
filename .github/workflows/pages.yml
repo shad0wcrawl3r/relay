@@ -66,7 +66,7 @@ jobs:
             assets: [($release.assets // [])[] | {name, size, url: .browser_download_url}],
             updated_at: ($run.updatedAt // null),
             commit: (($run.headSha // "")[0:7] | if . == "" then null else . end),
-            platforms: [$jobs[] | select(.conclusion != "skipped" and .name != "Release") | {name: (.name | split(" ")[0]), conclusion}]
+            platforms: [$jobs[] | select(.conclusion != "skipped" and (.name | IN("Release", "Draft release") | not)) | {name: (.name | split(" ")[0]), conclusion}]
           }' > site/public/status.json
           cat site/public/status.json
 
