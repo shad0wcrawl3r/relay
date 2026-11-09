@@ -65,7 +65,8 @@ frontend. Runs on macOS, Windows and Linux.
   - Per-subsystem logs, held in memory only
   - Runs in the background with a tray icon
   - CI builds for macOS, Windows and Linux, published as releases with a
-    `SHA256SUMS` file and steps for opening unsigned builds
+    `SHA256SUMS` file and steps for opening unsigned builds (Windows:
+    [SmartScreen guide](docs/windows-smartscreen.md))
 
 ### Planned
 
