@@ -65,6 +65,9 @@ export async function loadMoreIdeas() {
   }
 }
 
+/** The organization the ideas were last loaded for, or "" before the first load. */
+export const ideasOrg = () => state.orgId;
+
 export function addIdea(i: BufferIdea, link?: IdeaLink) {
   set({ ideas: [i, ...state.ideas.filter((x) => x.id !== i.id)], links: link ? { ...state.links, [i.id]: link } : state.links });
 }

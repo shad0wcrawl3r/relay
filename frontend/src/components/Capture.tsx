@@ -3,8 +3,13 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { Plus } from "lucide-react";
 import { usePlane } from "@/lib/store";
 import { captureState, glyphFor, hasIdeas } from "@/lib/plane";
-import { cn } from "@/lib/utils";
+import { useIntegrations } from "@/lib/integrations";
+import { BufferService } from "@/lib/api";
+import { addIdea, ideasOrg } from "@/lib/ideas";
+import { cn, errorMessage } from "@/lib/utils";
 import { Kbd, ProjectGlyph } from "@/components/bits";
+import { BufferLogo } from "@/components/icons/BufferLogo";
+import { useToast } from "@/components/Toaster";
 import { Switch } from "@/components/ui/switch";
 import type { OpenItem, Route } from "@/App";
 
@@ -22,11 +27,15 @@ interface Option {
   label: React.ReactNode;
   keys: string[];
   run: (andOpen: boolean) => void;
+  /** Creates something from the typed text, rather than navigating. */
+  capture?: boolean;
 }
 
 export function Capture({ open, onOpenChange, defaultProjectId, go, openItem }: Props) {
   const { projects, create, syncNow, snapshot } = usePlane();
   const planeOn = !!snapshot?.connected;
+  const bufferOn = useIntegrations().buffer === true;
+  const toast = useToast();
   const [text, setText] = useState("");
   const [targetId, setTargetId] = useState<string>("");
   const [queue, setQueue] = useState(false);
@@ -55,6 +64,7 @@ export function Capture({ open, onOpenChange, defaultProjectId, go, openItem }: 
     if (q && target) {
       opts.push({
         id: "create",
+        capture: true,
         icon: <Plus className="size-[13px]" strokeWidth={2} />,
         label: (
           <>
@@ -79,6 +89,35 @@ export function Capture({ open, onOpenChange, defaultProjectId, go, openItem }: 
         },
       });
     }
+    if (q && bufferOn) {
+      opts.push({
+        id: "buffer-idea",
+        capture: true,
+        icon: <BufferLogo className="size-[13px]" />,
+        label: (
+          <>
+            Save as Buffer idea <span className="text-dim">· stays in Buffer, not linked to Plane</span>
+          </>
+        ),
+        keys: target ? ["⌥", "↵"] : ["↵"],
+        run: async () => {
+          if (busy) return;
+          setBusy(true);
+          try {
+            // The organization the Buffer tab last showed, else the account's first.
+            const org = ideasOrg() || (await BufferService.Organizations())[0]?.id;
+            if (!org) throw new Error("No Buffer organization found");
+            addIdea(await BufferService.CreateIdea({ organizationId: org, groupId: "", title: "", text: text.trim() }));
+            toast({ tone: "success", title: "Saved to Buffer ideas" });
+            close();
+          } catch (err) {
+            toast({ tone: "error", title: "Couldn't save the idea", body: errorMessage(err) });
+          } finally {
+            setBusy(false);
+          }
+        },
+      });
+    }
     const nav: Option[] = [
       ...(planeOn ? [{ id: "attention", icon: "!", label: "Attention", keys: ["G", "A"], run: () => (go({ name: "attention" }), close()) }] : []),
       ...projects.slice(0, 9).map((p, i) => ({
@@ -96,7 +135,7 @@ export function Capture({ open, onOpenChange, defaultProjectId, go, openItem }: 
     ];
     const matched = q ? nav.filter((o) => String(o.label).toLowerCase().includes(q)) : nav;
     return [...opts, ...matched];
-  }, [text, target, targetState, projects, isLab, busy, planeOn]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [text, target, targetState, projects, isLab, busy, planeOn, bufferOn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => setActive(0), [text]);
 
@@ -119,13 +158,13 @@ export function Capture({ open, onOpenChange, defaultProjectId, go, openItem }: 
     } else if (e.key === "Enter") {
       e.preventDefault();
       const andOpen = e.metaKey || e.ctrlKey;
-      const opt = andOpen ? options.find((o) => o.id === "create") : options[active];
+      const opt = andOpen ? options.find((o) => o.id === "create") : e.altKey ? options.find((o) => o.id === "buffer-idea") : options[active];
       opt?.run(andOpen);
     }
   };
 
-  const createOpt = options[0]?.id === "create" ? options[0] : null;
-  const navOpts = createOpt ? options.slice(1) : options;
+  const captureOpts = options.filter((o) => o.capture);
+  const navOpts = options.filter((o) => !o.capture);
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
@@ -144,7 +183,7 @@ export function Capture({ open, onOpenChange, defaultProjectId, go, openItem }: 
               autoFocus
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder={projects.length ? "Capture an idea or run a command" : "Go to…"}
+              placeholder={projects.length || bufferOn ? "Capture an idea or run a command" : "Go to…"}
               className="min-w-0 flex-1 bg-transparent text-base text-strong outline-none placeholder:text-dim"
             />
             <Kbd>esc</Kbd>
@@ -178,10 +217,12 @@ export function Capture({ open, onOpenChange, defaultProjectId, go, openItem }: 
           )}
 
           <div className="flex max-h-[360px] flex-col gap-0.5 overflow-y-auto p-2" role="listbox">
-            {createOpt && <OptionRow o={createOpt} active={active === 0} accent onHover={() => setActive(0)} />}
+            {captureOpts.map((o, i) => (
+              <OptionRow key={o.id} o={o} active={active === i} accent onHover={() => setActive(i)} />
+            ))}
             {navOpts.length > 0 && <div className="px-2.5 pb-1 pt-2 text-[11px] font-medium uppercase tracking-[.06em] text-dim">Go to</div>}
             {navOpts.map((o, i) => {
-              const idx = createOpt ? i + 1 : i;
+              const idx = captureOpts.length + i;
               return <OptionRow key={o.id} o={o} active={active === idx} onHover={() => setActive(idx)} />;
             })}
           </div>
@@ -193,6 +234,11 @@ export function Capture({ open, onOpenChange, defaultProjectId, go, openItem }: 
             <span className="inline-flex items-center gap-1.5">
               <Kbd>⌘↵</Kbd>create &amp; open
             </span>
+            {bufferOn && (
+              <span className="inline-flex items-center gap-1.5">
+                <Kbd>⌥↵</Kbd>Buffer idea
+              </span>
+            )}
             <span className="inline-flex items-center gap-1.5">
               <Kbd>⇥</Kbd>cycle project
             </span>
