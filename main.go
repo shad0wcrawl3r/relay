@@ -3,6 +3,7 @@ package main
 import (
 	"embed"
 	"log"
+	"os"
 	"runtime"
 	"sync/atomic"
 
@@ -34,7 +35,23 @@ func init() {
 	application.RegisterEvent[string]("buffer:signin")
 }
 
+// quitting is set just before Relay quits for real, so closing the window
+// (which normally hides it to the tray) lets it go.
+var quitting atomic.Bool
+
+// quit ends Relay, terminal sessions included. App.Quit skips ShouldQuit, so
+// mark the quit here for the close hook.
+func quit() {
+	quitting.Store(true)
+	application.Get().Quit()
+}
+
 func main() {
+	// `relay --clear-data`: used by the Windows uninstaller and by "Clear all
+	// data", which runs it again after Relay quits. Nothing else starts.
+	if clearDataCommand(os.Args[1:]) {
+		return
+	}
 	// Before anything reads a secret; also moves old ones out of config.toml.
 	config.LoadSecrets()
 	cfg := config.GetConfig()
@@ -52,8 +69,6 @@ func main() {
 
 	// Closing the window hides Relay to the tray; only Quit ends it (and
 	// with it the terminal sessions).
-	var quitting atomic.Bool
-
 	app := application.New(application.Options{
 		Name:        "Relay",
 		Description: "Plane kanban, Dev.to writing and terminal workbench",
@@ -123,11 +138,7 @@ func main() {
 		}
 	})
 	menu.AddSeparator()
-	// App.Quit skips ShouldQuit, so mark the quit here for the close hook.
-	menu.Add("Quit Relay").OnClick(func(*application.Context) {
-		quitting.Store(true)
-		app.Quit()
-	})
+	menu.Add("Quit Relay").OnClick(func(*application.Context) { quit() })
 	label := func(visible bool) {
 		if visible {
 			toggle.SetLabel("Hide Relay")
