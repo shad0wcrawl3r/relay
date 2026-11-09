@@ -108,7 +108,7 @@
       <h2>Privacy</h2>
       <ul class="plain">
         <li><b>Stays on your machine.</b> Posts, settings and caches are stored locally and encrypted (AES-256-GCM). The key, and every token and API key, live in your system keychain.</li>
-        <li><b>Goes only where you connect it.</b> Relay talks to Plane, Dev.to, Buffer and the AI provider you pick, and nothing else. There's no Relay server, account or telemetry.</li>
+        <li><b>Goes only where you connect it.</b> Relay talks to Plane, Dev.to, Buffer and the AI provider you pick. The only other request is GitHub's public releases list, checked at launch to see if there's a newer Relay; turn it off in Settings → Privacy. There's no Relay server, account or telemetry.</li>
         <li><b>AI only when you ask.</b> An article reaches a model provider only when you ask for a summary. Local models (Ollama, LM Studio) keep it on your machine.</li>
         <li><b>Private projects stay private.</b> Work from a locked project only goes to a private provider: a model you run or control, marked as such in Settings. Unlocking a project doesn't change that.</li>
         <li><b>Sign-in passes through, nothing kept.</b> Buffer needs an https address to return to after sign-in, so it comes to this site's <code>/oauth/callback</code>, which hands the result straight to Relay on your machine. It stores nothing and loads no third-party code.</li>

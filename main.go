@@ -32,6 +32,7 @@ func init() {
 	application.RegisterEvent[Integrations]("integrations:changed")
 	application.RegisterEvent[string]("guide:show")
 	application.RegisterEvent[string]("buffer:signin")
+	application.RegisterEvent[UpdateInfo]("update:available")
 }
 
 func main() {
@@ -66,6 +67,7 @@ func main() {
 			application.NewService(settingsSvc),
 			application.NewService(NewTerminalService()),
 			application.NewService(guide),
+			application.NewService(NewUpdateService()),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),

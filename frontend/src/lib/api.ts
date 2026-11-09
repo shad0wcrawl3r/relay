@@ -11,6 +11,7 @@ import * as PlaneBindings from "../../bindings/github.com/shad0wcrawl3r/relay/pl
 import * as PostBindings from "../../bindings/github.com/shad0wcrawl3r/relay/postservice";
 import * as SettingsBindings from "../../bindings/github.com/shad0wcrawl3r/relay/settingsservice";
 import * as TerminalBindings from "../../bindings/github.com/shad0wcrawl3r/relay/terminalservice";
+import * as UpdateBindings from "../../bindings/github.com/shad0wcrawl3r/relay/updateservice";
 import type * as M from "../../bindings/github.com/shad0wcrawl3r/relay/models";
 import type * as BufferM from "../../bindings/github.com/shad0wcrawl3r/relay/internal/buffer/models";
 import type * as LogM from "../../bindings/github.com/shad0wcrawl3r/relay/internal/logs/models";
@@ -149,6 +150,8 @@ const bufferPost = (p: BufferM.Post): BufferPost => ({ ...p, actions: arr(p.acti
 const idea = (i: BufferM.Idea): BufferIdea => ({ ...i, services: arr(i.services) });
 export type BufferTiming = "queue" | "schedule" | "draft";
 export type AIStatus = Clean<M.AIStatus>;
+export type UpdateInfo = Clean<M.UpdateInfo>;
+export type UpdateStatus = Clean<M.UpdateStatus>;
 
 export const BufferService = {
   Status: (): Promise<BufferStatus> => BufferBindings.Status(),
@@ -254,4 +257,10 @@ export const TerminalService = {
   TmuxConfig: () => TerminalBindings.TmuxConfig(),
   Shells: async (): Promise<ShellChoice> => shellChoice(await TerminalBindings.Shells()),
   SetShell: async (path: string): Promise<ShellChoice> => shellChoice(await TerminalBindings.SetShell(path)),
+};
+
+export const UpdateService = {
+  Status: (): Promise<UpdateStatus> => UpdateBindings.Status() as Promise<UpdateStatus>,
+  Check: (): Promise<UpdateInfo> => UpdateBindings.Check(),
+  SetAutoCheck: (on: boolean): Promise<UpdateStatus> => UpdateBindings.SetAutoCheck(on) as Promise<UpdateStatus>,
 };

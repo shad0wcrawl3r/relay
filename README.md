@@ -64,6 +64,9 @@ frontend. Runs on macOS, Windows and Linux.
     addresses). Unlocking a project doesn't change that
   - Per-subsystem logs, held in memory only
   - Runs in the background with a tray icon
+  - Checks GitHub's releases at launch and offers a newer version's
+    download page; nothing is downloaded or installed automatically. Turn it
+    off in Settings → Privacy
   - CI builds for macOS, Windows and Linux, published as releases with a
     `SHA256SUMS` file and steps for opening unsigned builds (Windows:
     [SmartScreen guide](docs/windows-smartscreen.md))

@@ -20,12 +20,14 @@ import { AISettings } from "@/components/AISettings";
 import { LogSettings } from "@/components/LogSettings";
 import { PlaneAppGuide, planeIntegrationsUrl } from "@/components/PlaneAppGuide";
 import { ProjectSettings } from "@/components/ProjectSettings";
+import { UpdateCheck, useAutoCheck } from "@/components/Updates";
 import type { Route } from "@/App";
 
 export type SettingsTab = "plane" | "publishing" | "ai" | "terminal" | "privacy" | "storage" | "logs";
 
 export function Settings({ route }: { route: Extract<Route, { name: "settings" }> }) {
   const toast = useToast();
+  const [autoCheck, setAutoCheck] = useAutoCheck();
   const { projects, setLockable, unlockMethod, disconnect: disconnectPlane, snapshot } = usePlane();
   const [s, setS] = useState<SettingsT | null>(null);
   const [form, setForm] = useState<SettingsInput | null>(null);
@@ -183,6 +185,7 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
                 {l.label}
               </button>
             ))}
+            <UpdateCheck />
             <button className="ml-auto inline-flex items-center gap-1 text-[#93c5fd] hover:underline" onClick={() => GuideService.Open()}>
               <Compass className="size-3" />
               Run setup guide
@@ -431,6 +434,12 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
               <Input type="number" min={1} value={form.autoLockMinutes} onChange={(e) => set({ autoLockMinutes: Number(e.target.value) })} className="w-24" />
               <span className="text-xs text-dim">minutes</span>
             </div>
+          </Row>
+          <Row label="Updates" hint="Asks GitHub's public releases list for a newer Relay when it starts. Nothing about you or your data is sent, and nothing is downloaded until you choose to.">
+            <label className="flex h-9 items-center gap-2.5 text-[13px] text-foreground">
+              <Switch checked={autoCheck ?? false} disabled={autoCheck === null} onCheckedChange={setAutoCheck} />
+              Check for updates when Relay starts
+            </label>
           </Row>
         </Section>
 

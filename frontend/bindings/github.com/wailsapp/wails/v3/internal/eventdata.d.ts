@@ -23,6 +23,7 @@ declare module "@wailsio/runtime" {
             "integrations:changed": main$0.Integrations;
             "plane:snapshot": plane$0.Snapshot;
             "term:sessions": term$0.Info[] | null;
+            "update:available": main$0.UpdateInfo;
         }
     }
 }
