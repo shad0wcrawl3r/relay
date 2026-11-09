@@ -22,6 +22,8 @@ function useNow(ms = 5000) {
 
 export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => void; rail: boolean }) {
   const { projects, snapshot, syncing, syncNow, readOnly, lock } = usePlane();
+  // With the Buffer board listed beside Plane's, each board says where it lives.
+  const mixed = projects.some((p) => p.source === "buffer") && projects.some((p) => p.source !== "buffer");
   const planeOn = boardsOn(snapshot);
   const { buffer, devto } = useIntegrations();
   // Unknown counts as on, so nothing jumps sections while loading.
@@ -66,6 +68,7 @@ export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => v
     label,
     badge,
     dot,
+    title,
   }: {
     active: boolean;
     onClick: () => void;
@@ -73,9 +76,16 @@ export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => v
     label: string;
     badge?: React.ReactNode;
     dot?: boolean;
+    title?: string;
   }) => {
     const btn = (
-      <button className={cn(item(active), "relative")} onClick={onClick} aria-current={active ? "page" : undefined} aria-label={rail ? label : undefined}>
+      <button
+        className={cn(item(active), "relative")}
+        onClick={onClick}
+        aria-current={active ? "page" : undefined}
+        aria-label={rail ? label : undefined}
+        title={!rail ? title : undefined}
+      >
         {icon}
         {rail && dot && <span aria-hidden className="absolute right-2 top-2 size-1.5 rounded-full bg-[#60a5fa]" />}
         {!rail && <span className="truncate">{label}</span>}
@@ -118,14 +128,15 @@ export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => v
           </div>
 
           <div className="flex flex-col gap-0.5">
-            {!rail && <div className="px-2.5 pb-1.5 text-[11px] font-medium uppercase tracking-[.06em] text-dim">{snapshot?.connected ? "Plane projects" : "Projects"}</div>}
+            {!rail && <div className="px-2.5 pb-1.5 text-[11px] font-medium uppercase tracking-[.06em] text-dim">{snapshot?.connected && !mixed ? "Plane projects" : "Projects"}</div>}
             {projects.map((p) => (
               <Item
                 key={p.id}
                 active={route.name === "project" && route.projectId === p.id}
                 onClick={() => go({ name: "project", projectId: p.id })}
-                icon={<ProjectGlyph project={p} />}
+                icon={mixed ? <SourceGlyph project={p} /> : <ProjectGlyph project={p} />}
                 label={p.source === "buffer" ? `${p.name} (experimental)` : p.name}
+                title={mixed ? (p.source === "buffer" ? "Board in Buffer" : "Project in Plane") : undefined}
                 badge={
                   <span className="ml-auto text-[11px] text-dim" title={p.private ? (p.locked ? "Locked: unlock to see items" : "Unlocked: locks again automatically") : undefined}>
                     {p.private ? p.locked ? <PrivateLock /> : <LockOpen className="size-[13px] text-[#5eead4]" strokeWidth={1.9} aria-label="Unlocked" /> : openCount(p)}
@@ -201,5 +212,22 @@ export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => v
         label="Settings"
       />
     </nav>
+  );
+}
+
+/** The project's glyph with a small mark in the corner for where it lives:
+ * Plane's board icon or Buffer's logo. */
+function SourceGlyph({ project }: { project: Parameters<typeof ProjectGlyph>[0]["project"] & { source: string } }) {
+  const buffer = project.source === "buffer";
+  return (
+    <span className="relative inline-flex shrink-0">
+      <ProjectGlyph project={project} />
+      <span
+        aria-label={buffer ? "Buffer" : "Plane"}
+        className="absolute -bottom-1 -right-1 grid size-[13px] place-items-center rounded-full border border-[#0b0b0d] bg-[#232328] text-[#d4d4d8]"
+      >
+        {buffer ? <BufferLogo className="size-[8px]" /> : <Kanban className="size-[8px]" strokeWidth={2.4} />}
+      </span>
+    </span>
   );
 }

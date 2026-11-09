@@ -188,8 +188,17 @@ export function PlaneProvider({ children }: { children: ReactNode }) {
       }
       try {
         const it = await PlaneService.Create({ projectId, name, stateId: stateId ?? "", priority: "", descriptionHtml: "" });
+        // The Buffer board pushes a fresh snapshot, already holding the new
+        // card, before Create returns: add it only if it isn't there yet.
         setSnapshot((s) =>
-          s ? { ...s, projects: s.projects.map((p) => (p.id === projectId ? { ...p, items: [...p.items, it] } : p)) } : s,
+          s
+            ? {
+                ...s,
+                projects: s.projects.map((p) =>
+                  p.id === projectId && !p.items.some((x) => x.id === it.id) ? { ...p, items: [...p.items, it] } : p,
+                ),
+              }
+            : s,
         );
         toast({ tone: "success", title: `Created ${it.key}` });
         return it;
