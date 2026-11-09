@@ -8,7 +8,7 @@ import { IdeaDialog } from "@/components/IdeaDialog";
 import { SyncNote } from "@/components/SyncNote";
 import { UnlockButton } from "@/components/LockScreen";
 import { usePlane } from "@/lib/store";
-import { collapsedByDefault, isDoneGroup, isOverdue, PRIORITIES, priorityLabel, stateById, stateColor } from "@/lib/plane";
+import { collapsedByDefault, hasIdeas, isDoneGroup, isOverdue, PRIORITIES, priorityLabel, stateById, stateColor } from "@/lib/plane";
 import { cn, errorMessage } from "@/lib/utils";
 import { Dot, Kbd, PriorityIcon, PrivateLock, ProjectGlyph } from "@/components/bits";
 import { Button } from "@/components/ui/button";
@@ -168,7 +168,7 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board({ projec
   };
 
   const activeFilters = filters.modules.size + filters.labels.size + filters.priorities.size + filters.cycles.size + +filters.agentOnly + +filters.overdueOnly;
-  const isLab = project.identifier.toUpperCase() === "LAB";
+  const isLab = hasIdeas(project);
 
   const filterMenu = (label: string, set: Set<string>, key: "modules" | "labels" | "priorities" | "cycles", options: { id: string; name: string; icon?: React.ReactNode }[]) => (
     <DropdownMenu>

@@ -24,7 +24,7 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
   cache (`plane-cache.json` in the app dir, last good sync, all projects) shown at launch;
   writes are refused (UI and Go) until the first live sync replaces it.
 - Everything Relay writes to disk goes through `internal/vault` (AES-256-GCM, key in the OS keychain).
-- Locked projects/modules (`[privacy] LOCKED`, default TEACH) never reach the UI until unlocked via
+- Locked projects/modules (`[privacy] LOCKED`, empty by default; picked in Settings → Privacy) never reach the UI until unlocked via
   `internal/unlock` (Touch ID / login password); unlocks expire. Never log their data.
 - Dev.to: send as `published: false`; publishing is a separate, confirmed user action, refused while image placeholders remain. No image upload in v1 (insert `<INSERT IMAGE HERE: …>` placeholders).
 - Buffer: promotions need a live Dev.to article; Go adds its public link, so one can never go out without it. Articles reach a model provider only when the user asks.

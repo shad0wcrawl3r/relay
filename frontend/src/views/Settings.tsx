@@ -19,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AISettings } from "@/components/AISettings";
 import { LogSettings } from "@/components/LogSettings";
 import { PlaneAppGuide, planeIntegrationsUrl } from "@/components/PlaneAppGuide";
+import { ProjectSettings } from "@/components/ProjectSettings";
 import type { Route } from "@/App";
 
 export type SettingsTab = "plane" | "publishing" | "ai" | "terminal" | "privacy" | "storage" | "logs";
@@ -325,6 +326,12 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
             <Input type="number" min={30} value={form.syncInterval} onChange={(e) => set({ syncInterval: Number(e.target.value) })} className="w-32" />
           </Row>
         </Section>
+
+        {s.planeConnected && (
+          <Section title="Projects" description="Order and colour in the sidebar, and where quick capture (⌘K) starts. Projects with an Idea state get New idea instead of New item.">
+            <ProjectSettings />
+          </Section>
+        )}
 
         <Section title="Agent" description="How Relay recognises the agent (Claude Code) on cards and in threads.">
           <Row label="Comment author" hint="Plane display name the agent comments as. Bot accounts are always treated as the agent.">

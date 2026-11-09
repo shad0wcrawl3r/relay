@@ -36,22 +36,30 @@ export interface Glyph {
   accentBg: string;
 }
 
-const GLYPHS: Record<string, Glyph> = {
-  WORK: { letter: "W", bg: "#1e293b", fg: "#93c5fd", accent: "#3b82f6", accentBg: "#111a2b" },
-  LAB: { letter: "L", bg: "#2e1a47", fg: "#d8b4fe", accent: "#a855f7", accentBg: "#1c1426" },
-  TEACH: { letter: "T", bg: "#123534", fg: "#5eead4", accent: "#14b8a6", accentBg: "#0d1f1d" },
+/** Project colours, by the palette names Settings stores (internal/plane/arrange.go). */
+export const PALETTE: Record<string, Omit<Glyph, "letter">> = {
+  blue: { bg: "#1e293b", fg: "#93c5fd", accent: "#3b82f6", accentBg: "#111a2b" },
+  purple: { bg: "#2e1a47", fg: "#d8b4fe", accent: "#a855f7", accentBg: "#1c1426" },
+  teal: { bg: "#123534", fg: "#5eead4", accent: "#14b8a6", accentBg: "#0d1f1d" },
+  green: { bg: "#16301d", fg: "#86efac", accent: "#22c55e", accentBg: "#0f1d13" },
+  amber: { bg: "#3a2a0d", fg: "#fcd34d", accent: "#f59e0b", accentBg: "#21190b" },
+  orange: { bg: "#3b1f0f", fg: "#fdba74", accent: "#f97316", accentBg: "#22140b" },
+  rose: { bg: "#3b1220", fg: "#fda4af", accent: "#f43f5e", accentBg: "#220d14" },
+  zinc: { bg: "#27272a", fg: "#d4d4d8", accent: "#71717a", accentBg: "#18181b" },
 };
+export const COLOR_NAMES = Object.keys(PALETTE);
 
-export function glyphFor(p: Pick<Project, "identifier" | "name">): Glyph {
-  return (
-    GLYPHS[p.identifier?.toUpperCase()] ?? {
-      letter: (p.name || p.identifier || "?").charAt(0).toUpperCase(),
-      bg: "#27272a",
-      fg: "#d4d4d8",
-      accent: "#71717a",
-      accentBg: "#18181b",
-    }
-  );
+/** The colour a project shows without one picked: stable per identifier. */
+export function autoColor(identifier: string): string {
+  const auto = COLOR_NAMES.filter((c) => c !== "zinc");
+  let h = 0;
+  for (const ch of identifier.toUpperCase()) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return auto[h % auto.length];
+}
+
+export function glyphFor(p: Pick<Project, "identifier" | "name"> & { color?: string }): Glyph {
+  const color = (p.color && PALETTE[p.color] ? p.color : "") || (p.identifier ? autoColor(p.identifier) : "zinc");
+  return { letter: (p.name || p.identifier || "?").charAt(0).toUpperCase(), ...PALETTE[color] };
 }
 
 export const isDoneGroup = (s?: State) => s?.group === "completed" || s?.group === "cancelled";
@@ -85,10 +93,13 @@ export function defaultState(p: Project): State | undefined {
   return p.states.find((s) => s.default) ?? findStateByGroup(p, "backlog", "unstarted") ?? p.states[0];
 }
 
-/** Default state for quick capture: Lab → Idea, others → Backlog. */
+/** An ideas project: one with an Idea state. New work there starts as an idea. */
+export const hasIdeas = (p: Project) => !!findState(p, "Idea");
+
+/** Default state for quick capture: Idea in an ideas project, otherwise Backlog. */
 export function captureState(p: Project, queueForAgent: boolean): State | undefined {
   if (queueForAgent) return findState(p, "Ready for Agent") ?? defaultState(p);
-  if (p.identifier.toUpperCase() === "LAB") return findState(p, "Idea") ?? defaultState(p);
+  if (hasIdeas(p)) return findState(p, "Idea") ?? defaultState(p);
   return findState(p, "Backlog") ?? defaultState(p);
 }
 
