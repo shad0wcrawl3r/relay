@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/shad0wcrawl3r/relay/internal/keychain"
 	"github.com/shad0wcrawl3r/relay/internal/logs"
-	"github.com/zalando/go-keyring"
 )
 
 var log = logs.For("buffer")
@@ -117,7 +117,7 @@ func (c *Client) load() *Token {
 	if c.token != nil {
 		return c.token
 	}
-	raw, err := keyring.Get(keyringService, keyringUser)
+	raw, err := keychain.Get(keyringService, keyringUser)
 	if err != nil {
 		return nil
 	}
@@ -135,13 +135,13 @@ func (c *Client) store(t *Token) error {
 		return err
 	}
 	c.token = t
-	return keyring.Set(keyringService, keyringUser, string(raw))
+	return keychain.Set(keyringService, keyringUser, string(raw))
 }
 
 func (c *Client) clear() error {
 	c.token = nil
-	err := keyring.Delete(keyringService, keyringUser)
-	if errors.Is(err, keyring.ErrNotFound) {
+	err := keychain.Delete(keyringService, keyringUser)
+	if errors.Is(err, keychain.ErrNotFound) {
 		return nil
 	}
 	return err

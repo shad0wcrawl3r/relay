@@ -285,6 +285,12 @@ export interface Settings {
      */
     "terminalShell": string;
     "autoLockMinutes": number;
+
+    /**
+     * SecretsFile is set on Linux without a keychain: the plain file that
+     * holds Relay's secrets instead (internal/keychain).
+     */
+    "secretsFile": string;
 }
 
 export interface SettingsInput {

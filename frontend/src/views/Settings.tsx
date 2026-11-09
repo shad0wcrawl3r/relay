@@ -499,6 +499,14 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
           <Row label="Posts folder" hint="Each post is a markdown file. Plane data is never stored.">
             <Input readOnly value={s.postsDir} className="font-mono text-xs text-muted-foreground" />
           </Row>
+          {s.secretsFile && (
+            <Row
+              label="Sign-ins and keys"
+              hint="This system has no keychain (no Secret Service, as on WSL), so they're kept in this file, readable only by you but not encrypted. Anyone who can read it can use your sign-ins. Install and start gnome-keyring or KeePassXC and Relay moves them into it."
+            >
+              <Input readOnly value={s.secretsFile} className="font-mono text-xs text-[#fbbf24]" />
+            </Row>
+          )}
         </Section>
         <Section
           title="Move to another computer"

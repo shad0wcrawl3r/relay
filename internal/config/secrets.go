@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/zalando/go-keyring"
+	"github.com/shad0wcrawl3r/relay/internal/keychain"
 )
 
 // Secrets live in the OS keychain, never in config.toml. The Config struct
@@ -50,17 +50,17 @@ func LoadSecrets() {
 		}
 		f := s.field(&next)
 		legacy := *f
-		stored, err := keyring.Get(keyringService, s.user)
+		stored, err := keychain.Get(keyringService, s.user)
 		switch {
 		case err == nil:
 			*f = stored
 			// The keychain is newer than anything left in the file.
 			scrub = scrub || legacy != ""
-		case errors.Is(err, keyring.ErrNotFound):
+		case errors.Is(err, keychain.ErrNotFound):
 			if legacy == "" {
 				continue
 			}
-			if err := keyring.Set(keyringService, s.user, legacy); err != nil {
+			if err := keychain.Set(keyringService, s.user, legacy); err != nil {
 				log.Println("config: could not move", s.viperKey, "to the keychain; it stays in", Path(), "-", err)
 				stuck[s.viperKey] = true
 				continue
@@ -99,12 +99,12 @@ func storeSecrets(prev, next Config) error {
 		}
 		var err error
 		if after == "" {
-			err = keyring.Delete(keyringService, s.user)
-			if errors.Is(err, keyring.ErrNotFound) {
+			err = keychain.Delete(keyringService, s.user)
+			if errors.Is(err, keychain.ErrNotFound) {
 				err = nil
 			}
 		} else {
-			err = keyring.Set(keyringService, s.user, after)
+			err = keychain.Set(keyringService, s.user, after)
 		}
 		if err != nil {
 			return errors.New("could not save " + s.viperKey + " to the system keychain: " + err.Error())

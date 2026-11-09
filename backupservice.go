@@ -16,9 +16,9 @@ import (
 	"github.com/shad0wcrawl3r/relay/internal/ai"
 	"github.com/shad0wcrawl3r/relay/internal/backup"
 	"github.com/shad0wcrawl3r/relay/internal/config"
+	"github.com/shad0wcrawl3r/relay/internal/keychain"
 	"github.com/shad0wcrawl3r/relay/internal/term"
 	"github.com/wailsapp/wails/v3/pkg/application"
-	"github.com/zalando/go-keyring"
 )
 
 // Settings export and import: config.toml's settings plus the keychain's API
@@ -58,19 +58,19 @@ type ImportResult struct {
 // backupKey is this device's secret for deriving passphrases, created on the
 // first export. Losing it only means the next export gets new words.
 func backupKey() ([]byte, error) {
-	stored, err := keyring.Get(config.KeyringService, backupKeyUser)
+	stored, err := keychain.Get(config.KeyringService, backupKeyUser)
 	if err == nil {
 		if key, err := base64.StdEncoding.DecodeString(stored); err == nil && len(key) == 32 {
 			return key, nil
 		}
-	} else if !errors.Is(err, keyring.ErrNotFound) {
+	} else if !errors.Is(err, keychain.ErrNotFound) {
 		return nil, fmt.Errorf("could not read the system keychain: %w", err)
 	}
 	key := make([]byte, 32)
 	if _, err := rand.Read(key); err != nil {
 		return nil, err
 	}
-	if err := keyring.Set(config.KeyringService, backupKeyUser, base64.StdEncoding.EncodeToString(key)); err != nil {
+	if err := keychain.Set(config.KeyringService, backupKeyUser, base64.StdEncoding.EncodeToString(key)); err != nil {
 		return nil, fmt.Errorf("could not save to the system keychain: %w", err)
 	}
 	return key, nil

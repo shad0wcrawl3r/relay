@@ -63,6 +63,10 @@ frontend. Runs on macOS, Windows and Linux.
   - API keys and client secrets live in the OS keychain, never in `config.toml`
   - Everything written to disk is encrypted (AES-256-GCM), with the key in the
     OS keychain
+  - Linux without a keychain (no Secret Service, e.g. WSL): secrets and the
+    encryption key go to `~/.local/share/relay/secrets.json` instead, readable
+    only by you but not encrypted. Settings → Storage shows when this is in
+    use, and they move into a keychain once one is running
   - Lock projects behind Touch ID. Unlocks expire
   - Private projects only reach private providers: models you run or control,
     marked in Settings → AI (Ollama and LM Studio start marked at their local

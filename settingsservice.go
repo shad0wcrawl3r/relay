@@ -8,6 +8,7 @@ import (
 
 	"github.com/shad0wcrawl3r/relay/internal/config"
 	"github.com/shad0wcrawl3r/relay/internal/devto"
+	"github.com/shad0wcrawl3r/relay/internal/keychain"
 	"github.com/shad0wcrawl3r/relay/internal/logs"
 	"github.com/shad0wcrawl3r/relay/internal/plane"
 	"github.com/shad0wcrawl3r/relay/internal/term"
@@ -67,6 +68,9 @@ type Settings struct {
 	// TerminalShell is the shell for new sessions; empty uses the default.
 	TerminalShell   string `json:"terminalShell"`
 	AutoLockMinutes int    `json:"autoLockMinutes"`
+	// SecretsFile is set on Linux without a keychain: the plain file that
+	// holds Relay's secrets instead (internal/keychain).
+	SecretsFile string `json:"secretsFile"`
 }
 
 type SettingsInput struct {
@@ -101,7 +105,17 @@ func (s *SettingsService) Get() Settings {
 		TerminalTmuxKeys: c.Terminal.TmuxKeys,
 		TerminalShell:    usableShell(c.Terminal.Shell),
 		AutoLockMinutes:  c.Privacy.AutoLockMinutes,
+		SecretsFile:      secretsFile(),
 	}
+}
+
+// secretsFile is the plain file holding Relay's secrets when there's no
+// keychain; empty when the keychain is in use.
+func secretsFile() string {
+	if on, path := keychain.Fallback(); on {
+		return path
+	}
+	return ""
 }
 
 func (s *SettingsService) Save(ctx context.Context, in SettingsInput) (Settings, error) {

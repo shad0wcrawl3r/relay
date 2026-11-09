@@ -25,6 +25,9 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
   cache (`plane-cache.json` in the app dir, last good sync, all projects) shown at launch;
   writes are refused (UI and Go) until the first live sync replaces it.
 - Everything Relay writes to disk goes through `internal/vault` (AES-256-GCM, key in the OS keychain).
+- Keychain access goes through `internal/keychain`, never go-keyring directly. On Linux with no Secret Service
+  (WSL) it falls back to a 0600 plain file, `$XDG_DATA_HOME/relay/secrets.json`; only when the keychain is
+  unreachable, never when it refuses. Settings → Storage shows the path while it's in use.
 - Locked projects/modules (`[privacy] LOCKED`, empty by default; picked in Settings → Privacy) never reach the UI until unlocked via
   `internal/unlock` (Touch ID / login password); unlocks expire. Never log their data.
 - Dev.to: send as `published: false`; publishing is a separate, confirmed user action, refused while image placeholders remain. No image upload in v1 (insert `<INSERT IMAGE HERE: …>` placeholders).

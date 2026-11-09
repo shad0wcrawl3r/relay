@@ -15,8 +15,8 @@ import (
 
 	"github.com/shad0wcrawl3r/relay/internal/ai"
 	"github.com/shad0wcrawl3r/relay/internal/config"
+	"github.com/shad0wcrawl3r/relay/internal/keychain"
 	"github.com/shad0wcrawl3r/relay/internal/logs"
-	"github.com/zalando/go-keyring"
 )
 
 // Clearing Relay's data: Settings → Storage → "Clear all data", and
@@ -26,6 +26,7 @@ import (
 //   - every keychain entry Relay writes (vault key, backup key, sign-ins,
 //     API keys), by name rather than everything under the "relay" service,
 //     so another program's entries under that name survive;
+//   - the secrets file used on Linux without a keychain;
 //   - the app directory (config, encrypted caches, posts, layouts);
 //   - the webview's own storage, where the OS keeps it under Relay's name.
 //
@@ -91,10 +92,14 @@ func webviewDirs() []string {
 func clearAllData(running bool) error {
 	var errs []error
 	for _, name := range keychainAccounts() {
-		err := keyring.Delete(config.KeyringService, name)
-		if err != nil && !errors.Is(err, keyring.ErrNotFound) {
+		err := keychain.Delete(config.KeyringService, name)
+		if err != nil && !errors.Is(err, keychain.ErrNotFound) {
 			errs = append(errs, fmt.Errorf("keychain entry %s: %w", name, err))
 		}
+	}
+	// Linux without a keychain keeps them in a file instead.
+	if err := keychain.RemoveFile(); err != nil {
+		errs = append(errs, fmt.Errorf("secrets file: %w", err))
 	}
 	if err := removeDir(config.AppDir()); err != nil {
 		errs = append(errs, err)
