@@ -46,6 +46,8 @@ func init() {
 	v.SetDefault("logs.ENABLED", false)
 	// Page zoom for Relay's windows, set with ⌘/Ctrl + and -.
 	v.SetDefault("appearance.ZOOM", 1.0)
+	// Ask GitHub for a newer release when a release build starts.
+	v.SetDefault("updates.CHECK", true)
 	if err := v.ReadInConfig(); err != nil {
 		// A missing file is fine: the user fills it in from Settings.
 		var notFound viper.ConfigFileNotFoundError
@@ -142,6 +144,7 @@ func write(next Config) error {
 	v.Set("projects.COLORS", next.Projects.Colors)
 	v.Set("projects.CAPTURE", next.Projects.Capture)
 	v.Set("appearance.ZOOM", next.Appearance.Zoom)
+	v.Set("updates.CHECK", next.Updates.Check)
 	path := Path()
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return err
@@ -221,5 +224,9 @@ type Config struct {
 	Appearance struct {
 		// Zoom is the page zoom of every Relay window; 1 is 100%.
 		Zoom float64 `mapstructure:"ZOOM"`
+	}
+	Updates struct {
+		// Check: look for a newer GitHub release when Relay starts.
+		Check bool `mapstructure:"CHECK"`
 	}
 }

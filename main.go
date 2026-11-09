@@ -3,6 +3,7 @@ package main
 import (
 	"embed"
 	"log"
+	"os"
 	"runtime"
 	"sync/atomic"
 
@@ -32,9 +33,27 @@ func init() {
 	application.RegisterEvent[Integrations]("integrations:changed")
 	application.RegisterEvent[string]("guide:show")
 	application.RegisterEvent[string]("buffer:signin")
+	application.RegisterEvent[UpdateInfo]("update:available")
+	application.RegisterEvent[UpdateProgress]("update:progress")
+}
+
+// quitting is set just before Relay quits for real, so closing the window
+// (which normally hides it to the tray) lets it go.
+var quitting atomic.Bool
+
+// quit ends Relay, terminal sessions included. App.Quit skips ShouldQuit, so
+// mark the quit here for the close hook.
+func quit() {
+	quitting.Store(true)
+	application.Get().Quit()
 }
 
 func main() {
+	// `relay --clear-data`: used by the Windows uninstaller and by "Clear all
+	// data", which runs it again after Relay quits. Nothing else starts.
+	if clearDataCommand(os.Args[1:]) {
+		return
+	}
 	// Before anything reads a secret; also moves old ones out of config.toml.
 	config.LoadSecrets()
 	cfg := config.GetConfig()
@@ -52,7 +71,8 @@ func main() {
 
 	// Closing the window hides Relay to the tray; only Quit ends it (and
 	// with it the terminal sessions).
-	var quitting atomic.Bool
+	// Set once the window exists; a second launch brings it forward.
+	var window *application.WebviewWindow
 
 	app := application.New(application.Options{
 		Name:        "Relay",
@@ -66,6 +86,7 @@ func main() {
 			application.NewService(settingsSvc),
 			application.NewService(NewTerminalService()),
 			application.NewService(guide),
+			application.NewService(NewUpdateService()),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
@@ -74,6 +95,20 @@ func main() {
 			ApplicationShouldTerminateAfterLastWindowClosed: false,
 		},
 		// ⌘Q and the tray's Quit both end up here.
+		// One Relay per user: a second launch (Start menu, Dock, a double
+		// click while it's in the tray) shows this one and exits, instead of
+		// running a second set of terminal sessions, syncs and token
+		// refreshes against the same files and keychain entries.
+		SingleInstance: &application.SingleInstanceOptions{
+			UniqueID: instanceID(),
+			OnSecondInstanceLaunch: func(application.SecondInstanceData) {
+				logs.For("app").Info("second launch; showing this instance")
+				if window != nil {
+					window.Show()
+					window.Focus()
+				}
+			},
+		},
 		ShouldQuit: func() bool {
 			logs.For("app").Notice("quitting")
 			quitting.Store(true)
@@ -83,7 +118,7 @@ func main() {
 
 	// The designs assume 1280–1440 wide; 1100 is the narrowest the board and
 	// editor still lay out cleanly.
-	window := app.Window.NewWithOptions(application.WebviewWindowOptions{
+	window = app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Name:      "main",
 		Title:     "Relay",
 		Width:     1440,
@@ -123,11 +158,7 @@ func main() {
 		}
 	})
 	menu.AddSeparator()
-	// App.Quit skips ShouldQuit, so mark the quit here for the close hook.
-	menu.Add("Quit Relay").OnClick(func(*application.Context) {
-		quitting.Store(true)
-		app.Quit()
-	})
+	menu.Add("Quit Relay").OnClick(func(*application.Context) { quit() })
 	label := func(visible bool) {
 		if visible {
 			toggle.SetLabel("Hide Relay")
@@ -159,4 +190,13 @@ func main() {
 	if err := app.Run(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+// instanceID names the single-instance lock. Dev builds get their own, so
+// `wails3 dev` still starts while an installed Relay is running.
+func instanceID() string {
+	if releaseBuild {
+		return "dev.shadowcrawler.relay"
+	}
+	return "dev.shadowcrawler.relay.dev"
 }
