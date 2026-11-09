@@ -33,6 +33,7 @@ func init() {
 	application.RegisterEvent[Integrations]("integrations:changed")
 	application.RegisterEvent[string]("guide:show")
 	application.RegisterEvent[string]("buffer:signin")
+	application.RegisterEvent[UpdateInfo]("update:available")
 }
 
 // quitting is set just before Relay quits for real, so closing the window
@@ -81,6 +82,7 @@ func main() {
 			application.NewService(settingsSvc),
 			application.NewService(NewTerminalService()),
 			application.NewService(guide),
+			application.NewService(NewUpdateService()),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),

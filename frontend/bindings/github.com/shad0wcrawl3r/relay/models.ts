@@ -311,3 +311,32 @@ export interface ShellChoice {
      */
     "chosen": string;
 }
+
+/**
+ * UpdateInfo is what the last check found.
+ */
+export interface UpdateInfo {
+    "current": string;
+    "latest": string;
+    "available": boolean;
+
+    /**
+     * URL is the newer release's page; empty when there's none.
+     */
+    "url": string;
+    "checkedAt": string;
+}
+
+export interface UpdateStatus {
+    "current": string;
+
+    /**
+     * AutoCheck: check when a release build starts.
+     */
+    "autoCheck": boolean;
+
+    /**
+     * Last is the most recent check this session, if any.
+     */
+    "last": UpdateInfo | null;
+}

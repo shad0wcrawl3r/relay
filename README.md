@@ -68,6 +68,9 @@ frontend. Runs on macOS, Windows and Linux.
     quits. The Windows uninstaller offers the same as an option. On macOS and
     Linux, clear data before deleting the app
   - Runs in the background with a tray icon
+  - Checks GitHub's releases at launch and offers a newer version's
+    download page; nothing is downloaded or installed automatically. Turn it
+    off in Settings → Privacy
   - CI builds for macOS, Windows and Linux, published as releases with a
     `SHA256SUMS` file and steps for opening unsigned builds (Windows:
     [SmartScreen guide](docs/windows-smartscreen.md))

@@ -33,3 +33,8 @@ export const PlaneSnapshot = "plane:snapshot";
  */
 export const TermSessions = "term:sessions";
 
+/**
+ * Name of the custom event "update:available".
+ */
+export const UpdateAvailable = "update:available";
+
