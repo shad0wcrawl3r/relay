@@ -149,6 +149,7 @@ const bufferPost = (p: BufferM.Post): BufferPost => ({ ...p, actions: arr(p.acti
 const idea = (i: BufferM.Idea): BufferIdea => ({ ...i, services: arr(i.services) });
 export type BufferTiming = "queue" | "schedule" | "draft";
 export type AIStatus = Clean<M.AIStatus>;
+export type ModelTest = Clean<M.ModelTest>;
 
 export const BufferService = {
   Status: (): Promise<BufferStatus> => BufferBindings.Status(),
@@ -199,6 +200,7 @@ export const AIService = {
   SetEndpoint: async (provider: string, endpoint: string) => aiStatus(await AIBindings.SetEndpoint(provider, endpoint)),
   Select: async (provider: string, model: string) => aiStatus(await AIBindings.Select(provider, model)),
   SetPrivate: async (provider: string, isPrivate: boolean) => aiStatus(await AIBindings.SetPrivate(provider, isPrivate)),
+  TestModel: (provider: string, model: string): Promise<ModelTest> => AIBindings.TestModel(provider, model),
   SummarizePost: (id: string) => AIBindings.SummarizePost(id),
   SummarizeText: (title: string, text: string) => AIBindings.SummarizeText(title, text),
 };

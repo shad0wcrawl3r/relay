@@ -36,6 +36,7 @@ export type {
     Integrations,
     LogStatus,
     LogSubsystem,
+    ModelTest,
     PostList,
     PostSummary,
     Promotion,

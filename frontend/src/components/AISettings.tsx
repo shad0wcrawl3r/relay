@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Check, Loader2 } from "lucide-react";
-import { AIService, type AIStatus } from "@/lib/api";
+import { AIService, type AIStatus, type ModelTest } from "@/lib/api";
 import { cn, errorMessage } from "@/lib/utils";
 import { ModelPicker } from "@/components/ModelPicker";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,12 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
   const [error, setError] = useState("");
   const [key, setKey] = useState("");
   const [endpoint, setEndpoint] = useState("");
+  // The model picked for this provider; it's only saved once it passes a
+  // test (or the user saves it anyway).
+  const [chosen, setChosen] = useState("");
+  const [phase, setPhase] = useState<"idle" | "testing" | "saving">("idle");
+  const [tested, setTested] = useState<ModelTest | null>(null);
+  const [testError, setTestError] = useState("");
   // Turning "Private provider" on asks first; turning it off doesn't.
   const [confirmPrivate, setConfirmPrivate] = useState(false);
 
@@ -43,10 +49,13 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
   }, []);
 
   const choose = useCallback(
-    (id: string, custom: string, needsKey: boolean, keySet: boolean) => {
+    (id: string, custom: string, needsKey: boolean, keySet: boolean, savedModel: string) => {
       setPicked(id);
       setKey("");
       setEndpoint(custom);
+      setChosen(savedModel);
+      setTested(null);
+      setTestError("");
       setModels([]);
       setError("");
       if (!needsKey || keySet) loadModels(id);
@@ -59,7 +68,7 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
       .then((s) => {
         setStatus(s);
         const current = s.providers.find((p) => p.id === s.provider) ?? s.providers[0];
-        if (current) choose(current.id, current.custom ? current.endpoint : "", current.needsKey, current.keySet);
+        if (current) choose(current.id, current.custom ? current.endpoint : "", current.needsKey, current.keySet, current.id === s.provider ? s.model : "");
       })
       .catch(() => {});
   }, [choose]);
@@ -107,11 +116,43 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
 
   const insecure = endpoint.startsWith("http://") && !provider.local;
 
-  const select = async (model: string) => {
+  const savedModel = status.provider === provider.id ? status.model : "";
+  const unsaved = !!chosen && chosen !== savedModel;
+  const busy = phase !== "idle";
+
+  const pickModel = (model: string) => {
+    setChosen(model);
+    setTested(null);
+    setTestError("");
+  };
+
+  const save = async () => {
+    setPhase("saving");
     try {
-      setStatus(await AIService.Select(provider.id, model));
+      setStatus(await AIService.Select(provider.id, chosen));
     } catch (err) {
       toast({ tone: "error", title: "Couldn't save the model", body: errorMessage(err) });
+    } finally {
+      setPhase("idle");
+    }
+  };
+
+  // Sends a one-line prompt, then saves the model if it answered.
+  const testAndSave = async () => {
+    setTested(null);
+    setTestError("");
+    setPhase("testing");
+    try {
+      const result = await AIService.TestModel(provider.id, chosen);
+      if (unsaved) {
+        setPhase("saving");
+        setStatus(await AIService.Select(provider.id, chosen));
+      }
+      setTested(result);
+    } catch (err) {
+      setTestError(errorMessage(err));
+    } finally {
+      setPhase("idle");
     }
   };
 
@@ -130,7 +171,7 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
             key={p.id}
             role="radio"
             aria-checked={p.id === picked}
-            onClick={() => choose(p.id, p.custom ? p.endpoint : "", p.needsKey, p.keySet)}
+            onClick={() => choose(p.id, p.custom ? p.endpoint : "", p.needsKey, p.keySet, p.id === status.provider ? status.model : "")}
             className={cn(
               "inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-3 text-[13px] text-muted-foreground hover:text-strong",
               p.id === picked && "border-border-strong bg-[#18181b] text-strong",
@@ -247,7 +288,36 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
                 Connecting…
               </span>
             ) : (
-              <ModelPicker models={models} value={status.provider === provider.id ? status.model : ""} onChange={select} />
+              <div className="flex gap-2">
+                <div className="min-w-0 grow">
+                  <ModelPicker models={models} value={chosen} onChange={pickModel} />
+                </div>
+                <Button size="md" className="shrink-0" disabled={!chosen || busy} onClick={testAndSave}>
+                  {busy && <Loader2 className="size-3.5 animate-spin" />}
+                  {phase === "testing" ? "Testing…" : phase === "saving" ? "Saving…" : unsaved ? "Test and save" : "Test"}
+                </Button>
+              </div>
+            )}
+            {testError ? (
+              <span className="flex flex-wrap items-center gap-x-2 text-xs text-overdue">
+                {testError.replace(/\.?$/, ".")}
+                {unsaved && (
+                  <button className="text-[#93c5fd] hover:underline" onClick={save} disabled={busy}>
+                    Save anyway
+                  </button>
+                )}
+              </span>
+            ) : tested ? (
+              <span className="flex items-center gap-1 text-xs text-[#4ade80]">
+                <Check className="size-3" />
+                Works: replied “{tested.reply}” in {(tested.ms / 1000).toFixed(1)} s. Saved.
+              </span>
+            ) : (
+              !loading && (
+                <span className="text-xs text-dim">
+                  {unsaved ? "Not saved yet. Relay sends a one-line test prompt, then saves the model." : savedModel ? "Saved. Used when you ask for a summary." : "Pick a model, then test it."}
+                </span>
+              )
             )}
             {error && (
               <div className="flex items-center gap-2">

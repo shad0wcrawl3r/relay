@@ -187,6 +187,14 @@ export interface LogSubsystem {
     "level": string;
 }
 
+/**
+ * ModelTest is the result of a short test prompt.
+ */
+export interface ModelTest {
+    "reply": string;
+    "ms": number;
+}
+
 export interface PostList {
     "posts": PostSummary[] | null;
     "syncedAt": string;

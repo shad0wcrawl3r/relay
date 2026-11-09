@@ -161,6 +161,32 @@ func (s *AIService) Select(provider, model string) (AIStatus, error) {
 	return s.Status(), nil
 }
 
+// ModelTest is the result of a short test prompt.
+type ModelTest struct {
+	Reply string `json:"reply"`
+	Ms    int64  `json:"ms"`
+}
+
+// TestModel sends a one-line prompt to provider and model, so Settings can
+// check a choice works before saving it. The prompt holds no user data.
+func (s *AIService) TestModel(ctx context.Context, provider, model string) (ModelTest, error) {
+	if strings.TrimSpace(model) == "" {
+		return ModelTest{}, errors.New("choose a model first")
+	}
+	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
+	defer cancel()
+	start := time.Now()
+	reply, err := s.client.Complete(ctx, ai.Local(), provider, model,
+		"You are answering a connection test.", "Reply with the single word OK.")
+	if err != nil {
+		return ModelTest{}, err
+	}
+	if r := []rune(reply); len(r) > 80 {
+		reply = string(r[:80]) + "…"
+	}
+	return ModelTest{Reply: reply, Ms: time.Since(start).Milliseconds()}, nil
+}
+
 // SummarizeText drafts a social post from pasted text, for when there's no
 // local article (no Dev.to account, or writing that lives elsewhere). It only
 // runs when the user asks.
