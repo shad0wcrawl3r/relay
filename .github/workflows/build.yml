@@ -1,7 +1,7 @@
 name: Build
 
 # PRs are built on every platform before they merge, so main isn't built
-# again. A v* tag builds and drafts the release.
+# again. A v* tag builds and publishes the release.
 on:
   push:
     tags: ["v*"]
@@ -101,23 +101,23 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
-  # A v* tag becomes a draft release with every platform's build attached.
-  # Publishing the draft (by hand) makes it the latest release, which the
-  # status page then shows.
+  # A v* tag becomes a published pre-release with every platform's build
+  # attached. Running copies of Relay see it at their next update check.
   release:
-    name: Draft release
+    name: Release
     if: startsWith(github.ref, 'refs/tags/v')
     needs: build
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+      actions: write
     steps:
       - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
 
-      - name: Create the draft
+      - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
@@ -139,4 +139,11 @@ jobs:
 
           **Check a download:** compare it with `SHA256SUMS`: `shasum -a 256 <file>` on macOS, `sha256sum <file>` on Linux, `Get-FileHash <file>` in PowerShell.
           NOTES
-          gh release create "$TAG" dist/* -R "$GITHUB_REPOSITORY" --draft --verify-tag --generate-notes --notes-file notes.md --title "Relay $TAG"
+          gh release create "$TAG" dist/* -R "$GITHUB_REPOSITORY" --prerelease --verify-tag --generate-notes --notes-file notes.md --title "Relay $TAG"
+
+      # A release made with the workflow token doesn't start other workflows,
+      # so the status page is rebuilt by hand.
+      - name: Rebuild the status page
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml -R "$GITHUB_REPOSITORY" --ref main
