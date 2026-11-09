@@ -10,7 +10,7 @@ import { ExperimentalBadge } from "@/components/bits";
  * Turns on the Buffer planning board: Buffer content items shown as a board,
  * with or without Plane. Columns before posting are Buffer tags Relay adds.
  */
-export function BufferPlanningRow() {
+export function BufferPlanningRow({ title = "Plan in Buffer" }: { title?: string } = {}) {
   const toast = useToast();
   const { snapshot } = usePlane();
   const [setting, setSetting] = useState<BufferPlanning | null>(null);
@@ -38,7 +38,7 @@ export function BufferPlanningRow() {
     <div className="flex flex-col gap-2 rounded-[10px] border border-column-border bg-column px-4 py-3">
       <label className="flex items-center gap-2.5 text-[13px] text-strong">
         <Switch checked={setting.enabled} disabled={busy} onCheckedChange={(v) => save(v, setting.orgId)} />
-        Plan in Buffer
+        {title}
         <ExperimentalBadge />
       </label>
       <p className="m-0 text-xs text-dim">
