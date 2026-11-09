@@ -98,8 +98,8 @@ func baseURL(cfg *config.Config) string {
 	return strings.TrimRight(cfg.Plane.BaseURL, "/")
 }
 
-// authorize runs Plane's app-installation flow, as in main.go.sample: it
-// opens authorize-app, waits on a loopback listener for the redirect carrying
+// authorize runs Plane's app-installation flow: it opens authorize-app,
+// waits on a loopback listener for the redirect carrying
 // app_installation_id, then mints a bot token for that installation. The
 // redirect's code is not used; the authorization_code grant is refused for
 // this app (unauthorized_client).
@@ -231,7 +231,7 @@ func (a *auth) refresh(ctx context.Context, t *Token) (*Token, error) {
 }
 
 // botToken requests a client_credentials token for an app installation,
-// exactly as main.go.sample does: raw client_id:secret as HTTP Basic, and
+// the way Plane's docs and SDKs send it: raw client_id:secret as HTTP Basic, and
 // grant_type, app_installation_id and scope in the form.
 func botToken(ctx context.Context, cfg *config.Config, installationID string) (*Token, error) {
 	grant := url.Values{
