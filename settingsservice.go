@@ -217,3 +217,15 @@ func (s *SettingsService) SaveDevtoKey(ctx context.Context, key string) (Setting
 	integrationsChanged(s.buffer)
 	return s.Get(), err
 }
+
+// ClearAllData deletes everything Relay stores (see cleardata.go), then
+// quits. A copy of Relay clears again once this one has exited, catching
+// anything written on the way out.
+func (s *SettingsService) ClearAllData() error {
+	logs.For("app").Notice("clearing all data")
+	err := clearAllData(true)
+	clearAfterQuit()
+	// Let the reply reach the frontend before the window goes.
+	time.AfterFunc(300*time.Millisecond, quit)
+	return err
+}

@@ -58,6 +58,7 @@ var Subsystems = []Subsystem{
 	{"posts", "Posts"},
 	{"privacy", "Privacy"},
 	{"terminal", "Terminal"},
+	{"update", "Updates"},
 }
 
 // Entry is one log line.
