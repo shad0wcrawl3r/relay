@@ -47,6 +47,10 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
 - Dev.to: send as `published: false`; publishing is a separate, confirmed user action, refused while image placeholders remain. No image upload in v1 (insert `<INSERT IMAGE HERE: …>` placeholders).
 - Buffer: promotions need a live Dev.to article; Go adds its public link, so one can never go out without it. Posts written in the Buffer view (`BufferService.Compose`) aren't promotions: no article, no link. Articles reach a model provider only when the user asks.
   The Buffer tab's data is cached in `buffer-cache.json` (vault-encrypted, `buffercache.go`), shown first and refreshed; it's dropped on sign-out.
+  `bufferwatch.go` checks for failed posts at launch and every 15 minutes and emits `buffer:failed` for ones not yet reported
+  (IDs, channel and error only, never post text). Follow-up promotions are ordinary scheduled promotions, so Go adds the link to each.
+  After a 429 the Buffer client refuses every call until Retry-After passes (`buffer.RateLimited`). The Timeline's post lists are
+  cached in memory only (`buffercalendar.go`, 3 min) and dropped on any write through Relay; don't add per-click Buffer calls.
 - Dev.to AI disclosure: `posts.Meta.AI` (none/assisted/generated, empty = none). Go appends the matching line when sending (`disclosure.go`)
   and strips it when pulling, so the local body never carries it.
 - Ship log (`shiplogservice.go`): completed items in a window (Plane `completed_at`) plus `git log` subjects from a repo the

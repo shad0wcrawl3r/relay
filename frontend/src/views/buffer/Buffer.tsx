@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Browser } from "@wailsio/runtime";
-import { AlertTriangle, ExternalLink, Lightbulb, Loader2, Pause, Pencil, PenLine, RefreshCw, Trash2, Unplug } from "lucide-react";
+import { AlertTriangle, ExternalLink, FileText, Lightbulb, Loader2, Pause, Pencil, PenLine, RefreshCw, Trash2, Unplug } from "lucide-react";
 import {
   BufferService,
+  PostService,
   type BufferChannel,
+  type BufferIdea,
   type BufferOverview,
   type BufferPost,
   type BufferPostStatus,
@@ -45,7 +47,7 @@ const SERVICE_NAMES: Record<string, string> = {
   youtube: "YouTube",
   whatsapp: "WhatsApp",
 };
-const serviceName = (s: string) => SERVICE_NAMES[s] ?? (s ? s[0].toUpperCase() + s.slice(1) : "");
+export const serviceName = (s: string) => SERVICE_NAMES[s] ?? (s ? s[0].toUpperCase() + s.slice(1) : "");
 
 const DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
@@ -89,7 +91,7 @@ function Avatar({ channel, size = 28 }: { channel?: BufferChannel; size?: number
 
 const tabFor = (status: string): TabId => TABS.find((t) => (t.statuses as string[]).includes(status))?.id ?? "queue";
 
-export function Buffer({ goSettings, focus }: { goSettings: () => void; focus?: BufferFocus }) {
+export function Buffer({ goSettings, goPost, focus }: { goSettings: () => void; goPost: (postId: string) => void; focus?: BufferFocus }) {
   const toast = useToast();
   const [connected, setConnected] = useState<boolean | null>(null);
   const [overview, setOverview] = useState<BufferOverview | null>(null);
@@ -234,7 +236,7 @@ export function Buffer({ goSettings, focus }: { goSettings: () => void; focus?: 
             )}
           </TabsList>
           {tab === "ideas" ? (
-            <Ideas key={orgId} orgId={orgId} onWrite={(text) => setComposing(text)} />
+            <Ideas key={orgId} orgId={orgId} onWrite={(text) => setComposing(text)} goPost={goPost} />
           ) : (
             <PostList
               key={`${orgId}:${tab}:${channelFilter}:${sentCount}`}
@@ -609,8 +611,23 @@ function EditDialog({ post, onClose, onSaved }: { post: BufferPost; onClose: () 
   );
 }
 
-function Ideas({ orgId, onWrite }: { orgId: string; onWrite: (text: string) => void }) {
+function Ideas({ orgId, onWrite, goPost }: { orgId: string; onWrite: (text: string) => void; goPost: (postId: string) => void }) {
   const toast = useToast();
+  const [starting, setStarting] = useState("");
+
+  // An idea worth more than a social post: start a Dev.to article from it.
+  const startArticle = async (i: BufferIdea) => {
+    setStarting(i.id);
+    try {
+      const p = await PostService.CreateFromIdea(i.title, i.text);
+      toast({ tone: "success", title: "Article started", body: "It's a local draft. Nothing goes to Dev.to until you send it." });
+      goPost(p.id);
+    } catch (err) {
+      toast({ tone: "error", title: "Couldn't start the article", body: errorMessage(err) });
+    } finally {
+      setStarting("");
+    }
+  };
   const { ideas, groups, links, more, loading, error, orgId: loadedOrg } = useIdeas(true, orgId);
   const [composing, setComposing] = useState(false);
   const current = loadedOrg === orgId;
@@ -666,6 +683,14 @@ function Ideas({ orgId, onWrite }: { orgId: string; onWrite: (text: string) => v
                         onClick={() => onWrite([i.title, i.text].filter(Boolean).join("\n\n"))}
                       >
                         <PenLine className="size-3" /> Write a post
+                      </button>
+                      <button
+                        className="inline-flex items-center gap-1 text-dim hover:text-strong disabled:opacity-50"
+                        disabled={!!starting}
+                        title="Start a Dev.to article from this idea, in the editor"
+                        onClick={() => startArticle(i)}
+                      >
+                        {starting === i.id ? <Loader2 className="size-3 animate-spin" /> : <FileText className="size-3" />} Write an article
                       </button>
                     </span>
                   </div>

@@ -119,6 +119,52 @@ export interface BuildInfo {
 }
 
 /**
+ * CalendarPost is a Buffer post on the timeline.
+ */
+export interface CalendarPost {
+    "id": string;
+    "text": string;
+    "status": string;
+    "dueAt": string;
+    "sentAt": string;
+    "createdAt": string;
+    "channelId": string;
+    "channelService": string;
+    "externalLink": string;
+    "actions": string[] | null;
+    "error": string;
+    "errorHelp": string;
+    "tags": buffer$0.Tag[] | null;
+    "images": string[] | null;
+    "author": string;
+    "organizationId": string;
+}
+
+/**
+ * CalendarPosts is the window's posts.
+ */
+export interface CalendarPosts {
+    "posts": CalendarPost[] | null;
+
+    /**
+     * Partial is set when a list stopped at a page cap, so some days may be
+     * missing posts.
+     */
+    "partial": boolean;
+
+    /**
+     * Limited explains why loaded posts are shown without reading more:
+     * Buffer is rate limiting. Empty otherwise.
+     */
+    "limited": string;
+
+    /**
+     * LoadedAt is when the oldest list in use was first read.
+     */
+    "loadedAt": string;
+}
+
+/**
  * ComposeResult is how one channel's post went: PostID when Buffer took
  * it, Error when it didn't.
  */
@@ -184,6 +230,29 @@ export interface ExportResult {
     "path": string;
     "passphrase": string;
     "words": string[] | null;
+}
+
+/**
+ * FailedPost is one post Buffer couldn't publish. Text stays out: the alert
+ * only needs where and why.
+ */
+export interface FailedPost {
+    "id": string;
+    "organizationId": string;
+    "channelId": string;
+    "channelService": string;
+    "dueAt": string;
+    "error": string;
+    "errorHelp": string;
+}
+
+/**
+ * FailedPosts is what a check found: every failed post, and the ones that
+ * are new since the last alert.
+ */
+export interface FailedPosts {
+    "all": FailedPost[] | null;
+    "new": FailedPost[] | null;
 }
 
 /**

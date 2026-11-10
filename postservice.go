@@ -179,6 +179,37 @@ func (s *PostService) Create() (posts.Post, error) {
 	return s.store.Save(posts.Post{Meta: posts.Meta{Title: "Untitled post", AI: AIAssisted}})
 }
 
+// CreateFromIdea starts a local post from a Buffer idea: its title, or the
+// text's first line when it has none, and the text as the opening notes.
+func (s *PostService) CreateFromIdea(title, text string) (posts.Post, error) {
+	title, body := ideaPost(title, text)
+	p, err := s.store.Save(posts.Post{Meta: posts.Meta{Title: title, AI: AIAssisted}, Body: body})
+	if err == nil {
+		postLog.Info("post started from a Buffer idea", "id", p.ID)
+	}
+	return p, err
+}
+
+func ideaPost(title, text string) (string, string) {
+	title, text = strings.TrimSpace(title), strings.TrimSpace(text)
+	if title == "" {
+		first, rest, _ := strings.Cut(text, "\n")
+		first = strings.TrimSpace(strings.TrimLeft(first, "# "))
+		if r := []rune(first); len(r) <= 100 {
+			title, text = first, strings.TrimSpace(rest)
+		} else {
+			title = strings.TrimSpace(string(r[:80])) + "…"
+		}
+	}
+	if title == "" {
+		title = "Untitled post"
+	}
+	if text != "" {
+		text += "\n"
+	}
+	return title, text
+}
+
 func (s *PostService) Save(p posts.Post) (posts.Post, error) {
 	if len(p.Tags) > 4 {
 		p.Tags = p.Tags[:4]

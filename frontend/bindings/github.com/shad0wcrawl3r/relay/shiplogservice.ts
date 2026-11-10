@@ -41,6 +41,15 @@ export function Draft(d: $models.ShipLogDraft): $CancellablePromise<posts$0.Post
 }
 
 /**
+ * DraftSocial asks the model for a short build-in-public post from the kept
+ * material, fitting limit characters, for the Buffer composer. Nothing is
+ * saved or sent: the user reviews it there.
+ */
+export function DraftSocial(d: $models.ShipLogDraft, limit: number): $CancellablePromise<string> {
+    return $Call.ByID(2819121751, d, limit);
+}
+
+/**
  * Material finds the finished items and commits in the window.
  */
 export function Material(q: $models.ShipLogQuery): $CancellablePromise<$models.ShipLogMaterial> {

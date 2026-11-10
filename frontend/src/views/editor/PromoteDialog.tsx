@@ -27,6 +27,22 @@ const staticText = (post: Post) =>
     .filter(Boolean)
     .join("\n\n");
 
+// Follow-ups go out this many days after the first post, each with its own text.
+const FOLLOW_UP_DAYS = [3, 7];
+
+const followUpText = (post: Post, days: number) =>
+  [days < 7 ? `In case you missed it: ${post.title}` : `A week ago I published ${post.title}.`, post.description].filter(Boolean).join("\n\n");
+
+/** When a follow-up is due: days after the first post, at its time of day, or 9am when it joins the queue. */
+function followUpAt(timing: BufferTiming, dueAt: string, days: number) {
+  const d = timing === "schedule" ? new Date(dueAt) : new Date();
+  if (timing !== "schedule") d.setHours(9, 0, 0, 0);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+const dayTime = (d: Date) => d.toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+
 /** Tomorrow at 9am, in the format a datetime-local input expects. */
 function defaultTime() {
   const d = new Date();
@@ -61,6 +77,9 @@ export function PromoteDialog({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [review, setReview] = useState<string | null>(null);
+  const [followUps, setFollowUps] = useState(false);
+  const [followTexts, setFollowTexts] = useState<string[]>([]);
+  const [followReview, setFollowReview] = useState<string[]>([]);
   const [evalNote, setEvalNote] = useState("");
   const summary = useRef<CancellablePromise<string> | null>(null);
 
@@ -73,6 +92,8 @@ export function PromoteDialog({
     setText(staticText(post));
     setTiming("queue");
     setDueAt(defaultTime());
+    setFollowUps(false);
+    setFollowTexts(FOLLOW_UP_DAYS.map((d) => followUpText(post, d)));
     AIService.Status().then((s) => !stale && setAi(s), () => {});
     BufferService.EvalNote().then((n) => !stale && setEvalNote(n), () => {});
     (async () => {
@@ -115,15 +136,20 @@ export function PromoteDialog({
   };
 
   const channel = channels.find((c) => c.id === channelId);
-  const length =
-    text.trim().length + (text.includes(url) ? 0 : url.length + 2) + (evalNote && !text.includes(evalNote) ? evalNote.length + 2 : 0);
+  const sized = (t: string) => t.trim().length + (t.includes(url) ? 0 : url.length + 2) + (evalNote && !t.includes(evalNote) ? evalNote.length + 2 : 0);
+  const length = sized(text);
   const tooLong = length > LINKEDIN_LIMIT;
-  const ready = connected && channel && text.trim() && !tooLong && !summarizing && (timing !== "schedule" || dueAt);
+  // Drafts have no time to count from.
+  const withFollowUps = followUps && timing !== "draft";
+  const followOk = !withFollowUps || followTexts.every((t) => t.trim() && sized(t) <= LINKEDIN_LIMIT);
+  const ready = connected && channel && text.trim() && !tooLong && followOk && !summarizing && (timing !== "schedule" || dueAt);
 
   const startReview = async () => {
     setError("");
     try {
-      setReview(await BufferService.PreviewPromotion(post.id, text));
+      const [first, ...rest] = await Promise.all([text, ...(withFollowUps ? followTexts : [])].map((t) => BufferService.PreviewPromotion(post.id, t)));
+      setFollowReview(rest);
+      setReview(first);
     } catch (err) {
       setError(errorMessage(err));
     }
@@ -143,9 +169,31 @@ export function PromoteDialog({
         timing,
         dueAt: timing === "schedule" ? new Date(dueAt).toISOString() : "0001-01-01T00:00:00Z",
       });
-      onPromoted(updated);
+      let latest = updated;
+      const failed: string[] = [];
+      if (withFollowUps) {
+        for (const [i, days] of FOLLOW_UP_DAYS.entries()) {
+          try {
+            latest = await BufferService.Promote({
+              postId: post.id,
+              channelId: channel.id,
+              channel: channel.name,
+              service: channel.service,
+              text: followTexts[i],
+              timing: "schedule",
+              dueAt: followUpAt(timing, dueAt, days).toISOString(),
+            });
+          } catch (err) {
+            failed.push(`${days}-day follow-up: ${errorMessage(err)}`);
+          }
+        }
+      }
+      onPromoted(latest);
       onOpenChange(false);
-      toast({ tone: "success", title: TIMINGS.find((t) => t.value === timing)?.done ?? "Sent to Buffer", body: channel.name });
+      const done = TIMINGS.find((t) => t.value === timing)?.done ?? "Sent to Buffer";
+      const scheduled = withFollowUps ? FOLLOW_UP_DAYS.length - failed.length : 0;
+      toast({ tone: "success", title: done, body: scheduled ? `${channel.name}, plus ${scheduled} follow-up${scheduled === 1 ? "" : "s"}` : channel.name });
+      if (failed.length) toast({ tone: "error", title: "A follow-up didn't go to Buffer", body: failed.join("\n") });
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -155,7 +203,7 @@ export function PromoteDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-w-[560px] flex-col gap-4" onCloseAutoFocus={(e) => e.preventDefault()}>
+      <DialogContent className="flex max-h-[90vh] max-w-[560px] flex-col gap-4 overflow-y-auto" onCloseAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>{review === null ? "Promote on LinkedIn" : "Review your post"}</DialogTitle>
           <DialogDescription>{review === null ? (post.series ? `${post.title} · ${post.series}` : post.title) : whenText(timing, dueAt)}</DialogDescription>
@@ -163,8 +211,15 @@ export function PromoteDialog({
 
         {review !== null && channel ? (
           <div className="flex flex-col gap-2">
-            <div className="max-h-[52vh] overflow-y-auto">
+            <div className="flex max-h-[52vh] flex-col gap-3 overflow-y-auto">
               <PostPreview channel={channel} text={review} />
+              {withFollowUps &&
+                followReview.map((t, i) => (
+                  <div key={i} className="flex flex-col gap-1.5">
+                    <p className="m-0 text-xs text-dim">Follow-up · {dayTime(followUpAt(timing, dueAt, FOLLOW_UP_DAYS[i]))}</p>
+                    <PostPreview channel={channel} text={t} />
+                  </div>
+                ))}
             </div>
             <p className="m-0 text-xs text-dim">{PREVIEW_NOTE}</p>
           </div>
@@ -252,6 +307,35 @@ export function PromoteDialog({
                 />
               )}
             </div>
+
+            {timing !== "draft" && (
+              <div className="flex flex-col gap-2">
+                <label className="flex items-center gap-2 text-[13px] text-muted-foreground">
+                  <input type="checkbox" checked={followUps} onChange={(e) => setFollowUps(e.target.checked)} className="accent-[#e4e4e7]" />
+                  Follow up {FOLLOW_UP_DAYS.map((d) => (d === 7 ? "a week" : `${d} days`)).join(" and ")} later
+                </label>
+                {followUps &&
+                  FOLLOW_UP_DAYS.map((days, i) => {
+                    const over = sized(followTexts[i] ?? "") > LINKEDIN_LIMIT;
+                    return (
+                      <div key={days} className="flex flex-col gap-1">
+                        <span className="text-xs text-dim">{dayTime(followUpAt(timing, dueAt, days))}</span>
+                        <textarea
+                          aria-label={`Follow-up after ${days} days`}
+                          value={followTexts[i] ?? ""}
+                          rows={3}
+                          onChange={(e) => setFollowTexts((cur) => cur.map((t, j) => (j === i ? e.target.value : t)))}
+                          className={cn(
+                            "w-full resize-none rounded-md border border-border bg-transparent px-3 py-2 text-[13px] leading-relaxed text-strong outline-none focus:border-[#52525b]",
+                            over && "border-overdue",
+                          )}
+                        />
+                      </div>
+                    );
+                  })}
+                {followUps && <p className="m-0 text-xs text-dim">Each follow-up is its own scheduled post and gets the article link too.</p>}
+              </div>
+            )}
           </>
         )}
 

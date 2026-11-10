@@ -129,6 +129,7 @@ export function Capture({ open, onOpenChange, defaultProjectId, go, openItem }: 
       })),
       { id: "editor", icon: "E", label: "Dev.to editor", keys: ["E"], run: () => (go({ name: "editor" }), close()) },
       { id: "buffer", icon: "B", label: "Buffer", keys: ["B"], run: () => (go({ name: "buffer" }), close()) },
+      { id: "timeline", icon: "L", label: "Timeline", keys: ["L"], run: () => (go({ name: "timeline" }), close()) },
       { id: "terminal", icon: "T", label: "Terminal", keys: ["T"], run: () => (go({ name: "terminal" }), close()) },
       { id: "settings", icon: ",", label: "Settings", keys: ["⌘", ","], run: () => (go({ name: "settings" }), close()) },
       ...(planeOn ? [{ id: "sync", icon: "↻", label: "Sync now", keys: ["⌘", "R"], run: () => (syncNow(), close()) }] : []),
