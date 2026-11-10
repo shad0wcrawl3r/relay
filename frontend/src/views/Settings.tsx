@@ -23,9 +23,10 @@ import { PlaneAppGuide, planeIntegrationsUrl } from "@/components/PlaneAppGuide"
 import { ProjectSettings } from "@/components/ProjectSettings";
 import { BufferPlanningRow } from "@/components/BufferPlanningRow";
 import { UpdateCheck, useAutoCheck } from "@/components/Updates";
+import { About } from "@/components/About";
 import type { Route } from "@/App";
 
-export type SettingsTab = "plane" | "publishing" | "ai" | "terminal" | "privacy" | "storage" | "logs";
+export type SettingsTab = "plane" | "publishing" | "ai" | "terminal" | "privacy" | "storage" | "logs" | "about";
 
 export function Settings({ route }: { route: Extract<Route, { name: "settings" }> }) {
   const toast = useToast();
@@ -204,6 +205,7 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
             <TabsTrigger value="privacy">Privacy</TabsTrigger>
             <TabsTrigger value="storage">Storage</TabsTrigger>
             <TabsTrigger value="logs">Logs</TabsTrigger>
+            <TabsTrigger value="about">About</TabsTrigger>
           </TabsList>
 
           <TabsContent value="plane">
@@ -536,9 +538,13 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
           <TabsContent value="logs">
             <LogSettings />
           </TabsContent>
+
+          <TabsContent value="about">
+            <About />
+          </TabsContent>
         </Tabs>
 
-        {(dirty || !["ai", "storage", "logs"].includes(tab)) && (
+        {(dirty || !["ai", "storage", "logs", "about"].includes(tab)) && (
           <div className="sticky bottom-0 -mx-8 flex justify-end gap-2 border-t border-hairline bg-background/95 px-8 py-3 backdrop-blur">
             <Button variant="outline" size="md" disabled={!dirty || saving} onClick={() => load(s)}>
               Discard

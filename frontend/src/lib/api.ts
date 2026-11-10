@@ -325,4 +325,7 @@ export const UpdateService = {
   Check: (): Promise<UpdateInfo> => UpdateBindings.Check(),
   SetAutoCheck: (on: boolean): Promise<UpdateStatus> => UpdateBindings.SetAutoCheck(on) as Promise<UpdateStatus>,
   Install: (): Promise<void> => UpdateBindings.Install(),
+  /** Version and build details, for About. */
+  Build: (): Promise<BuildInfo> => UpdateBindings.Build(),
 };
+export type BuildInfo = Clean<M.BuildInfo>;

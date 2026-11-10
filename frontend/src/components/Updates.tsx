@@ -92,7 +92,7 @@ export function UpdateCheck() {
   useEffect(() => {
     UpdateService.Status()
       .then((s) => {
-        setCurrent(s.current);
+        setCurrent(s.display);
         if (s.last?.available) setFound(s.last);
       })
       .catch(() => {});

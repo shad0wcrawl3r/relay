@@ -152,6 +152,13 @@ func main() {
 	app.Event.OnApplicationEvent(events.Mac.ApplicationShouldHandleReopen, func(*application.ApplicationEvent) { show() })
 
 	menu := application.NewMenu()
+	// Version and build at a glance; About has the rest.
+	menu.Add(trayVersion()).SetEnabled(false)
+	menu.Add("About Relay…").OnClick(func(*application.Context) {
+		show()
+		app.Event.Emit("app:navigate", map[string]string{"name": "settings", "tab": "about"})
+	})
+	menu.AddSeparator()
 	toggle := menu.Add("Hide Relay")
 	toggle.OnClick(func(*application.Context) {
 		if window.IsVisible() {

@@ -10,6 +10,13 @@ import { Call as $Call, CancellablePromise as $CancellablePromise } from "@wails
 import * as $models from "./models.js";
 
 /**
+ * Build reports the version and build details, for About.
+ */
+export function Build(): $CancellablePromise<$models.BuildInfo> {
+    return $Call.ByID(3983556448);
+}
+
+/**
  * Check asks GitHub for the newest published release, pre-releases
  * included (every Relay release so far is one).
  */
