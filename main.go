@@ -151,13 +151,16 @@ func main() {
 	// Clicking the Dock icon brings a hidden window back.
 	app.Event.OnApplicationEvent(events.Mac.ApplicationShouldHandleReopen, func(*application.ApplicationEvent) { show() })
 
+	openAbout := func() {
+		show()
+		app.Event.Emit("app:navigate", map[string]string{"name": "settings", "tab": "about"})
+	}
+	app.Menu.SetApplicationMenu(applicationMenu(openAbout))
+
 	menu := application.NewMenu()
 	// Version and build at a glance; About has the rest.
 	menu.Add(trayVersion()).SetEnabled(false)
-	menu.Add("About Relay…").OnClick(func(*application.Context) {
-		show()
-		app.Event.Emit("app:navigate", map[string]string{"name": "settings", "tab": "about"})
-	})
+	menu.Add("About Relay…").OnClick(func(*application.Context) { openAbout() })
 	menu.AddSeparator()
 	toggle := menu.Add("Hide Relay")
 	toggle.OnClick(func(*application.Context) {
