@@ -155,7 +155,12 @@ func (s *PostService) Get(id string) (posts.Post, error) {
 	if !ok {
 		return posts.Post{}, errors.New("article not found; sync with Dev.to")
 	}
-	p := posts.Post{Body: a.BodyMarkdown, Meta: posts.Meta{
+	body, level := splitDisclosure(a.BodyMarkdown)
+	if level == "" {
+		level = AINone
+	}
+	p := posts.Post{Body: body, Meta: posts.Meta{
+		AI:    level,
 		Title: a.Title, Tags: a.TagList, Description: a.Description, CanonicalURL: a.CanonicalURL,
 		DevtoID: a.ID, DevtoURL: a.URL, SentAt: parseTime(a.CreatedAt),
 		DevtoHash: fingerprint(a.Title, a.BodyMarkdown),
@@ -171,7 +176,7 @@ func (s *PostService) Get(id string) (posts.Post, error) {
 }
 
 func (s *PostService) Create() (posts.Post, error) {
-	return s.store.Save(posts.Post{Meta: posts.Meta{Title: "Untitled post"}})
+	return s.store.Save(posts.Post{Meta: posts.Meta{Title: "Untitled post", AI: AIAssisted}})
 }
 
 func (s *PostService) Save(p posts.Post) (posts.Post, error) {
@@ -200,7 +205,7 @@ func (s *PostService) Delete(id string) error {
 
 func payload(p posts.Post) devto.Payload {
 	return devto.Payload{
-		Title: p.Title, BodyMarkdown: p.Body, Series: p.Series,
+		Title: p.Title, BodyMarkdown: withDisclosure(p.Body, p.AI), Series: p.Series,
 		CanonicalURL: p.CanonicalURL, Description: p.Description, Tags: strings.Join(p.Tags, ","),
 	}
 }

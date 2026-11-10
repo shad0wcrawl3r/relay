@@ -116,7 +116,9 @@ type Item struct {
 	TargetDate string   `json:"targetDate"`
 	CreatedAt  string   `json:"createdAt"`
 	UpdatedAt  string   `json:"updatedAt"`
-	CreatedBy  string   `json:"createdBy"`
+	// CompletedAt is when Plane last moved the item to a completed state.
+	CompletedAt string `json:"completedAt"`
+	CreatedBy   string `json:"createdBy"`
 	// Agent is true when the item carries the agent label or the agent has
 	// commented on it.
 	Agent bool `json:"agent"`
@@ -524,7 +526,7 @@ func (c *Client) toItem(rp rawProject, m *meta, ri rawItem) Item {
 		ID: ri.ID, ProjectID: rp.ID,
 		Key:  fmt.Sprintf("%s-%d", rp.Identifier, ri.SequenceID),
 		Name: ri.Name, StateID: string(ri.State), Priority: ri.Priority,
-		TargetDate: ri.TargetDate, CreatedAt: ri.CreatedAt, UpdatedAt: ri.UpdatedAt,
+		TargetDate: ri.TargetDate, CreatedAt: ri.CreatedAt, UpdatedAt: ri.UpdatedAt, CompletedAt: ri.CompletedAt,
 		CommentCount: -1, LabelIDs: []string{},
 		ModuleIDs: append([]string{}, m.moduleOf[ri.ID]...), CycleIDs: append([]string{}, m.cycleOf[ri.ID]...),
 	}

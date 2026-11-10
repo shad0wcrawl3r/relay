@@ -9,6 +9,7 @@ import * as GuideBindings from "../../bindings/github.com/shad0wcrawl3r/relay/gu
 import * as LogBindings from "../../bindings/github.com/shad0wcrawl3r/relay/logservice";
 import * as PlaneBindings from "../../bindings/github.com/shad0wcrawl3r/relay/planeservice";
 import * as PostBindings from "../../bindings/github.com/shad0wcrawl3r/relay/postservice";
+import * as ShipLogBindings from "../../bindings/github.com/shad0wcrawl3r/relay/shiplogservice";
 import * as SettingsBindings from "../../bindings/github.com/shad0wcrawl3r/relay/settingsservice";
 import * as TerminalBindings from "../../bindings/github.com/shad0wcrawl3r/relay/terminalservice";
 import * as UpdateBindings from "../../bindings/github.com/shad0wcrawl3r/relay/updateservice";
@@ -120,7 +121,15 @@ export const PostService = {
   PullDevto: async (id: string) => post(await PostBindings.PullDevto(id)),
   Publish: async (id: string) => post(await PostBindings.Publish(id)),
   Series: async (): Promise<string[]> => arr(await PostBindings.Series()),
+  /** The line each AI-use level adds at the end of the article on Dev.to. */
+  Disclosures: async (): Promise<Record<string, string>> => {
+    const m = (await PostBindings.Disclosures()) ?? {};
+    return Object.fromEntries(Object.entries(m).filter((e): e is [string, string] => !!e[1]));
+  },
 };
+
+/** How much AI went into a post. Dev.to asks authors to say so. */
+export type AIUse = "none" | "assisted" | "generated";
 
 export type LogEntry = Clean<LogM.Entry>;
 export type LogStatus = Clean<M.LogStatus>;
@@ -163,22 +172,28 @@ export const BufferService = {
   Connect: () => BufferBindings.Connect(),
   Disconnect: () => BufferBindings.Disconnect(),
   Channels: async (): Promise<BufferChannel[]> => arr(await BufferBindings.Channels()).map(channel),
-  Overview: async (): Promise<BufferOverview> => {
-    const o = await BufferBindings.Overview();
-    return { ...o, organizations: arr(o.organizations), channels: arr(o.channels).map(channel) } as BufferOverview;
+  Overview: async (): Promise<BufferOverview> => overview(await BufferBindings.Overview()),
+  Posts: async (q: BufferPostQuery): Promise<BufferPostPage> => postPage(await BufferBindings.Posts(q)),
+  /** The last data the Buffer tab saw, from Relay's encrypted cache. No network calls. */
+  Cached: async (): Promise<{ connected: boolean; overview: BufferOverview | null }> => {
+    const c = await BufferBindings.Cached();
+    return { connected: c.connected, overview: c.overview ? overview(c.overview) : null };
   },
-  Posts: async (q: { organizationId: string; statuses: BufferPostStatus[]; channelIds: string[]; after: string }): Promise<BufferPostPage> => {
-    const p = await BufferBindings.Posts(q);
-    return { ...p, posts: arr(p.posts).map(bufferPost) };
+  CachedPosts: async (q: BufferPostQuery): Promise<BufferPostPage | null> => {
+    const p = await BufferBindings.CachedPosts(q);
+    return p ? postPage(p) : null;
   },
+  CachedIdeas: async (orgId: string): Promise<BufferIdeaPage | null> => {
+    const p = await BufferBindings.CachedIdeas(orgId);
+    return p ? ideaPage(p) : null;
+  },
+  /** The Buffer posts an article was promoted with, as Buffer has them now. Newest first. */
+  PromotionPosts: async (postId: string): Promise<PromotionPost[]> => arr(await BufferBindings.PromotionPosts(postId)) as PromotionPost[],
   DeletePost: (id: string) => BufferBindings.DeletePost(id),
   /** dueAt is an ISO time, or "" to keep the current schedule. */
   EditPost: async (id: string, text: string, dueAt: string): Promise<BufferPost> =>
     bufferPost(await BufferBindings.EditPost({ id, text, dueAt: dueAt || "0001-01-01T00:00:00Z" } as BufferM.PostEdit)),
-  Ideas: async (orgId: string, after = ""): Promise<BufferIdeaPage> => {
-    const p = await BufferBindings.Ideas(orgId, after);
-    return { ...p, ideas: arr(p.ideas).map(idea), groups: arr(p.groups) };
-  },
+  Ideas: async (orgId: string, after = ""): Promise<BufferIdeaPage> => ideaPage(await BufferBindings.Ideas(orgId, after)),
   CreateIdea: async (n: { organizationId: string; groupId: string; title: string; text: string }): Promise<BufferIdea> =>
     idea(await BufferBindings.CreateIdea(n)),
   Organizations: async (): Promise<BufferOrganization[]> => arr(await BufferBindings.Organizations()),
@@ -193,7 +208,7 @@ export const BufferService = {
   PreviewPromotion: (postId: string, text: string): Promise<string> => BufferBindings.PreviewPromotion(postId, text),
   // The note dev builds add to every post, or "" in release builds.
   EvalNote: (): Promise<string> => BufferBindings.EvalNote(),
-  Promote: async (p: { postId: string; channelId: string; channel: string; text: string; timing: BufferTiming; dueAt: string }) =>
+  Promote: async (p: { postId: string; channelId: string; channel: string; service: string; text: string; timing: BufferTiming; dueAt: string }) =>
     post(await BufferBindings.Promote(p as M.Promotion)),
   /** Exactly the text Compose sends (adds the note in dev builds). */
   ComposedText: (text: string): Promise<string> => BufferBindings.ComposedText(text),
@@ -202,6 +217,13 @@ export const BufferService = {
     arr(await BufferBindings.Compose({ ...p, dueAt: p.dueAt || "0001-01-01T00:00:00Z" } as M.Composed)),
 };
 export type ComposeResult = Clean<M.ComposeResult>;
+export type PromotionPost = Clean<M.PromotionPost>;
+export type BufferPostQuery = { organizationId: string; statuses: BufferPostStatus[]; channelIds: string[]; after: string };
+
+const overview = (o: M.BufferOverview): BufferOverview =>
+  ({ ...o, organizations: arr(o.organizations), channels: arr(o.channels).map(channel) }) as BufferOverview;
+const postPage = (p: BufferM.PostPage): BufferPostPage => ({ ...p, posts: arr(p.posts).map(bufferPost) });
+const ideaPage = (p: BufferM.IdeaPage): BufferIdeaPage => ({ ...p, ideas: arr(p.ideas).map(idea), groups: arr(p.groups) });
 
 const aiStatus = (s: M.AIStatus): AIStatus => ({ ...s, providers: arr(s.providers) });
 
@@ -216,6 +238,29 @@ export const AIService = {
   TestModel: (provider: string, model: string): Promise<ModelTest> => AIBindings.TestModel(provider, model),
   SummarizePost: (id: string) => AIBindings.SummarizePost(id),
   SummarizeText: (title: string, text: string) => AIBindings.SummarizeText(title, text),
+  /** Rewrites notes as a social post under limit characters. */
+  DraftPost: (notes: string, limit: number) => AIBindings.DraftPost(notes, limit),
+};
+
+export type ShipProject = Clean<M.ShipProject>;
+export type ShipItem = Clean<M.ShipItem>;
+export type ShipCommit = Clean<M.ShipCommit>;
+export type ShipLogMaterial = Clean<M.ShipLogMaterial>;
+export type ShipLogQuery = { since: string; until: string; projectIds: string[]; repo: string };
+
+export const ShipLogService = {
+  Projects: async (): Promise<ShipProject[]> => arr(await ShipLogBindings.Projects()),
+  /** Finished items and commits in the window. since and until are ISO times. */
+  Material: async (q: ShipLogQuery): Promise<ShipLogMaterial> => {
+    const m = await ShipLogBindings.Material(q as M.ShipLogQuery);
+    return { ...m, items: arr(m.items), commits: arr(m.commits) };
+  },
+  ChooseRepo: (): Promise<string> => ShipLogBindings.ChooseRepo(),
+  RecentRepo: (): Promise<string> => ShipLogBindings.RecentRepo(),
+  SetRecentRepo: (dir: string) => ShipLogBindings.SetRecentRepo(dir),
+  /** Drafts a post from the kept items and commits, and saves it locally. */
+  Draft: async (d: { query: ShipLogQuery; itemIds: string[]; commits: string[]; notes: string }) =>
+    post(await ShipLogBindings.Draft(d as M.ShipLogDraft)),
 };
 
 export const SettingsService = {

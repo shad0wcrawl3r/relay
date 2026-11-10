@@ -11,12 +11,12 @@ import { Attention } from "@/views/Attention";
 import { Board, type BoardHandle } from "@/views/Board";
 import { Editor } from "@/views/editor/Editor";
 import { Settings, type SettingsTab } from "@/views/Settings";
-import { Buffer } from "@/views/buffer/Buffer";
+import { Buffer, type BufferFocus } from "@/views/buffer/Buffer";
 import { Terminal } from "@/views/terminal/Terminal";
 import { QuickTerminal } from "@/views/terminal/QuickTerminal";
 import { UpdateNotifier } from "@/components/Updates";
 
-export type Route = { name: "attention" } | { name: "project"; projectId: string } | { name: "editor" } | { name: "buffer" } | { name: "terminal" } | { name: "settings"; tab?: SettingsTab };
+export type Route = { name: "attention" } | { name: "project"; projectId: string } | { name: "editor" } | { name: "buffer"; focus?: BufferFocus } | { name: "terminal" } | { name: "settings"; tab?: SettingsTab };
 
 export interface OpenItem {
   projectId: string;
@@ -156,8 +156,8 @@ export default function App() {
           )}
         </div>
       )}
-      {route.name === "editor" && <Editor goSettings={() => go({ name: "settings", tab: "publishing" })} />}
-      {route.name === "buffer" && <Buffer goSettings={() => go({ name: "settings", tab: "publishing" })} />}
+      {route.name === "editor" && <Editor goSettings={() => go({ name: "settings", tab: "publishing" })} goBuffer={(focus) => go({ name: "buffer", focus })} />}
+      {route.name === "buffer" && <Buffer goSettings={() => go({ name: "settings", tab: "publishing" })} focus={route.focus} />}
       {route.name === "terminal" && <Terminal />}
       {route.name === "settings" && <Settings route={route} />}
 

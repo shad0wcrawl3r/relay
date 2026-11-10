@@ -8,6 +8,7 @@ import * as LogService from "./logservice.js";
 import * as PlaneService from "./planeservice.js";
 import * as PostService from "./postservice.js";
 import * as SettingsService from "./settingsservice.js";
+import * as ShipLogService from "./shiplogservice.js";
 import * as TerminalService from "./terminalservice.js";
 import * as UpdateService from "./updateservice.js";
 export {
@@ -18,6 +19,7 @@ export {
     PlaneService,
     PostService,
     SettingsService,
+    ShipLogService,
     TerminalService,
     UpdateService
 };
@@ -25,6 +27,7 @@ export {
 export type {
     AIProvider,
     AIStatus,
+    BufferCached,
     BufferOverview,
     BufferPlanning,
     BufferStatus,
@@ -45,10 +48,17 @@ export type {
     PostList,
     PostSummary,
     Promotion,
+    PromotionPost,
     SendResult,
     Settings,
     SettingsInput,
     ShellChoice,
+    ShipCommit,
+    ShipItem,
+    ShipLogDraft,
+    ShipLogMaterial,
+    ShipLogQuery,
+    ShipProject,
     UpdateInfo,
     UpdateProgress,
     UpdateStatus

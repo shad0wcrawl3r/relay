@@ -202,6 +202,28 @@ func (c *Client) Posts(ctx context.Context, q PostQuery) (PostPage, error) {
 	return page, nil
 }
 
+// Post loads one post. found is false when Buffer no longer has it.
+func (c *Client) Post(ctx context.Context, id string) (p Post, found bool, err error) {
+	if id == "" {
+		return Post{}, false, errors.New("no post to load")
+	}
+	var data struct {
+		Post *rawPost `json:"post"`
+	}
+	err = c.queryVars(ctx, `query Post($input: PostInput!) { post(input: $input) { `+postFields+` } }`,
+		map[string]any{"input": map[string]any{"id": id}}, &data)
+	if err != nil {
+		if strings.Contains(strings.ToLower(err.Error()), "not found") {
+			return Post{}, false, nil
+		}
+		return Post{}, false, err
+	}
+	if data.Post == nil {
+		return Post{}, false, nil
+	}
+	return data.Post.post(), true, nil
+}
+
 // DeletePost removes a post from Buffer.
 func (c *Client) DeletePost(ctx context.Context, id string) error {
 	if id == "" {

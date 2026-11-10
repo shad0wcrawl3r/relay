@@ -7,10 +7,9 @@ import { useToast } from "@/components/Toaster";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { PostPreview, PREVIEW_NOTE } from "@/components/PostPreview";
 
 const LINKEDIN_LIMIT = 3000;
-// LinkedIn folds long posts at around this point, and it varies by device.
-const SEE_MORE_AT = 210;
 
 const TIMINGS: { value: BufferTiming; label: string; done: string }[] = [
   { value: "queue", label: "Add to queue", done: "Added to your Buffer queue" },
@@ -139,6 +138,7 @@ export function PromoteDialog({
         postId: post.id,
         channelId: channel.id,
         channel: channel.name,
+        service: channel.service,
         text,
         timing,
         dueAt: timing === "schedule" ? new Date(dueAt).toISOString() : "0001-01-01T00:00:00Z",
@@ -162,7 +162,12 @@ export function PromoteDialog({
         </DialogHeader>
 
         {review !== null && channel ? (
-          <LinkedInPreview channel={channel} text={review} url={url} />
+          <div className="flex flex-col gap-2">
+            <div className="max-h-[52vh] overflow-y-auto">
+              <PostPreview channel={channel} text={review} />
+            </div>
+            <p className="m-0 text-xs text-dim">{PREVIEW_NOTE}</p>
+          </div>
         ) : loading ? (
           <div className="flex h-24 items-center justify-center gap-2 text-[13px] text-dim">
             <Loader2 className="size-3.5 animate-spin" />
@@ -281,37 +286,6 @@ function whenText(timing: BufferTiming, dueAt: string) {
   if (timing === "schedule") return `Buffer will post this on ${new Date(dueAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}.`;
   if (timing === "draft") return "This saves a draft in Buffer. Nothing is posted.";
   return "This joins your Buffer queue and posts at your next open slot.";
-}
-
-/** Roughly how LinkedIn lays out a post, including where "see more" falls. */
-function LinkedInPreview({ channel, text, url }: { channel: BufferChannel; text: string; url: string }) {
-  const folded = text.length > SEE_MORE_AT;
-  const [before, after] = folded ? [text.slice(0, SEE_MORE_AT), text.slice(SEE_MORE_AT)] : [text, ""];
-  const link = (part: string) =>
-    part.split(url).flatMap((piece, i) => (i === 0 ? [piece] : [<span key={i} className="text-[#71b7fb]">{url}</span>, piece]));
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="max-h-[52vh] overflow-y-auto rounded-[10px] border border-border bg-[#1b1f23] p-4">
-        <div className="mb-3 flex items-center gap-2.5">
-          {channel.avatar ? (
-            <img src={channel.avatar} alt="" className="size-10 rounded-full object-cover" />
-          ) : (
-            <span className="grid size-10 place-items-center rounded-full bg-[#38434f] text-sm font-semibold text-strong">{channel.name.slice(0, 1).toUpperCase()}</span>
-          )}
-          <div className="flex min-w-0 flex-col">
-            <span className="truncate text-sm font-semibold text-strong">{channel.name}</span>
-            <span className="text-xs text-dim">LinkedIn</span>
-          </div>
-        </div>
-        <p className="m-0 whitespace-pre-wrap break-words text-sm leading-[1.45] text-[#e4e4e7]">
-          {link(before)}
-          {folded && <span className="my-2 block border-t border-dashed border-border-strong pt-1 text-xs text-dim">Readers tap “see more” to read past this line</span>}
-          {folded && link(after)}
-        </p>
-      </div>
-      <p className="m-0 text-xs text-dim">An approximate preview: LinkedIn sets the final layout and link card.</p>
-    </div>
-  );
 }
 
 function Choice({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {

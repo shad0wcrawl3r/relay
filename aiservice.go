@@ -206,6 +206,22 @@ func (s *AIService) SummarizeText(ctx context.Context, title, text string) (stri
 	return s.client.Complete(ctx, ai.Local(), st.Provider, st.Model, system, user)
 }
 
+// DraftPost rewrites the user's notes as a social post that fits limit
+// characters (the strictest of the chosen channels). It only runs when the
+// user asks.
+func (s *AIService) DraftPost(ctx context.Context, notes string, limit int) (string, error) {
+	st := s.Status()
+	if !st.Ready {
+		return "", ai.ErrNoProvider
+	}
+	if strings.TrimSpace(notes) == "" {
+		return "", errors.New("write a few notes first")
+	}
+	system, user := ai.SocialPrompt(notes, limit)
+	// Text the user typed, not Plane data.
+	return s.client.Complete(ctx, ai.Local(), st.Provider, st.Model, system, user)
+}
+
 // SummarizePost drafts a LinkedIn post from a local article. It only runs when
 // the user asks, because it sends the article to the selected provider.
 func (s *AIService) SummarizePost(ctx context.Context, id string) (string, error) {

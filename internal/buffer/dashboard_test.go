@@ -187,3 +187,23 @@ func TestCreateIdea(t *testing.T) {
 		t.Error("empty idea accepted")
 	}
 }
+
+func TestPost(t *testing.T) {
+	c, got := captureVars(t, `{"data":{"post":{"id":"p1","text":"hi","status":"sent","channelId":"c1","externalLink":"https://linkedin.com/x"}}}`)
+	p, found, err := c.Post(context.Background(), "p1")
+	if err != nil || !found {
+		t.Fatalf("found = %v, err = %v", found, err)
+	}
+	if p.Status != "sent" || p.ExternalLink != "https://linkedin.com/x" || jsonOf(got.Variables) != `{"input":{"id":"p1"}}` {
+		t.Errorf("post = %+v, variables = %s", p, jsonOf(got.Variables))
+	}
+
+	c, _ = captureVars(t, `{"data":{"post":null}}`)
+	if _, found, err := c.Post(context.Background(), "gone"); found || err != nil {
+		t.Errorf("deleted post: found = %v, err = %v", found, err)
+	}
+	c, _ = captureVars(t, `{"errors":[{"message":"Post not found"}]}`)
+	if _, found, err := c.Post(context.Background(), "gone"); found || err != nil {
+		t.Errorf("not found error: found = %v, err = %v", found, err)
+	}
+}

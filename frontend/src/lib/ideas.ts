@@ -40,6 +40,11 @@ export function loadIdeas(orgId?: string, force = false): Promise<void> {
       let org = orgId || state.orgId;
       if (!org) org = (await BufferService.Organizations())[0]?.id ?? "";
       if (!org) throw new Error("No Buffer organization found");
+      if (org !== state.orgId || state.ideas.length === 0) {
+        // The last copy, shown while the fresh one loads.
+        const cached = await BufferService.CachedIdeas(org).catch(() => null);
+        if (cached) set({ orgId: org, ideas: cached.ideas, groups: cached.groups, cursor: cached.cursor, more: cached.more });
+      }
       const [page, links] = await Promise.all([BufferService.Ideas(org, ""), BufferService.IdeaLinks()]);
       set({ orgId: org, ideas: page.ideas, groups: page.groups, cursor: page.cursor, more: page.more, links, loadedAt: Date.now() });
     } catch (err) {

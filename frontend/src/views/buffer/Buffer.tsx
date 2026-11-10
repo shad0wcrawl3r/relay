@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Browser } from "@wailsio/runtime";
 import { AlertTriangle, ExternalLink, Lightbulb, Loader2, Pause, Pencil, PenLine, RefreshCw, Trash2, Unplug } from "lucide-react";
 import {
@@ -21,6 +21,12 @@ import { IdeasInBufferNote, SyncNote, openIdeasInBuffer } from "@/components/Syn
 import { addIdea, loadIdeas, loadMoreIdeas, useIdeas } from "@/lib/ideas";
 
 type TabId = "queue" | "approval" | "drafts" | "sent" | "failed" | "ideas";
+
+/** A post to show when the tab opens, e.g. from an article's promotions. */
+export interface BufferFocus {
+  postId: string;
+  status: string;
+}
 
 const TABS: { id: TabId; label: string; statuses: BufferPostStatus[]; empty: string }[] = [
   { id: "queue", label: "Queue", statuses: ["scheduled", "sending"], empty: "Nothing is scheduled." },
@@ -81,12 +87,14 @@ function Avatar({ channel, size = 28 }: { channel?: BufferChannel; size?: number
   );
 }
 
-export function Buffer({ goSettings }: { goSettings: () => void }) {
+const tabFor = (status: string): TabId => TABS.find((t) => (t.statuses as string[]).includes(status))?.id ?? "queue";
+
+export function Buffer({ goSettings, focus }: { goSettings: () => void; focus?: BufferFocus }) {
   const toast = useToast();
   const [connected, setConnected] = useState<boolean | null>(null);
   const [overview, setOverview] = useState<BufferOverview | null>(null);
   const [orgId, setOrgId] = useState("");
-  const [tab, setTab] = useState<TabId>("queue");
+  const [tab, setTab] = useState<TabId>(() => (focus ? tabFor(focus.status) : "queue"));
   const [channelFilter, setChannelFilter] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -95,26 +103,40 @@ export function Buffer({ goSettings }: { goSettings: () => void }) {
   const [composing, setComposing] = useState<string | null>(null);
   const [sentCount, setSentCount] = useState(0);
 
+  const show = useCallback((o: BufferOverview) => {
+    setOverview(o);
+    setOrgId((cur) => (o.organizations.some((g) => g.id === cur) ? cur : (o.organizations[0]?.id ?? "")));
+  }, []);
+
+  // Opens on the cached overview, then fetches a fresh one.
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const st = await BufferService.Status();
-      setConnected(st.connected);
-      if (!st.connected) return;
-      const o = await BufferService.Overview();
-      setOverview(o);
-      setOrgId((cur) => (o.organizations.some((g) => g.id === cur) ? cur : (o.organizations[0]?.id ?? "")));
+      const cached = await BufferService.Cached();
+      setConnected(cached.connected);
+      if (!cached.connected) return;
+      if (cached.overview) show(cached.overview);
+      show(await BufferService.Overview());
     } catch (err) {
-      setError(errorMessage(err));
+      // Buffer may have ended the sign-in during the fetch.
+      const still = await BufferService.Cached().catch(() => null);
+      if (still && !still.connected) setConnected(false);
+      else setError(errorMessage(err));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [show]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (!focus) return;
+    setTab(tabFor(focus.status));
+    setChannelFilter("");
+  }, [focus]);
 
   const connect = async () => {
     setConnecting(true);
@@ -220,6 +242,7 @@ export function Buffer({ goSettings }: { goSettings: () => void }) {
               tab={TABS.find((t) => t.id === tab)!}
               channelIds={channelFilter ? [channelFilter] : []}
               channelById={channelById}
+              highlightId={focus?.postId}
             />
           )}
         </Tabs>
@@ -309,11 +332,13 @@ function PostList({
   tab,
   channelIds,
   channelById,
+  highlightId,
 }: {
   orgId: string;
   tab: (typeof TABS)[number];
   channelIds: string[];
   channelById: Map<string, BufferChannel>;
+  highlightId?: string;
 }) {
   const toast = useToast();
   const [posts, setPosts] = useState<BufferPost[]>([]);
@@ -328,8 +353,18 @@ function PostList({
     async (after: string) => {
       setLoading(true);
       setError("");
+      const q = { organizationId: orgId, statuses: tab.statuses, channelIds, after };
+      if (!after) {
+        // Show the last copy at once; the fresh page replaces it.
+        const cached = await BufferService.CachedPosts(q).catch(() => null);
+        if (cached) {
+          setPosts(cached.posts);
+          setCursor(cached.cursor);
+          setMore(cached.more);
+        }
+      }
       try {
-        const page = await BufferService.Posts({ organizationId: orgId, statuses: tab.statuses, channelIds, after });
+        const page = await BufferService.Posts(q);
         setPosts((cur) => (after ? [...cur, ...page.posts] : page.posts));
         setCursor(page.cursor);
         setMore(page.more);
@@ -360,11 +395,12 @@ function PostList({
     }
   };
 
-  if (error) return <p className="text-xs text-overdue">{error}</p>;
+  if (error && posts.length === 0) return <p className="text-xs text-overdue">{error}</p>;
   if (!loading && posts.length === 0) return <p className="px-1 text-[13px] text-dim">{tab.empty}</p>;
 
   return (
     <div className="flex flex-col gap-3">
+      {error && <p className="m-0 text-xs text-overdue">Couldn't refresh: {error}. Showing the last copy.</p>}
       {posts.length > 0 && (
         <div className="overflow-hidden rounded-[10px] border border-column-border bg-column">
           {posts.map((p) => (
@@ -372,6 +408,7 @@ function PostList({
               key={p.id}
               post={p}
               channel={channelById.get(p.channelId)}
+              highlight={p.id === highlightId}
               onEdit={() => setEditing(p)}
               onDelete={() => setDeleting(p)}
             />
@@ -380,7 +417,7 @@ function PostList({
       )}
       {loading ? (
         <p className="flex items-center gap-2 px-1 text-xs text-dim">
-          <Loader2 className="size-3.5 animate-spin" /> Loading posts…
+          <Loader2 className="size-3.5 animate-spin" /> {posts.length > 0 ? "Refreshing…" : "Loading posts…"}
         </p>
       ) : (
         more && (
@@ -420,8 +457,24 @@ function PostList({
   );
 }
 
-function PostRow({ post: p, channel, onEdit, onDelete }: { post: BufferPost; channel?: BufferChannel; onEdit: () => void; onDelete: () => void }) {
+function PostRow({
+  post: p,
+  channel,
+  highlight,
+  onEdit,
+  onDelete,
+}: {
+  post: BufferPost;
+  channel?: BufferChannel;
+  highlight?: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
   const can = (a: string) => p.actions.includes(a);
+  const row = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (highlight) row.current?.scrollIntoView({ block: "center" });
+  }, [highlight]);
   const time =
     p.status === "sent"
       ? `Sent ${ago(p.sentAt || p.dueAt)}`
@@ -431,7 +484,13 @@ function PostRow({ post: p, channel, onEdit, onDelete }: { post: BufferPost; cha
           ? `${p.status === "error" ? "Was due" : "Due"} ${when(p.dueAt)}`
           : "No time set";
   return (
-    <div className="flex gap-3 border-b border-column-border px-3.5 py-3 last:border-b-0 hover:bg-[#121215]">
+    <div
+      ref={row}
+      className={cn(
+        "flex gap-3 border-b border-column-border px-3.5 py-3 last:border-b-0 hover:bg-[#121215]",
+        highlight && "bg-[rgba(96,165,250,.08)] shadow-[inset_2px_0_0_#60a5fa]",
+      )}
+    >
       <Avatar channel={channel} />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex items-center gap-2 text-[11px] text-dim">

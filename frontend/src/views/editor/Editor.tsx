@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Browser } from "@wailsio/runtime";
-import { ExternalLink, GitCompare, ImageIcon, Loader2, Megaphone, Rocket, Send, X } from "lucide-react";
+import { ExternalLink, GitCompare, ImageIcon, Loader2, Megaphone, Rocket, Send, Trash2, X } from "lucide-react";
 import { PostService, type Drift, type Post, type PostList } from "@/lib/api";
 import { ago } from "@/lib/time";
 import { cn, errorMessage } from "@/lib/utils";
@@ -18,13 +18,17 @@ import { DriftDialog } from "./DriftDialog";
 import { PublishDialog } from "./PublishDialog";
 import { SeriesSelect } from "./SeriesSelect";
 import { countPlaceholders } from "./highlight";
+import { AIUseSelect, aiUse } from "./AIUseSelect";
+import { Promotions } from "./Promotions";
+import { ShipLogDialog } from "./ShipLogDialog";
+import type { BufferFocus } from "@/views/buffer/Buffer";
 
 const MAX_TAGS = 4;
 const normaliseTag = (t: string) => t.toLowerCase().replace(/[^a-z0-9]/g, "");
 
 type SaveState = { kind: "saved"; at: number } | { kind: "saving" } | { kind: "dirty" } | { kind: "error"; message: string };
 
-export function Editor({ goSettings }: { goSettings: () => void }) {
+export function Editor({ goSettings, goBuffer }: { goSettings: () => void; goBuffer: (focus: BufferFocus) => void }) {
   const toast = useToast();
   // Errors from Dev.to calls. A refused key gets a way to fix it.
   const fail = (title: string, err: unknown) => {
@@ -46,6 +50,9 @@ export function Editor({ goSettings }: { goSettings: () => void }) {
   const [publishOpen, setPublishOpen] = useState(false);
   const [promoteOpen, setPromoteOpen] = useState(false);
   const [drift, setDrift] = useState<Drift | null>(null);
+  const [disclosures, setDisclosures] = useState<Record<string, string>>({});
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [shipLog, setShipLog] = useState(false);
   const [, tick] = useState(0);
   const editor = useRef<EditorHandle>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -108,6 +115,7 @@ export function Editor({ goSettings }: { goSettings: () => void }) {
       })
       .catch(() => {});
     sync();
+    PostService.Disclosures().then(setDisclosures, () => {});
     const t = setInterval(() => tick((n) => n + 1), 15000);
     return () => {
       clearInterval(t);
@@ -287,7 +295,7 @@ export function Editor({ goSettings }: { goSettings: () => void }) {
 
   return (
     <>
-      <PostsSidebar list={list} activeId={post?.id} syncing={syncing} onOpen={open} onNew={newPost} onSync={sync} onAddKey={goSettings} />
+      <PostsSidebar list={list} activeId={post?.id} syncing={syncing} onOpen={open} onNew={newPost} onShipLog={() => setShipLog(true)} onSync={sync} onAddKey={goSettings} />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="drag flex h-[84px] shrink-0 items-end gap-4 border-b border-border px-6 pb-[13px]">
           <div className="min-w-0 grow truncate pb-1.5 text-sm text-muted-foreground">
@@ -331,7 +339,11 @@ export function Editor({ goSettings }: { goSettings: () => void }) {
             )}
             <main className="grow overflow-y-auto px-6 pb-8 pt-10">
               {mode === "preview" ? (
-                <Preview title={post.title} tags={post.tags} body={post.body} />
+                <Preview
+                  title={post.title}
+                  tags={post.tags}
+                  body={disclosures[aiUse(post.ai)] ? `${post.body.trimEnd()}\n\n${disclosures[aiUse(post.ai)]}` : post.body}
+                />
               ) : (
                 <div className="mx-auto max-w-[860px]">
                   <div className="inline-flex h-8 items-center gap-2 rounded-md border border-dashed border-border-strong px-3 text-[13px] text-muted-foreground">
@@ -341,6 +353,7 @@ export function Editor({ goSettings }: { goSettings: () => void }) {
                   <TitleInput value={post.title} onChange={(title) => change({ title })} onEnter={() => editor.current?.focus()} />
                   <TagInput tags={post.tags ?? []} onChange={(tags) => change({ tags })} />
                   <SeriesSelect value={post.series} onChange={(series) => change({ series })} />
+                  <AIUseSelect value={post.ai} lines={disclosures} onChange={(ai) => change({ ai })} />
                   <MarkdownEditor
                     ref={editor}
                     value={post.body}
@@ -368,12 +381,7 @@ export function Editor({ goSettings }: { goSettings: () => void }) {
                   {images > 0 ? `${images} image${images === 1 ? "" : "s"} + cover to add on Dev.to` : "Cover to add on Dev.to"}
                 </span>
               )}
-              {post.promotions.length > 0 && (
-                <span className="inline-flex items-center gap-1.5">
-                  <Megaphone className="size-3.5" strokeWidth={1.9} />
-                  Promoted {post.promotions.length === 1 ? "once" : `${post.promotions.length} times`}
-                </span>
-              )}
+              {post.promotions.length > 0 && <Promotions post={post} goBuffer={goBuffer} />}
               <span className="grow" />
               {sent ? (
                 <>
@@ -401,6 +409,16 @@ export function Editor({ goSettings }: { goSettings: () => void }) {
                 </>
               ) : (
                 <>
+                  <Button
+                    variant="ghost"
+                    size="md"
+                    className={cn(confirmDelete && "text-overdue")}
+                    onClick={() => (confirmDelete ? remove() : setConfirmDelete(true))}
+                    onBlur={() => setConfirmDelete(false)}
+                  >
+                    <Trash2 className="size-3.5" />
+                    {confirmDelete ? "Click again to delete" : "Delete draft"}
+                  </Button>
                   <span className="text-dim">Creates an unpublished draft</span>
                   <Button size="md" disabled={sending} onClick={() => send()}>
                     {sending ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
@@ -412,6 +430,16 @@ export function Editor({ goSettings }: { goSettings: () => void }) {
           </>
         )}
       </div>
+      {shipLog && (
+        <ShipLogDialog
+          onClose={() => setShipLog(false)}
+          onDrafted={async (p) => {
+            setShipLog(false);
+            await open(p.id);
+            toast({ tone: "success", title: "Ship log drafted", body: "Review and edit it, then send it to Dev.to when it's ready." });
+          }}
+        />
+      )}
       <DriftDialog drift={drift} onOpenChange={(o) => !o && setDrift(null)} onPull={pull} onOverwrite={() => send(true)} />
       <ImageDialog open={imageOpen} onOpenChange={setImageOpen} onInsert={(t) => setTimeout(() => editor.current?.insertAtCursor(t), 0)} />
       {post && <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} onPublish={publish} />}
