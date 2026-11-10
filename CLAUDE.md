@@ -20,6 +20,20 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
 - Frontend: `frontend/` — React 18 + TS + Vite, Tailwind v4 + shadcn/ui (zinc, dark).
 - Build/run: `wails3 dev`, `wails3 build` (Taskfile).
 
+## Releasing
+- Never push a `v*` tag or create a GitHub release by hand. Releases come from CI.
+- To release X.Y.Z: on a `release/X.Y.Z` branch, replace the old version with X.Y.Z in the 11 version files
+  (`build/config.yml`, `build/darwin/Info.plist`, `Info.dev.plist`, `build/ios/Info.plist`, `Info.dev.plist`,
+  `build/linux/nfpm/nfpm.yaml`, `build/windows/info.json`, `build/windows/msix/app_manifest.xml`, `template.xml`,
+  `build/windows/nsis/wails_tools.nsh`, `build/windows/wails.exe.manifest`); `git grep` for the old version to check.
+  Commit and title the PR exactly `Release X.Y.Z`, with nothing after the version, since a squash merge uses the PR title.
+- When it merges, `.github/workflows/tag-release.yml` checks `build/config.yml` matches, tags the commit `vX.Y.Z` and
+  starts `build.yml` on the tag, which publishes a pre-release with `SHA256SUMS` and rebuilds the site. A mismatched
+  version fails the run without tagging. Installed copies are offered the update at their next launch.
+- Builds stamp the commit and its date via `-ldflags -X main.buildCommit/buildCommitDate` (platform Taskfiles,
+  `buildinfo.go`). Dev builds show the commit instead of the version (Dev mode tag, Settings, tray, Settings → About).
+- No risky changes or releases during judging (Nov 16–20, 2026) unless the user asks.
+
 ## Rules
 - Plane is the source of truth; Relay writes changes back. Its only copy is an encrypted display
   cache (`plane-cache.json` in the app dir, last good sync, all projects) shown at launch;
