@@ -19,6 +19,10 @@ type BufferService struct {
 	plane  *PlaneService
 	links  *ideaLinks
 	cache  *bufferCache
+	failed failedWatch
+	// calendar holds the timeline's post lists; any write through Relay
+	// drops it, so the timeline shows the change.
+	calendar calendarCache
 }
 
 func NewBufferService(posts *PostService, plane *PlaneService) *BufferService {
@@ -26,6 +30,8 @@ func NewBufferService(posts *PostService, plane *PlaneService) *BufferService {
 	// Buffer can end the sign-in on its side (revoked, refresh refused).
 	s.client.OnSignOut = func() {
 		s.cache.clear()
+		s.failed.reset()
+		s.calendar.clear()
 		integrationsChanged(s)
 		go s.plane.reloadBufferPlan(context.Background())
 	}
@@ -73,6 +79,8 @@ func (s *BufferService) Connect(ctx context.Context) (BufferStatus, error) {
 func (s *BufferService) Disconnect() error {
 	err := s.client.Disconnect()
 	s.cache.clear()
+	s.failed.reset()
+	s.calendar.clear()
 	integrationsChanged(s)
 	s.plane.reloadBufferPlan(context.Background())
 	return err
@@ -127,6 +135,7 @@ func (s *BufferService) Promote(ctx context.Context, in Promotion) (posts.Post, 
 	if err != nil {
 		return posts.Post{}, err
 	}
+	s.calendar.clear()
 	return s.posts.RecordPromotion(in.PostID, posts.Promotion{
 		BufferID: bufferID, Channel: in.Channel, ChannelID: in.ChannelID, Service: in.Service, Timing: string(in.Timing), DueAt: in.DueAt, At: time.Now(),
 	})
@@ -165,6 +174,7 @@ func (s *BufferService) Compose(ctx context.Context, in Composed) ([]ComposeResu
 		return nil, errors.New("choose a channel")
 	}
 	text := s.ComposedText(in.Text)
+	defer s.calendar.clear()
 	seen := map[string]bool{}
 	var results []ComposeResult
 	for _, id := range in.ChannelIDs {
@@ -257,6 +267,7 @@ func (s *BufferService) DeletePost(ctx context.Context, id string) error {
 	err := s.client.DeletePost(ctx, id)
 	if err == nil {
 		s.cache.removePost(id)
+		s.calendar.clear()
 	}
 	return err
 }
@@ -270,6 +281,7 @@ func (s *BufferService) EditPost(ctx context.Context, e buffer.PostEdit) (buffer
 	p, err := s.client.EditPost(ctx, e)
 	if err == nil {
 		s.cache.replacePost(p)
+		s.calendar.clear()
 	}
 	return p, err
 }

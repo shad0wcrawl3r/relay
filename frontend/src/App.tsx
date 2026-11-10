@@ -13,10 +13,12 @@ import { Editor } from "@/views/editor/Editor";
 import { Settings, type SettingsTab } from "@/views/Settings";
 import { Buffer, type BufferFocus } from "@/views/buffer/Buffer";
 import { Terminal } from "@/views/terminal/Terminal";
+import { Timeline } from "@/views/timeline/Timeline";
 import { QuickTerminal } from "@/views/terminal/QuickTerminal";
 import { UpdateNotifier } from "@/components/Updates";
+import { FailedPostNotifier } from "@/components/FailedPosts";
 
-export type Route = { name: "attention" } | { name: "project"; projectId: string } | { name: "editor" } | { name: "buffer"; focus?: BufferFocus } | { name: "terminal" } | { name: "settings"; tab?: SettingsTab };
+export type Route = { name: "attention" } | { name: "project"; projectId: string } | { name: "editor"; postId?: string } | { name: "buffer"; focus?: BufferFocus } | { name: "timeline" } | { name: "terminal" } | { name: "settings"; tab?: SettingsTab };
 
 export interface OpenItem {
   projectId: string;
@@ -48,7 +50,7 @@ export default function App() {
     () =>
       Events.On("guide:show", (ev) => {
         const view = ev.data as string;
-        if (view === "editor" || view === "buffer" || view === "attention" || view === "terminal" || view === "settings") go({ name: view });
+        if (view === "editor" || view === "buffer" || view === "timeline" || view === "attention" || view === "terminal" || view === "settings") go({ name: view });
       }),
     [go],
   );
@@ -136,6 +138,7 @@ export default function App() {
       }
       if (k === "e") go({ name: "editor" });
       if (k === "b") go({ name: "buffer" });
+      if (k === "l") go({ name: "timeline" });
       if (k === "t") go({ name: "terminal" });
     };
     window.addEventListener("keydown", onKey);
@@ -166,8 +169,20 @@ export default function App() {
           )}
         </div>
       )}
-      {route.name === "editor" && <Editor goSettings={() => go({ name: "settings", tab: "publishing" })} goBuffer={(focus) => go({ name: "buffer", focus })} />}
-      {route.name === "buffer" && <Buffer goSettings={() => go({ name: "settings", tab: "publishing" })} focus={route.focus} />}
+      {route.name === "editor" && (
+        <Editor
+          key={route.postId ?? ""}
+          goSettings={() => go({ name: "settings", tab: "publishing" })}
+          goBuffer={(focus) => go({ name: "buffer", focus })}
+          openId={route.postId}
+        />
+      )}
+      {route.name === "buffer" && (
+        <Buffer goSettings={() => go({ name: "settings", tab: "publishing" })} goPost={(postId) => go({ name: "editor", postId })} focus={route.focus} />
+      )}
+      {route.name === "timeline" && (
+        <Timeline goBuffer={(focus) => go({ name: "buffer", focus })} goPost={(postId) => go({ name: "editor", postId })} openItem={setDrawer} />
+      )}
       {route.name === "terminal" && <Terminal />}
       {route.name === "settings" && <Settings route={route} />}
 
@@ -191,6 +206,7 @@ export default function App() {
         />
       )}
       <UpdateNotifier />
+      <FailedPostNotifier goBuffer={(focus) => go({ name: "buffer", focus })} />
       <Capture
         open={capture}
         onOpenChange={setCapture}

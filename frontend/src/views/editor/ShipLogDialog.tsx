@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { FolderGit2, Loader2, Sparkles, X } from "lucide-react";
-import { AIService, ShipLogService, type AIStatus, type Post, type ShipLogMaterial, type ShipProject } from "@/lib/api";
+import { AIService, BufferService, ShipLogService, type AIStatus, type BufferChannel, type Post, type ShipLogMaterial, type ShipProject } from "@/lib/api";
+import { useIntegrations } from "@/lib/integrations";
+import { strictestLimit } from "@/components/ComposeDialog";
+import { BufferLogo } from "@/components/icons/BufferLogo";
 import { cn, errorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +29,18 @@ const shortDay = (iso: string) => new Date(iso).toLocaleDateString(undefined, { 
  * you pick). You choose what goes in; the model drafts; the result opens as
  * a new post.
  */
-export function ShipLogDialog({ onClose, onDrafted }: { onClose: () => void; onDrafted: (p: Post) => void }) {
+export function ShipLogDialog({
+  onClose,
+  onDrafted,
+  onSocial,
+}: {
+  onClose: () => void;
+  onDrafted: (p: Post) => void;
+  /** A short post for Buffer, to finish in the composer. */
+  onSocial: (text: string, channels: BufferChannel[]) => void;
+}) {
+  const bufferOn = useIntegrations().buffer === true;
+  const [channels, setChannels] = useState<BufferChannel[] | null>(null);
   const [since, setSince] = useState(() => daysAgo(7));
   const [projects, setProjects] = useState<ShipProject[]>([]);
   const [picked, setPicked] = useState<string[] | null>(null);
@@ -37,8 +51,12 @@ export function ShipLogDialog({ onClose, onDrafted }: { onClose: () => void; onD
   const [dropCommits, setDropCommits] = useState<Set<string>>(new Set());
   const [notes, setNotes] = useState("");
   const [ai, setAi] = useState<AIStatus | null>(null);
-  const [drafting, setDrafting] = useState(false);
+  const [drafting, setDrafting] = useState<"" | "post" | "social">("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (bufferOn) BufferService.Channels().then(setChannels, () => setChannels([]));
+  }, [bufferOn]);
 
   useEffect(() => {
     ShipLogService.Projects().then(
@@ -110,16 +128,31 @@ export function ShipLogDialog({ onClose, onDrafted }: { onClose: () => void; onD
     apply(next);
   };
 
+  const kept = () => ({ query, itemIds: keptItems.map((i) => i.id), commits: keptCommits.map((c) => c.hash), notes });
+
   const draft = async () => {
-    setDrafting(true);
+    setDrafting("post");
     setError("");
     try {
-      const p = await ShipLogService.Draft({ query, itemIds: keptItems.map((i) => i.id), commits: keptCommits.map((c) => c.hash), notes });
-      onDrafted(p);
+      onDrafted(await ShipLogService.Draft(kept()));
     } catch (err) {
       setError(errorMessage(err));
     } finally {
-      setDrafting(false);
+      setDrafting("");
+    }
+  };
+
+  // Sized for the strictest channel, so one post fits them all.
+  const draftSocial = async () => {
+    if (!channels) return;
+    setDrafting("social");
+    setError("");
+    try {
+      onSocial(await ShipLogService.DraftSocial(kept(), strictestLimit(channels)), channels);
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setDrafting("");
     }
   };
 
@@ -128,7 +161,10 @@ export function ShipLogDialog({ onClose, onDrafted }: { onClose: () => void; onD
       <DialogContent className="flex max-h-[88vh] max-w-[640px] flex-col gap-4">
         <DialogHeader>
           <DialogTitle>Ship log</DialogTitle>
-          <DialogDescription>Draft a build-in-public post from what you finished. Pick what goes in; AI writes the draft; you edit it like any post.</DialogDescription>
+          <DialogDescription>
+            Draft a build-in-public update from what you finished. Pick what goes in; AI writes an article you edit like any post
+            {bufferOn ? ", or a short post you finish in the Buffer composer" : ""}.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex min-h-0 flex-col gap-4 overflow-y-auto pr-1">
@@ -238,15 +274,27 @@ export function ShipLogDialog({ onClose, onDrafted }: { onClose: () => void; onD
             {ai === null
               ? ""
               : ai.ready
-                ? `${ai.local ? `Runs on this machine with ${ai.label}` : `Sends the titles and notes to ${ai.label}`}. The post is marked AI-assisted.`
+                ? `${ai.local ? `Runs on this machine with ${ai.label}` : `Sends the titles and notes to ${ai.label}`}. An article is marked AI-assisted.`
                 : "Connect a model provider in Settings → AI first."}
           </span>
-          <Button variant="outline" size="md" disabled={drafting} onClick={onClose}>
+          <Button variant="outline" size="md" disabled={!!drafting} onClick={onClose}>
             Cancel
           </Button>
+          {bufferOn && (
+            <Button
+              variant="outline"
+              size="md"
+              disabled={!ready || !channels?.length}
+              title={channels?.length === 0 ? "No Buffer channels found" : "A short post for your Buffer channels, to review in the composer"}
+              onClick={draftSocial}
+            >
+              {drafting === "social" ? <Loader2 className="size-3.5 animate-spin" /> : <BufferLogo className="size-3.5" />}
+              {drafting === "social" ? "Drafting…" : "Buffer post"}
+            </Button>
+          )}
           <Button size="md" disabled={!ready} onClick={draft}>
-            {drafting ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
-            {drafting ? "Drafting…" : "Draft post"}
+            {drafting === "post" ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+            {drafting === "post" ? "Drafting…" : "Draft article"}
           </Button>
         </DialogFooter>
       </DialogContent>

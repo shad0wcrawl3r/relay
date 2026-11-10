@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -68,6 +69,39 @@ func (e *oauthError) Error() string {
 	return fmt.Sprintf("Buffer refused the request (%s)", e.code)
 }
 
+// RateLimited means Buffer asked Relay to wait. Until is when it may ask again.
+type RateLimited struct{ Until time.Time }
+
+func (e *RateLimited) Error() string {
+	secs := int(time.Until(e.Until).Round(time.Second).Seconds())
+	if secs < 1 {
+		secs = 1
+	}
+	return fmt.Sprintf("Buffer's rate limit was reached; try again in %d seconds", secs)
+}
+
+// defaultRetryAfter is the wait when Buffer's 429 doesn't say.
+const defaultRetryAfter = time.Minute
+
+// retryAfter reads a Retry-After header: seconds, or an HTTP date.
+func retryAfter(v string, now time.Time) time.Time {
+	v = strings.TrimSpace(v)
+	if n, err := strconv.Atoi(v); err == nil && n >= 0 {
+		return now.Add(time.Duration(n) * time.Second)
+	}
+	if t, err := http.ParseTime(v); err == nil && t.After(now) {
+		return t
+	}
+	return now.Add(defaultRetryAfter)
+}
+
+// RateLimit reports whether Buffer is making Relay wait, and until when.
+func (c *Client) RateLimit() (time.Time, bool) {
+	c.limitMu.Lock()
+	defer c.limitMu.Unlock()
+	return c.limitedUntil, time.Now().Before(c.limitedUntil)
+}
+
 type Client struct {
 	authURL, tokenURL, apiURL string
 	http                      *http.Client
@@ -78,6 +112,11 @@ type Client struct {
 	token *Token
 
 	signIn sync.Mutex
+
+	// limitedUntil is when Buffer will take requests again after a 429.
+	// Until then Relay doesn't ask: every request would only extend the wait.
+	limitMu      sync.Mutex
+	limitedUntil time.Time
 
 	// OnSignOut runs when Buffer ends the sign-in (revoked access or a
 	// refused refresh), not when the user disconnects.
@@ -227,6 +266,9 @@ func (c *Client) query(ctx context.Context, query string, out any) error {
 // queryVars runs a GraphQL query with variables, so user text never has to
 // be spliced into the query itself.
 func (c *Client) queryVars(ctx context.Context, query string, vars map[string]any, out any) error {
+	if until, limited := c.RateLimit(); limited {
+		return &RateLimited{Until: until}
+	}
 	t, err := c.valid(ctx)
 	if err != nil {
 		return err
@@ -258,7 +300,14 @@ func (c *Client) queryVars(ctx context.Context, query string, vars map[string]an
 		c.signedOut()
 		return ErrNotConnected
 	case http.StatusTooManyRequests:
-		return fmt.Errorf("Buffer's rate limit was reached; try again in %s seconds", resp.Header.Get("Retry-After"))
+		until := retryAfter(resp.Header.Get("Retry-After"), time.Now())
+		c.limitMu.Lock()
+		if until.After(c.limitedUntil) {
+			c.limitedUntil = until
+		}
+		c.limitMu.Unlock()
+		log.Warn("rate limited", "retry_in", time.Until(until).Round(time.Second).String())
+		return &RateLimited{Until: until}
 	}
 	var body struct {
 		Data   json.RawMessage `json:"data"`

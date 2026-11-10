@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, Kanban, Lock, LockOpen, PenLine, RefreshCw, SlidersHorizontal, SquareTerminal } from "lucide-react";
+import { Bell, CalendarDays, Kanban, Lock, LockOpen, PenLine, RefreshCw, SlidersHorizontal, SquareTerminal } from "lucide-react";
 import { BufferLogo } from "@/components/icons/BufferLogo";
 import { usePlane } from "@/lib/store";
 import { useIntegrations } from "@/lib/integrations";
@@ -115,17 +115,27 @@ export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => v
         {!rail && <span>Relay</span>}
       </div>
 
+      <div className="flex flex-col gap-0.5">
+        {planeOn && (
+          <Item
+            active={route.name === "attention"}
+            onClick={() => go({ name: "attention" })}
+            icon={<Bell className="size-[15px]" strokeWidth={1.8} />}
+            label="Attention"
+            badge={attention > 0 && <span className="ml-auto rounded-full bg-[#4a1d35] px-[7px] py-px text-[11px] text-[#fbcfe8]">{attention}</span>}
+          />
+        )}
+        <Item
+          active={route.name === "timeline"}
+          onClick={() => go({ name: "timeline" })}
+          icon={<CalendarDays className="size-[15px]" strokeWidth={1.8} />}
+          label="Timeline"
+          title="Buffer posts, Dev.to articles and Plane due dates by day  (L)"
+        />
+      </div>
+
       {planeOn && (
         <>
-          <div className="flex flex-col gap-0.5">
-            <Item
-              active={route.name === "attention"}
-              onClick={() => go({ name: "attention" })}
-              icon={<Bell className="size-[15px]" strokeWidth={1.8} />}
-              label="Attention"
-              badge={attention > 0 && <span className="ml-auto rounded-full bg-[#4a1d35] px-[7px] py-px text-[11px] text-[#fbcfe8]">{attention}</span>}
-            />
-          </div>
 
           <div className="flex flex-col gap-0.5">
             {!rail && <div className="px-2.5 pb-1.5 text-[11px] font-medium uppercase tracking-[.06em] text-dim">{snapshot?.connected && !mixed ? "Plane projects" : "Projects"}</div>}

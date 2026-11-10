@@ -28,11 +28,18 @@ function defaultTime() {
 
 const label = (c: BufferChannel) => c.displayName || c.name;
 
-function unusable(c: BufferChannel): string {
+/** Why Relay can't post to a channel, or "" when it can. */
+export function unusable(c: BufferChannel): string {
   if (c.isDisconnected) return "Reconnect it in Buffer";
   if (c.isLocked) return "Locked on your Buffer plan";
   if (NEEDS_MEDIA.has(c.service)) return "Needs an image or video";
   return "";
+}
+
+/** The strictest text limit among the channels Relay can post to, or 3000. */
+export function strictestLimit(channels: BufferChannel[]): number {
+  const limits = channels.filter((c) => !unusable(c)).map((c) => LIMITS[c.service]).filter((n): n is number => !!n);
+  return limits.length ? Math.min(...limits) : 3000;
 }
 
 /** Writes a Buffer post that isn't about an article, for one or more channels. */
@@ -45,7 +52,7 @@ export function ComposeDialog({
   channels: BufferChannel[];
   initialText?: string;
   onClose: () => void;
-  onSent: () => void;
+  onSent?: () => void;
 }) {
   const toast = useToast();
   const usable = useMemo(() => channels.filter((c) => !unusable(c)), [channels]);
@@ -121,7 +128,7 @@ export function ComposeDialog({
       if (ok > 0) {
         const verb = timing === "draft" ? "Saved as a Buffer draft" : timing === "schedule" ? "Scheduled in Buffer" : "Added to your Buffer queue";
         toast({ tone: "success", title: verb, body: chosen.filter((c) => !failed.some((f) => f.channelId === c.id)).map(label).join(", ") });
-        onSent();
+        onSent?.();
       }
       if (failed.length === 0) {
         onClose();

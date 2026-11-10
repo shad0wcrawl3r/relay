@@ -9,6 +9,11 @@ import type {} from "../github.com/wailsapp/wails/v3/internal/eventdata.js";
 import "../github.com/wailsapp/wails/v3/internal/eventcreate.js";
 
 /**
+ * Name of the custom event "buffer:failed".
+ */
+export const BufferFailed = "buffer:failed";
+
+/**
  * Name of the custom event "buffer:signin".
  */
 export const BufferSignin = "buffer:signin";

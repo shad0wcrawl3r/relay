@@ -109,6 +109,8 @@ export const PostService = {
   Sync: async () => postList(await PostBindings.Sync()),
   Get: async (id: string) => post(await PostBindings.Get(id)),
   Create: async () => post(await PostBindings.Create()),
+  /** A new local post from a Buffer idea's title and text. */
+  CreateFromIdea: async (title: string, text: string) => post(await PostBindings.CreateFromIdea(title, text)),
   Save: async (p: Post) => post(await PostBindings.Save(p as PostM.Post)),
   Delete: (id: string) => PostBindings.Delete(id),
   /** Sends the post. An update that finds edits made on Dev.to sends nothing
@@ -215,7 +217,30 @@ export const BufferService = {
   /** A post not about an article, to each channel. dueAt is ISO, used when timing is "schedule". */
   Compose: async (p: { channelIds: string[]; text: string; timing: BufferTiming; dueAt: string }): Promise<ComposeResult[]> =>
     arr(await BufferBindings.Compose({ ...p, dueAt: p.dueAt || "0001-01-01T00:00:00Z" } as M.Composed)),
+  /**
+   * An organization's Buffer posts due or sent between from and to (ISO).
+   * Go reuses loaded lists for a few minutes; fresh reads them again.
+   */
+  Calendar: async (orgId: string, from: string, to: string, fresh = false): Promise<CalendarPosts> => {
+    const c = await BufferBindings.Calendar(orgId, from, to, fresh);
+    return {
+      partial: c.partial,
+      limited: c.limited,
+      loadedAt: c.loadedAt,
+      posts: arr(c.posts).map((p) => ({ ...bufferPost(p as BufferM.Post), organizationId: p.organizationId })),
+    };
+  },
+  /** Looks for failed posts now. `new` holds the ones not reported since launch. */
+  CheckFailed: async (): Promise<{ all: FailedPost[]; new: FailedPost[] }> => {
+    const f = await BufferBindings.CheckFailed();
+    return { all: arr(f.all), new: arr(f.new) };
+  },
+  /** The last check's failed posts, without asking Buffer. */
+  LastFailed: async (): Promise<FailedPost[]> => arr(await BufferBindings.LastFailed()),
 };
+export type CalendarPost = BufferPost & { organizationId: string };
+export type CalendarPosts = { posts: CalendarPost[]; partial: boolean; limited: string; loadedAt: string };
+export type FailedPost = Clean<M.FailedPost>;
 export type ComposeResult = Clean<M.ComposeResult>;
 export type PromotionPost = Clean<M.PromotionPost>;
 export type BufferPostQuery = { organizationId: string; statuses: BufferPostStatus[]; channelIds: string[]; after: string };
@@ -261,6 +286,9 @@ export const ShipLogService = {
   /** Drafts a post from the kept items and commits, and saves it locally. */
   Draft: async (d: { query: ShipLogQuery; itemIds: string[]; commits: string[]; notes: string }) =>
     post(await ShipLogBindings.Draft(d as M.ShipLogDraft)),
+  /** A short social post from the same material, for the Buffer composer. Nothing is saved. */
+  DraftSocial: (d: { query: ShipLogQuery; itemIds: string[]; commits: string[]; notes: string }, limit: number) =>
+    ShipLogBindings.DraftSocial(d as M.ShipLogDraft, limit),
 };
 
 export const SettingsService = {

@@ -226,9 +226,46 @@ running (see `Settings.dc.html`). Then a 248px **Sessions** sidebar
    (default) / End all sessions / Keep in background service (disabled,
    "later version"), scrollback (10 000 lines), font, cursor style.
 
+### Timeline (no mockup; built in `frontend/src/views/timeline/Timeline.tsx`)
+
+Top-level sidebar entry under Attention, shown with or without Plane; key `L`,
+and in ⌘K. One place for what's going out, what's published and what's due:
+Buffer posts (scheduled, awaiting approval, sent, failed), published Dev.to
+articles, open Plane items with a target date, and cycle starts and ends.
+Every source is optional; locked projects never appear.
+
+1. **Daily** — the day in full, one card per entry, Plane dates first then
+   timed posts in order. Buffer cards show the channel, a status badge, the
+   whole text, Buffer's error and a "View post" link once sent; articles show
+   views and open in the editor; Plane items open in the item drawer. Arrows
+   step a day; "Today" returns.
+2. **Weekly** — a strip of seven small day cards (date, status dots, Dev.to
+   and due marks, a short count; failures in red) above the selected day's
+   Daily list. The weeks before and after peek in as faded, half-height rows
+   (bottom half above, top half below); clicking one, or the arrows, steps a
+   week. The choice of view is remembered per machine.
+
+Loading: the frontend waits 350 ms after the last step, then asks once for
+the visible weeks plus the peeking ones. Go keeps each organization's post
+lists in memory for 3 minutes and only extends them past what's loaded
+(at most 5 pages a call, 20 a list); any write through Relay or sign-out drops
+them, Refresh reads again. After a 429 the Buffer client refuses every call
+until Retry-After passes and the timeline shows what it has with a note.
+
 ---
 
 ## 3. Behaviour decisions (v1)
+
+Buffer
+- Promotions (LinkedIn) can add two follow-ups, 3 days and a week after the
+  first post, each with its own text. They're ordinary scheduled promotions,
+  so Go adds the article link to each. Not offered for drafts.
+- The ship log drafts either an article or a short Buffer post (sized for
+  the strictest usable channel), which opens in the composer unsent.
+- Buffer ideas can start a local Dev.to article ("Write an article").
+- Failed posts: Go checks at launch (+20 s) and every 15 min, and raises one
+  toast per newly failed post, linking to the Failed tab. Only IDs, channel
+  and error travel; never the post text.
 
 Editor
 - Simple editor, close to Dev.to's own. Markdown source is the document.

@@ -22,6 +22,14 @@ export function Create(): $CancellablePromise<posts$0.Post> {
     return $Call.ByID(3052295323);
 }
 
+/**
+ * CreateFromIdea starts a local post from a Buffer idea: its title, or the
+ * text's first line when it has none, and the text as the opening notes.
+ */
+export function CreateFromIdea(title: string, text: string): $CancellablePromise<posts$0.Post> {
+    return $Call.ByID(3459961444, title, text);
+}
+
 export function Delete(id: string): $CancellablePromise<void> {
     return $Call.ByID(2086220472, id);
 }

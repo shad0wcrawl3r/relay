@@ -43,8 +43,25 @@ export function CachedPosts(q: buffer$0.PostQuery): $CancellablePromise<buffer$0
     return $Call.ByID(3017772344, q);
 }
 
+/**
+ * Calendar lists an organization's Buffer posts between from and to:
+ * scheduled ones (and those awaiting approval or failed) by due time, sent
+ * ones by when they went out. fresh drops what's loaded and reads again.
+ */
+export function Calendar(orgID: string, $from: string, to: string, fresh: boolean): $CancellablePromise<$models.CalendarPosts> {
+    return $Call.ByID(2045489841, orgID, $from, to, fresh);
+}
+
 export function Channels(): $CancellablePromise<buffer$0.Channel[] | null> {
     return $Call.ByID(3644032715);
+}
+
+/**
+ * CheckFailed looks for failed posts in every organization. New lists the
+ * ones not reported since launch; calling it marks them reported.
+ */
+export function CheckFailed(): $CancellablePromise<$models.FailedPosts> {
+    return $Call.ByID(225589924);
 }
 
 /**
@@ -119,6 +136,13 @@ export function Ideas(orgID: string, after: string): $CancellablePromise<buffer$
  */
 export function ItemToIdea(orgID: string, projectID: string, itemID: string): $CancellablePromise<buffer$0.Idea> {
     return $Call.ByID(3706216194, orgID, projectID, itemID);
+}
+
+/**
+ * LastFailed is the last check's failed posts, without asking Buffer.
+ */
+export function LastFailed(): $CancellablePromise<$models.FailedPost[] | null> {
+    return $Call.ByID(2466474926);
 }
 
 /**

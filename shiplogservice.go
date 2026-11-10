@@ -226,19 +226,13 @@ Group the work by theme instead of listing commits one by one, and say why a cha
 
 Reply in Markdown. The first line is the title, starting with "# ". Then the body: a short opening, ## sections for the themes, and a brief "What's next" only if the notes mention plans. Short paragraphs, plain words, no hype ("excited", "thrilled", "game-changer").`
 
-// Draft asks the model for a post from the kept material and saves it as a
-// new local post, marked AI-assisted.
-func (s *ShipLogService) Draft(ctx context.Context, d ShipLogDraft) (posts.Post, error) {
-	st := s.ai.Status()
-	if !st.Ready {
-		return posts.Post{}, ai.ErrNoProvider
-	}
+// kept is the material the user kept, re-read by ID from a fresh query
+// rather than taken from the UI, and the privacy keys of its items.
+func (s *ShipLogService) kept(ctx context.Context, d ShipLogDraft) (items []ShipItem, commits []ShipCommit, keys []string, err error) {
 	m, err := s.Material(ctx, d.Query)
 	if err != nil {
-		return posts.Post{}, err
+		return nil, nil, nil, err
 	}
-	var items []ShipItem
-	var keys []string
 	snap := s.plane.Snapshot()
 	for _, it := range m.Items {
 		if slices.Contains(d.ItemIDs, it.ID) {
@@ -246,14 +240,27 @@ func (s *ShipLogService) Draft(ctx context.Context, d ShipLogDraft) (posts.Post,
 			keys = append(keys, plane.PrivacyKeys(snap, it.ProjectID, it.ID)...)
 		}
 	}
-	var commits []ShipCommit
 	for _, c := range m.Commits {
 		if slices.Contains(d.Commits, c.Hash) {
 			commits = append(commits, c)
 		}
 	}
 	if len(items) == 0 && len(commits) == 0 && strings.TrimSpace(d.Notes) == "" {
-		return posts.Post{}, errors.New("keep at least one item or commit, or add notes")
+		return nil, nil, nil, errors.New("keep at least one item or commit, or add notes")
+	}
+	return items, commits, keys, nil
+}
+
+// Draft asks the model for a post from the kept material and saves it as a
+// new local post, marked AI-assisted.
+func (s *ShipLogService) Draft(ctx context.Context, d ShipLogDraft) (posts.Post, error) {
+	st := s.ai.Status()
+	if !st.Ready {
+		return posts.Post{}, ai.ErrNoProvider
+	}
+	items, commits, keys, err := s.kept(ctx, d)
+	if err != nil {
+		return posts.Post{}, err
 	}
 
 	user := shipPrompt(d.Query, items, commits, d.Notes)
@@ -276,6 +283,27 @@ func (s *ShipLogService) Draft(ctx context.Context, d ShipLogDraft) (posts.Post,
 	}
 	shipLog.Info("ship log drafted", "post", p.ID, "items", len(items), "commits", len(commits))
 	return p, nil
+}
+
+// DraftSocial asks the model for a short build-in-public post from the kept
+// material, fitting limit characters, for the Buffer composer. Nothing is
+// saved or sent: the user reviews it there.
+func (s *ShipLogService) DraftSocial(ctx context.Context, d ShipLogDraft, limit int) (string, error) {
+	st := s.ai.Status()
+	if !st.Ready {
+		return "", ai.ErrNoProvider
+	}
+	items, commits, keys, err := s.kept(ctx, d)
+	if err != nil {
+		return "", err
+	}
+	system, user := ai.SocialPrompt(shipPrompt(d.Query, items, commits, d.Notes), limit)
+	reply, err := s.ai.client.Complete(ctx, ai.Plane(keys...), st.Provider, st.Model, system, user)
+	if err != nil {
+		return "", err
+	}
+	shipLog.Info("ship log social post drafted", "items", len(items), "commits", len(commits), "chars", len([]rune(reply)))
+	return strings.TrimSpace(reply), nil
 }
 
 func shipRange(q ShipLogQuery) string {

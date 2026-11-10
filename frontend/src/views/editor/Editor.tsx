@@ -21,6 +21,8 @@ import { countPlaceholders } from "./highlight";
 import { AIUseSelect, aiUse } from "./AIUseSelect";
 import { Promotions } from "./Promotions";
 import { ShipLogDialog } from "./ShipLogDialog";
+import { ComposeDialog } from "@/components/ComposeDialog";
+import type { BufferChannel } from "@/lib/api";
 import type { BufferFocus } from "@/views/buffer/Buffer";
 
 const MAX_TAGS = 4;
@@ -28,7 +30,16 @@ const normaliseTag = (t: string) => t.toLowerCase().replace(/[^a-z0-9]/g, "");
 
 type SaveState = { kind: "saved"; at: number } | { kind: "saving" } | { kind: "dirty" } | { kind: "error"; message: string };
 
-export function Editor({ goSettings, goBuffer }: { goSettings: () => void; goBuffer: (focus: BufferFocus) => void }) {
+export function Editor({
+  goSettings,
+  goBuffer,
+  openId,
+}: {
+  goSettings: () => void;
+  goBuffer: (focus: BufferFocus) => void;
+  /** A post to open instead of the newest, e.g. one just started from a Buffer idea. */
+  openId?: string;
+}) {
   const toast = useToast();
   // Errors from Dev.to calls. A refused key gets a way to fix it.
   const fail = (title: string, err: unknown) => {
@@ -53,6 +64,8 @@ export function Editor({ goSettings, goBuffer }: { goSettings: () => void; goBuf
   const [disclosures, setDisclosures] = useState<Record<string, string>>({});
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [shipLog, setShipLog] = useState(false);
+  // A ship-log post headed for Buffer, open in the composer.
+  const [social, setSocial] = useState<{ text: string; channels: BufferChannel[] } | null>(null);
   const [, tick] = useState(0);
   const editor = useRef<EditorHandle>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -110,8 +123,8 @@ export function Editor({ goSettings, goBuffer }: { goSettings: () => void; goBuf
     PostService.List()
       .then((l) => {
         setList(l);
-        const first = l.posts.find((p) => p.local);
-        if (first) open(first.id);
+        const first = openId ?? l.posts.find((p) => p.local)?.id;
+        if (first) open(first);
       })
       .catch(() => {});
     sync();
@@ -438,8 +451,13 @@ export function Editor({ goSettings, goBuffer }: { goSettings: () => void; goBuf
             await open(p.id);
             toast({ tone: "success", title: "Ship log drafted", body: "Review and edit it, then send it to Dev.to when it's ready." });
           }}
+          onSocial={(text, channels) => {
+            setShipLog(false);
+            setSocial({ text, channels });
+          }}
         />
       )}
+      {social && <ComposeDialog channels={social.channels} initialText={social.text} onClose={() => setSocial(null)} />}
       <DriftDialog drift={drift} onOpenChange={(o) => !o && setDrift(null)} onPull={pull} onOverwrite={() => send(true)} />
       <ImageDialog open={imageOpen} onOpenChange={setImageOpen} onInsert={(t) => setTimeout(() => editor.current?.insertAtCursor(t), 0)} />
       {post && <PublishDialog open={publishOpen} onOpenChange={setPublishOpen} onPublish={publish} />}
