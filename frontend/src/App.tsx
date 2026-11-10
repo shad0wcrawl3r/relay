@@ -53,6 +53,16 @@ export default function App() {
     [go],
   );
 
+  // The tray's "About Relay…" opens Settings → About.
+  useEffect(
+    () =>
+      Events.On("app:navigate", (ev) => {
+        const to = ev.data as { name?: string; tab?: string };
+        if (to?.name === "settings") go({ name: "settings", tab: to.tab as SettingsTab | undefined });
+      }),
+    [go],
+  );
+
   // ⌘/ or ⌃/ toggles the quick terminal anywhere but the Terminal view.
   // Captured so it works while the quick terminal itself has focus (xterm
   // would otherwise take ⌃/ as a keystroke).

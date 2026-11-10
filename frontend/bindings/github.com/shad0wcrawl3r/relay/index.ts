@@ -28,6 +28,7 @@ export type {
     BufferOverview,
     BufferPlanning,
     BufferStatus,
+    BuildInfo,
     ComposeResult,
     Composed,
     DevtoKeyCheck,

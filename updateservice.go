@@ -56,6 +56,8 @@ type UpdateInfo struct {
 
 type UpdateStatus struct {
 	Current string `json:"current"`
+	// Display is the version to show: Current, or the commit in dev builds.
+	Display string `json:"display"`
 	// Dev: not a release build (wails3 dev, go run, go build).
 	Dev bool `json:"dev"`
 	// AutoCheck: check when a release build starts.
@@ -106,7 +108,7 @@ func (s *UpdateService) ServiceStartup(ctx context.Context, _ application.Servic
 func (s *UpdateService) Status() UpdateStatus {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return UpdateStatus{Current: appVersion(), Dev: !releaseBuild, AutoCheck: config.GetConfig().Updates.Check, Last: s.last}
+	return UpdateStatus{Current: appVersion(), Display: buildInfo().Display, Dev: !releaseBuild, AutoCheck: config.GetConfig().Updates.Check, Last: s.last}
 }
 
 func (s *UpdateService) SetAutoCheck(on bool) (UpdateStatus, error) {

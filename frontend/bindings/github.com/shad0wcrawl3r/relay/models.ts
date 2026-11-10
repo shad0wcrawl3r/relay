@@ -87,6 +87,29 @@ export interface BufferStatus {
 }
 
 /**
+ * BuildInfo is what About shows.
+ */
+export interface BuildInfo {
+    /**
+     * Version is the release version from build/config.yml.
+     */
+    "version": string;
+
+    /**
+     * Display is how the version is shown: the release version, or in dev
+     * builds the commit (with "-dirty" for uncommitted changes).
+     */
+    "display": string;
+    "dev": boolean;
+    "commit": string;
+    "commitDate": string;
+    "dirty": boolean;
+    "go": string;
+    "wails": string;
+    "platform": string;
+}
+
+/**
  * ComposeResult is how one channel's post went: PostID when Buffer took
  * it, Error when it didn't.
  */
@@ -378,6 +401,11 @@ export interface UpdateProgress {
 
 export interface UpdateStatus {
     "current": string;
+
+    /**
+     * Display is the version to show: Current, or the commit in dev builds.
+     */
+    "display": string;
 
     /**
      * Dev: not a release build (wails3 dev, go run, go build).

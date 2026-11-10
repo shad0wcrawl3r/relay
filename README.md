@@ -78,7 +78,11 @@ frontend. Runs on macOS, Windows and Linux.
     sign-ins and keys in the keychain, settings, caches, webview storage) and
     quits. The Windows uninstaller offers the same as an option. On macOS and
     Linux, clear data before deleting the app
-  - Runs in the background with a tray icon
+  - Runs in the background with a tray icon. Its menu shows the version and
+    commit, and About Relay… opens Settings → About (version, build, commit,
+    commit date, platform, Go and Wails, with Copy build info)
+  - Dev builds show the commit (with `-dirty` for uncommitted changes)
+    instead of the version, in the Dev mode tag, Settings and the tray
   - Checks GitHub's releases at launch and offers a newer version's
     download page; nothing is downloaded or installed automatically. Turn it
     off in Settings → Privacy
