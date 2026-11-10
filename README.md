@@ -29,6 +29,16 @@ frontend. Runs on macOS, Windows and Linux.
   - Markdown editor with preview and image placeholders
   - Sends to Dev.to as an unpublished draft, and syncs your articles back
   - Publishing is a separate, confirmed step
+  - AI use per post (none, assisted or generated; new posts start as
+    assisted): Dev.to's API has no field for it, so Relay adds the matching
+    disclosure line at the end of the article, as DEV's guidelines ask
+  - Delete a draft that hasn't gone to Dev.to yet from the editor's footer
+  - Ship log (the ship icon above the post list): pick a date range, the
+    projects and optionally a git repository; Relay lists the items finished
+    in that range and the commit subjects, you untick what stays out and add
+    notes, and the AI model drafts a build-in-public post that opens as a new,
+    AI-assisted draft. Private projects and modules never take part, and only
+    item titles and commit subjects reach the model
   - Spots edits made on Dev.to: Update draft shows a diff (unified or side by
     side) and asks whether to keep Dev.to's version or replace it
 - **Promotion**
@@ -37,7 +47,13 @@ frontend. Runs on macOS, Windows and Linux.
   - Review and edit each draft before it goes to Buffer
   - Every post carries the article's public link
   - Or write a post straight for Buffer, no article needed: one text to one or
-    more channels (or from an idea), queued, scheduled or saved as a draft
+    more channels (or from an idea), queued, scheduled or saved as a draft.
+    AI can draft it from rough notes to fit the strictest channel, and the
+    review shows a preview per channel
+  - "Promoted once" on an article lists its Buffer posts with their status,
+    linking to the post in the Buffer tab and on the network once it's out
+  - The Buffer tab opens on its last data (an encrypted cache, like Plane's)
+    and refreshes in the background
   - Buffer tab: channels with posting schedules and weekly goals; the queue,
     drafts, approvals, sent and failed posts; edit, reschedule and delete;
     ideas, drafted with AI from any pasted text
@@ -94,7 +110,6 @@ frontend. Runs on macOS, Windows and Linux.
 
 For the Buffer Commit contest:
 
-- Ship log: turn finished Plane work into Buffer drafts
 - `relay mcp`: an MCP server so agents can work with the running app
 
 Later:
@@ -107,7 +122,6 @@ Later:
 - More promotion channels, plus threads for X, Threads and Bluesky
 - Image upload for Dev.to and Buffer
 - Unlock on Windows and Linux
-- Auto-update
 
 ## Getting started
 

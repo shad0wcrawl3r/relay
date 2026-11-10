@@ -66,6 +66,7 @@ func main() {
 		log.Fatal(err)
 	}
 	bufferSvc := NewBufferService(postSvc, planeSvc)
+	aiSvc := NewAIService(postSvc)
 	planeSvc.plan = newBufferPlan(bufferSvc.client)
 	guide := &GuideService{}
 	settingsSvc := &SettingsService{plane: planeSvc, posts: postSvc, buffer: bufferSvc}
@@ -82,7 +83,8 @@ func main() {
 			application.NewService(planeSvc),
 			application.NewService(postSvc),
 			application.NewService(bufferSvc),
-			application.NewService(NewAIService(postSvc)),
+			application.NewService(aiSvc),
+			application.NewService(&ShipLogService{plane: planeSvc, posts: postSvc, ai: aiSvc}),
 			application.NewService(&LogService{}),
 			application.NewService(settingsSvc),
 			application.NewService(NewTerminalService()),

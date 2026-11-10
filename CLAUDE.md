@@ -32,6 +32,12 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
   `internal/unlock` (Touch ID / login password); unlocks expire. Never log their data.
 - Dev.to: send as `published: false`; publishing is a separate, confirmed user action, refused while image placeholders remain. No image upload in v1 (insert `<INSERT IMAGE HERE: …>` placeholders).
 - Buffer: promotions need a live Dev.to article; Go adds its public link, so one can never go out without it. Posts written in the Buffer view (`BufferService.Compose`) aren't promotions: no article, no link. Articles reach a model provider only when the user asks.
+  The Buffer tab's data is cached in `buffer-cache.json` (vault-encrypted, `buffercache.go`), shown first and refreshed; it's dropped on sign-out.
+- Dev.to AI disclosure: `posts.Meta.AI` (none/assisted/generated, empty = none). Go appends the matching line when sending (`disclosure.go`)
+  and strips it when pulling, so the local body never carries it.
+- Ship log (`shiplogservice.go`): completed items in a window (Plane `completed_at`) plus `git log` subjects from a repo the
+  user picks. Lockable projects/modules are always left out (unlocked or not); only titles and subjects reach the model,
+  through `ai.Plane(PrivacyKeys…)`. Go re-reads the kept items by ID rather than trusting text from the UI.
 - AI: every prompt goes through `ai.Client.Complete` with an `ai.Origin`. Plane content uses `ai.Plane(plane.PrivacyKeys(...))`;
   content from a lockable project or module only reaches a private provider: one the user marked (`[ai] PRIVATE`,
   tied to the endpoint), or Ollama / LM Studio at their default endpoints until turned off. A loopback address alone

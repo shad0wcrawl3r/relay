@@ -229,6 +229,7 @@ type rawItem struct {
 	TargetDate      string     `json:"target_date"`
 	CreatedAt       string     `json:"created_at"`
 	UpdatedAt       string     `json:"updated_at"`
+	CompletedAt     string     `json:"completed_at"`
 	CreatedBy       ref        `json:"created_by"`
 	DescriptionHTML string     `json:"description_html"`
 	ArchivedAt      string     `json:"archived_at"`

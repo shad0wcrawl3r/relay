@@ -39,6 +39,11 @@ export interface Item {
     "targetDate": string;
     "createdAt": string;
     "updatedAt": string;
+
+    /**
+     * CompletedAt is when Plane last moved the item to a completed state.
+     */
+    "completedAt": string;
     "createdBy": string;
 
     /**
@@ -69,6 +74,11 @@ export interface ItemDetail {
     "targetDate": string;
     "createdAt": string;
     "updatedAt": string;
+
+    /**
+     * CompletedAt is when Plane last moved the item to a completed state.
+     */
+    "completedAt": string;
     "createdBy": string;
 
     /**

@@ -20,6 +20,15 @@ export function ClearKey(provider: string): $CancellablePromise<$models.AIStatus
 }
 
 /**
+ * DraftPost rewrites the user's notes as a social post that fits limit
+ * characters (the strictest of the chosen channels). It only runs when the
+ * user asks.
+ */
+export function DraftPost(notes: string, limit: number): $CancellablePromise<string> {
+    return $Call.ByID(3155400260, notes, limit);
+}
+
+/**
  * Models lists a provider's models, which also tests the connection.
  */
 export function Models(provider: string): $CancellablePromise<string[] | null> {

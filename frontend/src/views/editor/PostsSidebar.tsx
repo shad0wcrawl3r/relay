@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, RefreshCw, Search, TriangleAlert } from "lucide-react";
+import { Plus, RefreshCw, Search, Ship, TriangleAlert } from "lucide-react";
 import type { PostList, PostSummary } from "@/lib/api";
 import { ago, compactNumber, shortDate } from "@/lib/time";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,7 @@ export function PostsSidebar({
   syncing,
   onOpen,
   onNew,
+  onShipLog,
   onSync,
   onAddKey,
 }: {
@@ -27,6 +28,8 @@ export function PostsSidebar({
   syncing: boolean;
   onOpen: (id: string) => void;
   onNew: () => void;
+  /** Opens Ship log, which drafts a post from finished work. */
+  onShipLog: () => void;
   onSync: () => void;
   /** Opens Settings where the Dev.to key goes. */
   onAddKey: () => void;
@@ -75,9 +78,19 @@ export function PostsSidebar({
     <aside aria-label="Posts" className="flex w-[280px] shrink-0 flex-col border-r border-border">
       <div className="drag flex h-[calc(56px+28px)] shrink-0 items-end justify-between border-b border-border pb-2 pl-4 pr-2">
         <h2 className="m-0 pb-2.5 text-sm font-semibold text-strong">Posts</h2>
-        <button aria-label="New post" onClick={onNew} className="no-drag grid size-10 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-strong">
-          <Plus className="size-[18px]" strokeWidth={1.9} />
-        </button>
+        <div className="no-drag flex items-center">
+          <button
+            aria-label="Ship log"
+            title="Ship log: draft a post from what you finished"
+            onClick={onShipLog}
+            className="grid size-10 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-strong"
+          >
+            <Ship className="size-[17px]" strokeWidth={1.9} />
+          </button>
+          <button aria-label="New post" title="New post" onClick={onNew} className="grid size-10 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-strong">
+            <Plus className="size-[18px]" strokeWidth={1.9} />
+          </button>
+        </div>
       </div>
       <div className="flex flex-col gap-2.5 p-3">
         {/* Without a key nothing reaches Dev.to; say so first, under the

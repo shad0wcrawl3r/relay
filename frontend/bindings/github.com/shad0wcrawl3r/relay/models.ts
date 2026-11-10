@@ -64,6 +64,15 @@ export interface AIStatus {
 }
 
 /**
+ * BufferCached is what the Buffer tab shows while fresh data loads: the
+ * last overview, if Buffer is still signed in. No network calls.
+ */
+export interface BufferCached {
+    "connected": boolean;
+    "overview": BufferOverview | null;
+}
+
+/**
  * BufferOverview is what the Buffer tab opens with: the account, its
  * organizations (with plan limits) and every channel.
  */
@@ -287,9 +296,43 @@ export interface Promotion {
     "postId": string;
     "channelId": string;
     "channel": string;
+    "service": string;
     "text": string;
     "timing": buffer$0.Timing;
     "dueAt": string;
+}
+
+/**
+ * PromotionPost is one promotion of a local article, with its Buffer post as
+ * Buffer has it now.
+ */
+export interface PromotionPost {
+    "bufferId": string;
+    "channel": string;
+
+    /**
+     * ChannelID and Service are empty on promotions from before Relay
+     * kept them.
+     */
+    "channelId": string;
+    "service": string;
+    "timing": string;
+    "at": string;
+
+    /**
+     * Found is false once the post is gone from Buffer (deleted there).
+     */
+    "found": boolean;
+    "status": string;
+    "dueAt": string;
+    "sentAt": string;
+    "externalLink": string;
+    "error": string;
+
+    /**
+     * LookupError is set when Buffer couldn't be asked.
+     */
+    "lookupError": string;
 }
 
 /**
@@ -368,6 +411,77 @@ export interface ShellChoice {
      * Chosen is the saved shell; empty means the default (Shells[0]).
      */
     "chosen": string;
+}
+
+export interface ShipCommit {
+    "hash": string;
+    "date": string;
+    "subject": string;
+}
+
+export interface ShipItem {
+    "id": string;
+    "projectId": string;
+    "projectName": string;
+    "key": string;
+    "name": string;
+    "doneAt": string;
+}
+
+/**
+ * ShipLogDraft is what the user kept from the material, plus their notes.
+ */
+export interface ShipLogDraft {
+    "query": ShipLogQuery;
+
+    /**
+     * ItemIDs and Commits are the ones the user kept; Go looks them up again
+     * rather than trusting text from the UI.
+     */
+    "itemIds": string[] | null;
+    "commits": string[] | null;
+    "notes": string;
+}
+
+/**
+ * ShipLogMaterial is what a query found.
+ */
+export interface ShipLogMaterial {
+    "items": ShipItem[] | null;
+    "commits": ShipCommit[] | null;
+
+    /**
+     * RepoError explains why commits couldn't be read; items still load.
+     */
+    "repoError": string;
+
+    /**
+     * Skipped counts projects left out because they're lockable.
+     */
+    "skipped": number;
+}
+
+/**
+ * ShipLogQuery picks the window and the sources.
+ */
+export interface ShipLogQuery {
+    "since": string;
+    "until": string;
+    "projectIds": string[] | null;
+
+    /**
+     * Repo is a folder inside a git repository, or "" for no commits.
+     */
+    "repo": string;
+}
+
+/**
+ * ShipProject is a project the ship log can read.
+ */
+export interface ShipProject {
+    "id": string;
+    "name": string;
+    "source": string;
 }
 
 /**
