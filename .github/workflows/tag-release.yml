@@ -1,0 +1,68 @@
+name: Tag release
+
+# Merging a release PR releases it: when a push to main carries a commit
+# titled "Release X.Y.Z" (or "Release: X.Y.Z", "Release vX.Y.Z"), and
+# build/config.yml is at that version, this tags the commit vX.Y.Z and starts
+# the Build workflow on the tag, which publishes the release.
+#
+# Pushing a v* tag by hand still works too.
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: tag-release
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    name: Tag
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Find a release commit
+        id: find
+        run: |
+          # Every line of every pushed commit's message, so a merge commit's
+          # body (the PR title) and a squash commit's title both count.
+          wanted=$(jq -r '.commits[].message' "$GITHUB_EVENT_PATH" \
+            | sed -nE 's/^Release:? v?([0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?)( \(#[0-9]+\))?[[:space:]]*$/\1/p' \
+            | tail -n1)
+          if [ -z "$wanted" ]; then
+            echo "No release commit in this push."
+            exit 0
+          fi
+          version=$(sed -nE 's/^[[:space:]]+version:[[:space:]]*"([^"]+)".*/\1/p' build/config.yml | head -n1)
+          if [ "$wanted" != "$version" ]; then
+            echo "::error::The commit says Release $wanted, but build/config.yml is at $version. Bump the version files first."
+            exit 1
+          fi
+          tag="v$version"
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
+            echo "$tag already exists; nothing to do."
+            exit 0
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Tag the commit
+        if: steps.find.outputs.tag
+        env:
+          TAG: ${{ steps.find.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Relay $TAG" "$GITHUB_SHA"
+          git push origin "refs/tags/$TAG"
+
+      # A tag pushed with the workflow token doesn't start other workflows,
+      # so the build (and with it the release) is started by hand.
+      - name: Build and publish the release
+        if: steps.find.outputs.tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.find.outputs.tag }}
+        run: gh workflow run build.yml -R "$GITHUB_REPOSITORY" --ref "$TAG"
