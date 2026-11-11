@@ -49,7 +49,8 @@ function saveRoute(r: Route) {
 // terminal (icons only by default), one for every other view.
 const SIDEBAR_KEY = "relay.sidebar";
 type SidebarPref = { focusRail: boolean; otherRail: boolean };
-const railView = (r: Route) => r.name === "editor" || r.name === "terminal";
+// Views with their own second column start with the sidebar as an icon rail.
+const railView = (r: Route) => r.name === "editor" || r.name === "terminal" || r.name === "settings";
 
 const isTyping = (el: EventTarget | null) =>
   el instanceof HTMLElement && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName));
