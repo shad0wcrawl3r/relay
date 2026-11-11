@@ -52,3 +52,18 @@ func TestRejectsPathTraversal(t *testing.T) {
 		}
 	}
 }
+
+func TestPlaneItemsRoundTrip(t *testing.T) {
+	s, err := NewStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := s.Save(Post{Meta: Meta{Title: "Linked", PlaneItems: []PlaneLink{{ProjectID: "p1", ItemID: "i1"}}}, Body: "x\n"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.Get(p.ID)
+	if err != nil || len(got.PlaneItems) != 1 || got.PlaneItems[0] != (PlaneLink{ProjectID: "p1", ItemID: "i1"}) {
+		t.Fatalf("got %+v, %v", got.PlaneItems, err)
+	}
+}

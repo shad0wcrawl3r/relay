@@ -6,7 +6,8 @@ import { cn } from "@/lib/utils";
 import { Dot, PrivateLock, ProjectGlyph, StatePill } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import { RescheduleButton } from "@/components/Reschedule";
-import type { Project } from "@/lib/api";
+import { ShipLogService, type Project, type ShipItem } from "@/lib/api";
+import { NotebookPen } from "lucide-react";
 import type { OpenItem } from "@/App";
 import { EmptyState, Page } from "@/components/Page";
 
@@ -34,8 +35,22 @@ function subtitle(r: AttentionRow): { text: string; over?: boolean } {
   }
 }
 
-export function Attention({ openItem, goTimeline }: { openItem: (o: OpenItem) => void; goTimeline: () => void }) {
+export function Attention({
+  openItem,
+  goTimeline,
+  goShipLog,
+}: {
+  openItem: (o: OpenItem) => void;
+  goTimeline: () => void;
+  /** Opens the ship log with these items picked. */
+  goShipLog: (itemIds: string[]) => void;
+}) {
   const { projects, update, snapshot } = usePlane();
+  // Finished this week, not written about yet (RELAY-125). Local data only.
+  const [ready, setReady] = useState<ShipItem[]>([]);
+  useEffect(() => {
+    ShipLogService.ReadyToWrite().then(setReady, () => setReady([]));
+  }, [snapshot]);
   const [filter, setFilter] = useState<string>("all");
   const rows = useMemo(() => attentionRows(projects), [projects]);
   const shown = filter === "all" ? rows : rows.filter((r) => r.project.id === filter);
@@ -224,6 +239,36 @@ export function Attention({ openItem, goTimeline }: { openItem: (o: OpenItem) =>
             </section>
           );
         })}
+
+        {ready.length > 0 && (
+          <section className="mb-6" aria-label="Ready to write about">
+            <div className="mb-2 flex items-center gap-2 px-1 text-xs font-medium text-[#d4d4d8]">
+              <Dot color="#c4b5fd" />
+              Ready to write about
+              <span className="font-normal text-dim">{ready.length}</span>
+              <span className="ml-1 font-normal text-dim">· finished this week, not in a post yet</span>
+              <Button variant="outline" size="sm" className="ml-auto" onClick={() => goShipLog(ready.map((r) => r.id))}>
+                <NotebookPen className="size-3.5" /> Write a ship log
+              </Button>
+            </div>
+            <div className="overflow-hidden rounded-[10px] border border-column-border bg-column">
+              {ready.slice(0, 8).map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => openItem({ projectId: r.projectId, itemId: r.id })}
+                  className="flex w-full items-center gap-3 border-b border-column-border px-3.5 py-2.5 text-left last:border-b-0 hover:bg-[#121215]"
+                >
+                  <span className="w-[76px] shrink-0 font-mono text-[11px] text-dim">{r.key}</span>
+                  <span className="min-w-0 flex-1 truncate text-[13px] text-[#f4f4f5]">{r.name}</span>
+                  <span className="shrink-0 text-xs text-dim">
+                    {r.projectName} · done {ago(new Date(r.doneAt))}
+                  </span>
+                </button>
+              ))}
+              {ready.length > 8 && <div className="px-3.5 py-2 text-xs text-dim">and {ready.length - 8} more in the ship log</div>}
+            </div>
+          </section>
+        )}
 
         {hasPrivate && (
           <div className="mt-2 flex items-center gap-2 px-1 text-xs text-dim">

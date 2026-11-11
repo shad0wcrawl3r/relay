@@ -72,8 +72,8 @@ const snapshot = (s: PM.Snapshot): Snapshot => ({
   })),
 });
 
-const post = (p: PostM.Post): Post => ({ ...p, tags: arr(p.tags), promotions: arr(p.promotions) });
-const postList = (l: M.PostList): PostList => ({ ...l, posts: arr(l.posts) });
+const post = (p: PostM.Post): Post => ({ ...p, tags: arr(p.tags), promotions: arr(p.promotions), planeItems: arr(p.planeItems) });
+const postList = (l: M.PostList): PostList => ({ ...l, posts: arr(l.posts).map((s) => ({ ...s, planeItems: arr(s.planeItems) })) });
 
 export const PlaneService = {
   Snapshot: async () => snapshot(await PlaneBindings.Snapshot()),
@@ -293,6 +293,8 @@ export type ShipLogQuery = { since: string; until: string; projectIds: string[];
 
 export const ShipLogService = {
   Projects: async (): Promise<ShipProject[]> => arr(await ShipLogBindings.Projects()),
+  /** Items finished in the last week that no post links to yet. Private projects are left out. */
+  ReadyToWrite: async (): Promise<ShipItem[]> => arr(await ShipLogBindings.ReadyToWrite()),
   /** Finished items and commits in the window. since and until are ISO times. */
   Material: async (q: ShipLogQuery): Promise<ShipLogMaterial> => {
     const m = await ShipLogBindings.Material(q as M.ShipLogQuery);

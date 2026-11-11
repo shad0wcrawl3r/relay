@@ -13,6 +13,7 @@ import { Dot, ExperimentalBadge, Kbd, PriorityIcon, PrivateLock, ProjectGlyph } 
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DueChip } from "@/components/Reschedule";
+import { LinkedPosts } from "@/components/LinkedPosts";
 import { shelveState } from "@/views/Attention";
 
 /** Sanitise Plane HTML and promote "Verdict · …" lines to the verdict pill. */
@@ -43,9 +44,11 @@ interface Props {
   focusComposer?: boolean;
   onNavigate: (itemId: string) => void;
   onClose: () => void;
+  /** Opens a linked post in the editor. */
+  openPost?: (postId: string) => void;
 }
 
-export function ItemDrawer({ project, itemId, siblings, focusComposer, onNavigate, onClose }: Props) {
+export function ItemDrawer({ project, itemId, siblings, focusComposer, onNavigate, onClose, openPost }: Props) {
   const { update, comment, snapshot } = usePlane();
   const item = project.items.find((i) => i.id === itemId);
   const [detail, setDetail] = useState<ItemDetail | null>(null);
@@ -302,6 +305,8 @@ export function ItemDrawer({ project, itemId, siblings, focusComposer, onNavigat
               <Loader2 className="size-4 animate-spin text-dim" />
             )}
           </div>
+
+          {!fromBuffer && !project.private && openPost && <LinkedPosts itemId={itemId} openPost={openPost} />}
 
           {fromBuffer ? (
             <p className="m-0 text-xs text-dim">

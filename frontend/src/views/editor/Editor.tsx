@@ -20,6 +20,7 @@ import { SeriesSelect } from "./SeriesSelect";
 import { countPlaceholders } from "./highlight";
 import { AIUseSelect } from "./AIUseSelect";
 import { InsightsButton } from "./Insights";
+import { PlaneItemsSelect } from "./PlaneItemsSelect";
 import { Promotions } from "./Promotions";
 import { ShipLogDialog } from "./ShipLogDialog";
 import { ComposeDialog } from "@/components/ComposeDialog";
@@ -45,7 +46,10 @@ export function Editor({
   goBuffer,
   goTimeline,
   openId,
+  shipLogItems,
 }: {
+  /** Opens the ship log with these items picked. */
+  shipLogItems?: string[];
   goSettings: () => void;
   goBuffer: (focus: BufferFocus) => void;
   /** Opens the Timeline on a day (YYYY-MM-DD). */
@@ -74,7 +78,7 @@ export function Editor({
   const [publishOpen, setPublishOpen] = useState(false);
   const [promoteOpen, setPromoteOpen] = useState(false);
   const [drift, setDrift] = useState<Drift | null>(null);
-  const [shipLog, setShipLog] = useState(false);
+  const [shipLog, setShipLog] = useState(!!shipLogItems?.length);
   // A ship-log post headed for Buffer, open in the composer.
   const [social, setSocial] = useState<{ text: string; channels: BufferChannel[] } | null>(null);
   const [, tick] = useState(0);
@@ -426,6 +430,7 @@ export function Editor({
                   <TagInput tags={post.tags ?? []} onChange={(tags) => change({ tags })} />
                   <SeriesSelect value={post.series} onChange={(series) => change({ series })} />
                   <AIUseSelect value={post.ai} onChange={(ai) => change({ ai })} />
+                  <PlaneItemsSelect value={post.planeItems} onChange={(planeItems) => change({ planeItems })} />
                   <MarkdownEditor
                     ref={editor}
                     value={post.body}
@@ -486,6 +491,7 @@ export function Editor({
       </div>
       {shipLog && (
         <ShipLogDialog
+          only={shipLogItems}
           onClose={() => setShipLog(false)}
           onDrafted={async (p) => {
             setShipLog(false);

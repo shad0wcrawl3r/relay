@@ -22,7 +22,7 @@ import { WhatsNewDialog } from "@/components/Changelog";
 import { ShortcutSheet } from "@/components/ShortcutSheet";
 import { GO_KEYS } from "@/lib/shortcuts";
 
-export type Route = { name: "attention" } | { name: "project"; projectId: string } | { name: "editor"; postId?: string } | { name: "buffer"; focus?: BufferFocus } | { name: "timeline"; day?: string } | { name: "terminal" } | { name: "settings"; tab?: SettingsTab };
+export type Route = { name: "attention" } | { name: "project"; projectId: string } | { name: "editor"; postId?: string; shipLog?: string[] } | { name: "buffer"; focus?: BufferFocus } | { name: "timeline"; day?: string } | { name: "terminal" } | { name: "settings"; tab?: SettingsTab };
 
 export interface OpenItem {
   projectId: string;
@@ -207,7 +207,7 @@ export default function App() {
       {(route.name === "attention" || (route.name === "project" && current)) && (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <CachedBanner />
-          {route.name === "attention" && <Attention openItem={setDrawer} goTimeline={() => go({ name: "timeline" })} />}
+          {route.name === "attention" && <Attention openItem={setDrawer} goTimeline={() => go({ name: "timeline" })} goShipLog={(ids) => go({ name: "editor", shipLog: ids })} />}
           {route.name === "project" && current && current.locked && <LockScreen project={current} />}
           {route.name === "project" && current && !current.locked && (
             <Board ref={board} project={current} openItem={setDrawer} selectedId={drawer?.itemId} onNewItem={() => setCapture(true)} />
@@ -221,6 +221,7 @@ export default function App() {
           goBuffer={(focus) => go({ name: "buffer", focus })}
           goTimeline={(day) => go({ name: "timeline", day })}
           openId={route.postId}
+          shipLogItems={route.shipLog}
         />
       )}
       {route.name === "buffer" && (
@@ -243,6 +244,10 @@ export default function App() {
           focusComposer={drawer.focusComposer}
           onNavigate={(itemId) => setDrawer({ projectId: drawer.projectId, itemId })}
           onClose={() => setDrawer(null)}
+          openPost={(postId) => {
+            setDrawer(null);
+            go({ name: "editor", postId });
+          }}
         />
       )}
       {quick && route.name !== "terminal" && (

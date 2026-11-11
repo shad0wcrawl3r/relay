@@ -67,6 +67,9 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
 - Dev.to AI disclosure: `posts.Meta.AI` (none/assisted/generated, empty = none). Go sends it as Forem's `ai_disclosure_level`
   (no_ai/some_ai/fully_autonomous, the "AI:" marker in Dev.to's editor) and reads it back on pull (`disclosure.go`); the body never carries it.
   Relay used to append a line instead: `splitDisclosure` still strips those from Dev.to bodies, and the next send leaves it out.
+- Plane items ↔ posts (`posts.Meta.PlaneItems`, IDs only): linked in the editor (`PlaneItemsSelect`), recorded by a ship log draft,
+  shown with the post's status in the item drawer (`LinkedPosts`). Attention's "Ready to write about" (`ReadyToWrite`) lists items
+  finished in the last week that no post links to. Lockable projects are never offered, listed or shown there, unlocked or not.
 - Ship log (`shiplogservice.go`): completed items in a window (Plane `completed_at`) plus `git log` subjects from a repo the
   user picks. Lockable projects/modules are always left out (unlocked or not); only titles and subjects reach the model,
   through `ai.Plane(PrivacyKeys…)`. Go re-reads the kept items by ID rather than trusting text from the UI.

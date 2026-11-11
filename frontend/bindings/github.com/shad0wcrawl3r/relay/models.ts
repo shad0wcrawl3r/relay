@@ -421,6 +421,12 @@ export interface PostSummary {
      * most likely deleted there.
      */
     "gone": boolean;
+
+    /**
+     * PlaneItems the post is linked to; Promotions counts its Buffer posts.
+     */
+    "planeItems": posts$0.PlaneLink[] | null;
+    "promotions": number;
 }
 
 /**

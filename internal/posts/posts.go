@@ -35,7 +35,16 @@ type Meta struct {
 	DevtoHash string `yaml:"devto_hash,omitempty" json:"devtoHash"`
 	// Promotions records what went to Buffer for this post.
 	Promotions []Promotion `yaml:"promotions,omitempty" json:"promotions"`
+	// PlaneItems are the Plane work items the post is about: IDs only,
+	// never titles, so a locked project's names don't end up in a post file.
+	PlaneItems []PlaneLink `yaml:"plane_items,omitempty" json:"planeItems"`
 	UpdatedAt  time.Time   `yaml:"updated_at" json:"updatedAt"`
+}
+
+// PlaneLink points at a Plane work item.
+type PlaneLink struct {
+	ProjectID string `yaml:"project_id" json:"projectId"`
+	ItemID    string `yaml:"item_id" json:"itemId"`
 }
 
 // Promotion is one post sent to Buffer about this article.

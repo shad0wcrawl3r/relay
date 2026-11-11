@@ -49,6 +49,9 @@ type PostSummary struct {
 	// Gone: sent to Dev.to, but the last good sync didn't list it, so it was
 	// most likely deleted there.
 	Gone bool `json:"gone"`
+	// PlaneItems the post is linked to; Promotions counts its Buffer posts.
+	PlaneItems []posts.PlaneLink `json:"planeItems"`
+	Promotions int               `json:"promotions"`
 }
 
 type PostList struct {
@@ -86,7 +89,10 @@ func (s *PostService) List() (PostList, error) {
 	for _, p := range local {
 		row := PostSummary{
 			ID: p.ID, Title: p.Title, Local: true, DevtoID: p.DevtoID, URL: p.DevtoURL,
-			UpdatedAt: p.UpdatedAt, SentAt: p.SentAt,
+			UpdatedAt: p.UpdatedAt, SentAt: p.SentAt, PlaneItems: p.PlaneItems, Promotions: len(p.Promotions),
+		}
+		if row.PlaneItems == nil {
+			row.PlaneItems = []posts.PlaneLink{}
 		}
 		if a, ok := s.remote[p.DevtoID]; ok && p.DevtoID != 0 {
 			seen[p.DevtoID] = true
