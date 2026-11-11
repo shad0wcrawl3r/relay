@@ -8,6 +8,7 @@ import { cn, errorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { preloadModel, WarmupNote } from "@/components/ModelWarmup";
 
 const RANGES = [
   { days: 7, label: "Last 7 days" },
@@ -68,6 +69,8 @@ export function ShipLogDialog({
     );
     ShipLogService.RecentRepo().then(setRepo, () => {});
     AIService.Status().then(setAi, () => {});
+    // Opening the ship log means a draft is coming: start loading a local model now.
+    preloadModel();
   }, []);
 
   const query = useMemo(
@@ -276,6 +279,7 @@ export function ShipLogDialog({
               : ai.ready
                 ? `${ai.local ? `Runs on this machine with ${ai.label}` : `Sends the titles and notes to ${ai.label}`}. An article is marked AI-assisted.`
                 : "Connect a model provider in Settings → AI first."}
+            <WarmupNote className="ml-2 inline-flex items-center gap-1.5" />
           </span>
           <Button variant="outline" size="md" disabled={!!drafting} onClick={onClose}>
             Cancel

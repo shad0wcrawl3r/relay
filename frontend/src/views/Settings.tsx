@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Browser, CancelError, Clipboard, type CancellablePromise } from "@wailsio/runtime";
-import { Check, Compass, Copy, ExternalLink, Loader2 } from "lucide-react";
+import { Bug, Check, Compass, Copy, ExternalLink, Loader2 } from "lucide-react";
 import { BufferService, GuideService, moduleKey, PlaneService, projectKey, SettingsService, TerminalService, type BufferStatus, type Settings as SettingsT, type SettingsInput } from "@/lib/api";
+import { REPO, reportBug } from "@/lib/bugReport";
 import { useTerminal } from "@/lib/terminal";
 import { showKey } from "@/lib/keys";
 import { Switch } from "@/components/ui/switch";
@@ -183,7 +184,7 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
           />
           <div className="mt-2 flex gap-4 text-xs">
             {[
-              { label: "Source on GitHub", url: "https://github.com/shad0wcrawl3r/relay" },
+              { label: "Source on GitHub", url: REPO },
               { label: "Status", url: "https://relay.shadowcrawler.dev" },
             ].map((l) => (
               <button key={l.url} className="inline-flex items-center gap-1 text-[#93c5fd] hover:underline" onClick={() => Browser.OpenURL(l.url)}>
@@ -191,6 +192,10 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
                 {l.label}
               </button>
             ))}
+            <button className="inline-flex items-center gap-1 text-[#93c5fd] hover:underline" onClick={() => reportBug()}>
+              <Bug className="size-3" />
+              Report a bug
+            </button>
             <UpdateCheck />
             <button className="ml-auto inline-flex items-center gap-1 text-[#93c5fd] hover:underline" onClick={() => GuideService.Open()}>
               <Compass className="size-3" />

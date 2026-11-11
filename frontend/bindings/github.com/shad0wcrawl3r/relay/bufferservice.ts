@@ -177,11 +177,29 @@ export function Promote($in: $models.Promotion): $CancellablePromise<posts$0.Pos
 }
 
 /**
+ * PromotionIndex maps Buffer post IDs to the articles Relay promoted with
+ * them, from the local post files. It never asks Buffer.
+ */
+export function PromotionIndex(): $CancellablePromise<{ [_ in string]?: $models.PromotedArticle } | null> {
+    return $Call.ByID(3149956876);
+}
+
+/**
  * PromotionPosts looks up the Buffer posts a local article was promoted
  * with, newest first.
  */
 export function PromotionPosts(postID: string): $CancellablePromise<$models.PromotionPost[] | null> {
     return $Call.ByID(528841899, postID);
+}
+
+/**
+ * RemoveScheduledPromotions deletes an article's promotions that haven't
+ * gone out yet (scheduled, awaiting approval or drafts), so none goes out
+ * with a link to an article that's being unpublished or deleted. Sent ones
+ * stay. It returns how many it removed.
+ */
+export function RemoveScheduledPromotions(postID: string): $CancellablePromise<number> {
+    return $Call.ByID(3790683276, postID);
 }
 
 /**

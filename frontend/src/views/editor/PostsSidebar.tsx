@@ -8,6 +8,7 @@ type Filter = "all" | "drafts" | "published";
 
 function subtitle(p: PostSummary, now: number): string {
   if (p.published) return [shortDate(p.publishedAt), `${compactNumber(p.views)} views`].filter(Boolean).join(" · ");
+  if (p.gone) return "Gone from Dev.to";
   if (p.devtoId) return `On Dev.to · ${shortDate(p.sentAt) || "draft"}`;
   const edited = ago(p.updatedAt, now);
   return `Local only · ${edited.endsWith("ago") || edited === "just now" ? `edited ${edited}` : edited}`;

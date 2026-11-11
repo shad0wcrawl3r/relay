@@ -59,6 +59,18 @@ export const SHORTCUTS: ShortcutGroup[] = [
     ],
   },
   {
+    title: "Buffer posts",
+    items: [
+      { keys: ["J"], label: "Next post" },
+      { keys: ["K"], label: "Previous post" },
+      { keys: ["↵"], label: "Show all of the text" },
+      { keys: ["E"], label: "Edit in place (⌘↵ saves)" },
+      { keys: ["R"], label: "Reschedule" },
+      { keys: ["C"], label: "Copy the text" },
+      { keys: ["⌫"], label: "Delete (asks first)" },
+    ],
+  },
+  {
     title: "Boards and items",
     items: [
       { keys: ["⌘", "F"], label: "Search the board" },

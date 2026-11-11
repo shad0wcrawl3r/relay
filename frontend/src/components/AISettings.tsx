@@ -355,6 +355,26 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
           </div>
         </div>
       )}
+      {provider.local && (provider.id === "ollama" || provider.id === "lmstudio") && (
+        <div className={row}>
+          <span className="pt-2.5 text-[13px] text-muted-foreground">Preload</span>
+          <div className="flex flex-col gap-1.5">
+            <label className="flex h-9 items-center gap-2.5 text-[13px] text-foreground">
+              <Switch
+                checked={status.preload}
+                onCheckedChange={(on) =>
+                  AIService.SetPreload(on).then(setStatus, (err) => toast({ tone: "error", title: "Couldn't save the setting", body: errorMessage(err) }))
+                }
+              />
+              Load the model when Relay is about to ask it
+            </label>
+            <span className="text-xs text-dim">
+              Starts loading the model into memory when you open the ship log or point at an AI draft button, so it's ready by the time you ask.
+              Nothing of yours is sent; {provider.name === "Ollama" ? "Ollama keeps it loaded for 10 minutes" : "LM Studio keeps it loaded as it's set to"}.
+            </span>
+          </div>
+        </div>
+      )}
       <Dialog open={confirmPrivate} onOpenChange={setConfirmPrivate}>
         <DialogContent>
           <DialogHeader>

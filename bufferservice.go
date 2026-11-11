@@ -355,3 +355,66 @@ func (s *BufferService) PromotionPosts(ctx context.Context, postID string) ([]Pr
 func (s *BufferService) CreateIdea(ctx context.Context, n buffer.NewIdea) (buffer.Idea, error) {
 	return s.client.CreateIdea(ctx, n)
 }
+
+// PromotedArticle is the local article a Buffer post promotes.
+type PromotedArticle struct {
+	PostID string `json:"postId"`
+	Title  string `json:"title"`
+}
+
+// PromotionIndex maps Buffer post IDs to the articles Relay promoted with
+// them, from the local post files. It never asks Buffer.
+func (s *BufferService) PromotionIndex() (map[string]PromotedArticle, error) {
+	local, err := s.posts.store.List()
+	if err != nil {
+		return nil, err
+	}
+	out := map[string]PromotedArticle{}
+	for _, p := range local {
+		for _, pr := range p.Promotions {
+			if pr.BufferID != "" {
+				out[pr.BufferID] = PromotedArticle{PostID: p.ID, Title: p.Title}
+			}
+		}
+	}
+	return out, nil
+}
+
+// RemoveScheduledPromotions deletes an article's promotions that haven't
+// gone out yet (scheduled, awaiting approval or drafts), so none goes out
+// with a link to an article that's being unpublished or deleted. Sent ones
+// stay. It returns how many it removed.
+func (s *BufferService) RemoveScheduledPromotions(ctx context.Context, postID string) (int, error) {
+	rows, err := s.PromotionPosts(ctx, postID)
+	if err != nil {
+		return 0, err
+	}
+	ids, err := pendingPromotions(rows)
+	if err != nil {
+		return 0, err
+	}
+	removed := 0
+	for _, id := range ids {
+		if err := s.DeletePost(ctx, id); err != nil {
+			return removed, err
+		}
+		removed++
+	}
+	return removed, nil
+}
+
+// pendingPromotions picks the Buffer posts that haven't gone out yet. If
+// Buffer couldn't be asked about any of them, nothing is picked: a partial
+// clean-up could leave one queued with a dead link while saying it's done.
+func pendingPromotions(rows []PromotionPost) ([]string, error) {
+	var ids []string
+	for _, r := range rows {
+		if r.LookupError != "" {
+			return nil, errors.New("couldn't check the promotions in Buffer: " + r.LookupError)
+		}
+		if r.Found && (r.Status == "scheduled" || r.Status == "needs_approval" || r.Status == "draft") {
+			ids = append(ids, r.BufferID)
+		}
+	}
+	return ids, nil
+}

@@ -72,6 +72,7 @@ func Find(id string) (Provider, bool) {
 type Client struct {
 	http *http.Client
 	base map[string]string
+	pre  preloader
 }
 
 func New() *Client {
@@ -165,6 +166,10 @@ func ClearKey(id string) error {
 // request sends JSON and decodes the reply, turning provider errors into
 // messages a user can act on. It never includes the key in an error.
 func (c *Client) request(ctx context.Context, p Provider, method, path string, body, out any) error {
+	return c.requestURL(ctx, p, method, c.Endpoint(p.ID)+path, body, out)
+}
+
+func (c *Client) requestURL(ctx context.Context, p Provider, method, target string, body, out any) error {
 	var r io.Reader
 	if body != nil {
 		b, err := json.Marshal(body)
@@ -173,7 +178,7 @@ func (c *Client) request(ctx context.Context, p Provider, method, path string, b
 		}
 		r = bytes.NewReader(b)
 	}
-	req, err := http.NewRequestWithContext(ctx, method, c.Endpoint(p.ID)+path, r)
+	req, err := http.NewRequestWithContext(ctx, method, target, r)
 	if err != nil {
 		return err
 	}

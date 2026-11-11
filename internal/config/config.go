@@ -43,6 +43,9 @@ func init() {
 	// Nothing is locked until the user picks it in Settings → Privacy.
 	v.SetDefault("privacy.LOCKED", []string{})
 	v.SetDefault("privacy.AUTO_LOCK_MINUTES", 15)
+	// Load a local model (Ollama, LM Studio) into memory when the user opens
+	// something that's about to ask it.
+	v.SetDefault("ai.PRELOAD", true)
 	v.SetDefault("logs.ENABLED", false)
 	// Page zoom for Relay's windows, set with ⌘/Ctrl + and -.
 	v.SetDefault("appearance.ZOOM", 1.0)
@@ -137,6 +140,7 @@ func write(next Config) error {
 	v.Set("ai.MODEL", next.AI.Model)
 	v.Set("ai.ENDPOINTS", next.AI.Endpoints)
 	v.Set("ai.PRIVATE", next.AI.Private)
+	v.Set("ai.PRELOAD", next.AI.Preload)
 	v.Set("logs.ENABLED", next.Logs.Enabled)
 	v.Set("logs.LEVELS", next.Logs.Levels)
 	v.Set("onboarding.DONE", next.Onboarding.Done)
@@ -201,6 +205,8 @@ type Config struct {
 		// keyed by provider ID. The value is the endpoint it was marked for,
 		// so pointing the provider somewhere else drops the mark.
 		Private map[string]string `mapstructure:"PRIVATE"`
+		// Preload: warm a local model when a dialog that uses it opens.
+		Preload bool `mapstructure:"PRELOAD"`
 	}
 	Logs struct {
 		Enabled bool `mapstructure:"ENABLED"`

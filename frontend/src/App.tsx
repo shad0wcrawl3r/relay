@@ -169,7 +169,8 @@ export default function App() {
         board.current?.focusSearch();
         return;
       }
-      if (mod || e.altKey || isTyping(e.target) || capture || document.querySelector("[role=dialog]")) return;
+      // A view's own keys (Attention, the Buffer queue) handle the event first.
+      if (e.defaultPrevented || mod || e.altKey || isTyping(e.target) || capture || document.querySelector("[role=dialog]")) return;
       if (k === "g") {
         pendingG.current = Date.now();
         return;

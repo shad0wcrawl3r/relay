@@ -9,6 +9,7 @@ that heading to the new version.
 
 ## Unreleased
 
+- Settings → About → Report a bug opens a GitHub issue with your version and platform filled in, and nothing else.
 - What's new: after an update, Relay shows what changed the first time it opens.
 - Settings → About lists every release's changes.
 - Undo: moving an item on a board or from Attention, rescheduling and deleting a draft can be undone from the toast.
@@ -17,8 +18,14 @@ that heading to the new version.
 - ⌘\ shows or hides the sidebar; ⌘? lists every keyboard shortcut.
 - Attention: J and K move through items; Enter opens, D, S and A run Done, Send back and Approve.
 - Posts: a status strip shows where a post is (local, draft on Dev.to, published, promoted); after promoting, See on Timeline opens the day.
+- AI: Ollama and LM Studio models can load into memory when you open the ship log or point at an AI button (Settings → AI → Preload).
 - Toasts pause while the pointer is over them, and errors stay until you close them.
 - The Dev.to editor is now called Posts in the sidebar.
+- Buffer posts read as a schedule, grouped by day with a time column. Edit a post's text in place, reschedule it from a menu (next slot, in an hour, tomorrow, an exact time) or by dragging it onto another day, all with Undo.
+- Buffer posts: copy the text, show all of a long post, search what's loaded, and see which article a promotion is for. Failed posts have Retry (or Post again), and the Failed tab shows a count.
+- The Buffer tab and channel filter are remembered.
+- Posts: unpublish an article on Dev.to, or delete it (Relay unpublishes it, then opens Dev.to's delete page, since Dev.to's API can't delete). Either can also remove the article's promotions that haven't gone out yet.
+- Posts: an article deleted on Dev.to is noticed, and can be kept as a local draft.
 - The sidebar keeps its spacing when it's collapsed to icons; the Relay mark expands it.
 
 ## 0.0.7 — 2026-11-10

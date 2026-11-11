@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/shad0wcrawl3r/relay/internal/buffer"
+	"github.com/shad0wcrawl3r/relay/internal/posts"
 )
 
 func TestIdeaPostTitle(t *testing.T) {
@@ -108,5 +109,18 @@ func TestCalendarListCoverage(t *testing.T) {
 	}
 	if !(&calendarList{more: false}).covers(from, to) {
 		t.Error("a fully read list covers every window")
+	}
+}
+
+func TestPromotionIndexMapsBufferPostsToArticles(t *testing.T) {
+	ps := testService(t)
+	p, _ := ps.store.Save(posts.Post{Meta: posts.Meta{Title: "Shipping Relay", Promotions: []posts.Promotion{{BufferID: "b1"}, {BufferID: "b2"}}}})
+	_, _ = ps.store.Save(posts.Post{Meta: posts.Meta{Title: "Unpromoted"}})
+	idx, err := (&BufferService{posts: ps}).PromotionIndex()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(idx) != 2 || idx["b2"].PostID != p.ID || idx["b1"].Title != "Shipping Relay" {
+		t.Errorf("index %+v", idx)
 	}
 }

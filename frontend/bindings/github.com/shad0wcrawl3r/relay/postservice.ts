@@ -35,6 +35,15 @@ export function Delete(id: string): $CancellablePromise<void> {
 }
 
 /**
+ * DeleteURL is the page on Dev.to that deletes the article. Forem's API has
+ * no way to delete one, so the last step happens there, signed in as the
+ * author.
+ */
+export function DeleteURL(id: string): $CancellablePromise<string> {
+    return $Call.ByID(4229821225, id);
+}
+
+/**
  * Disclosures returns the line each level adds, for the editor's preview.
  */
 export function Disclosures(): $CancellablePromise<{ [_ in string]?: string } | null> {
@@ -127,4 +136,22 @@ export function Series(): $CancellablePromise<string[] | null> {
  */
 export function Sync(): $CancellablePromise<$models.PostList> {
     return $Call.ByID(215217372);
+}
+
+/**
+ * Unlink makes a post local again: it forgets the Dev.to article (after it
+ * was deleted there, or to start over). The local text stays. Its promotion
+ * records go too: they link to the old article, so the post would otherwise
+ * still read as promoted, and a later send makes a new article.
+ */
+export function Unlink(id: string): $CancellablePromise<posts$0.Post> {
+    return $Call.ByID(4190188524, id);
+}
+
+/**
+ * Unpublish turns a published article back into a Dev.to draft. Like
+ * publishing, it only runs on the user's explicit, confirmed request.
+ */
+export function Unpublish(id: string): $CancellablePromise<posts$0.Post> {
+    return $Call.ByID(3823649119, id);
 }

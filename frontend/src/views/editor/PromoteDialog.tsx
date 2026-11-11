@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { PostPreview, PREVIEW_NOTE } from "@/components/PostPreview";
+import { preloadOnIntent, WarmupNote } from "@/components/ModelWarmup";
 
 const LINKEDIN_LIMIT = 3000;
 
@@ -289,7 +290,7 @@ export function PromoteDialog({
                     Cancel
                   </Button>
                 ) : (
-                  <Button variant="outline" size="md" onClick={summarize}>
+                  <Button variant="outline" size="md" onClick={summarize} {...preloadOnIntent}>
                     <Sparkles className="size-3.5" />
                     Summarise with AI
                   </Button>
@@ -297,6 +298,7 @@ export function PromoteDialog({
                 <span className="text-xs text-dim">
                   {ai.local ? `Runs on this machine with ${ai.label}.` : `Sends this article to ${ai.label}.`} Replaces the text above.
                 </span>
+                <WarmupNote />
               </div>
             ) : (
               <p className="m-0 text-xs text-dim">Connect a model provider in Settings → AI to draft this automatically.</p>

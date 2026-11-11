@@ -6,6 +6,7 @@ import { useToast } from "@/components/Toaster";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { preloadOnIntent } from "@/components/ModelWarmup";
 
 /** Creates a Buffer idea, optionally drafted with AI from pasted text. */
 export function IdeaDialog({
@@ -78,7 +79,7 @@ export function IdeaDialog({
               className="w-full resize-y rounded-md border border-border bg-[#0f0f11] p-2.5 text-xs text-[#f4f4f5] outline-none focus:border-border-strong"
             />
             <div className="flex items-center gap-2">
-              <Button variant="teal" onClick={draft} disabled={!aiReady || drafting || !source.trim()}>
+              <Button variant="teal" onClick={draft} disabled={!aiReady || drafting || !source.trim()} {...preloadOnIntent}>
                 {drafting ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
                 Draft
               </Button>

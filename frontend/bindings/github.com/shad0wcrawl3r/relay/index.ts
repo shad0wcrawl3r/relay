@@ -25,6 +25,7 @@ export {
 };
 
 export type {
+    AIPreload,
     AIProvider,
     AIStatus,
     BufferCached,
@@ -53,6 +54,7 @@ export type {
     ModelTest,
     PostList,
     PostSummary,
+    PromotedArticle,
     Promotion,
     PromotionPost,
     SendResult,

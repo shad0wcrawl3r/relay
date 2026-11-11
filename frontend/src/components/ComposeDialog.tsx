@@ -8,6 +8,7 @@ import { useToast } from "@/components/Toaster";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { preloadOnIntent, WarmupNote } from "@/components/ModelWarmup";
 
 // Networks that won't take a text-only post. Relay can't attach media yet.
 const NEEDS_MEDIA = new Set(["instagram", "tiktok", "youtube", "pinterest"]);
@@ -221,7 +222,7 @@ export function ComposeDialog({
                     Cancel
                   </Button>
                 ) : (
-                  <Button variant="outline" size="md" disabled={!text.trim()} onClick={draftWithAI}>
+                  <Button variant="outline" size="md" disabled={!text.trim()} onClick={draftWithAI} {...preloadOnIntent}>
                     <Sparkles className="size-3.5" />
                     Draft with AI
                   </Button>
@@ -230,6 +231,7 @@ export function ComposeDialog({
                   Rewrites your notes{limit ? ` to fit ${limit.who}` : ""}.{" "}
                   {ai.local ? `Runs on this machine with ${ai.label}.` : `Sends them to ${ai.label}.`}
                 </span>
+                <WarmupNote />
               </div>
             ) : (
               <p className="m-0 text-xs text-dim">Connect a model provider in Settings → AI to draft posts from your notes.</p>
