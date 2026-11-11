@@ -40,6 +40,7 @@ export type Member = Clean<PM.Member>;
 export type PostSummary = Clean<M.PostSummary>;
 export type PostList = Clean<M.PostList>;
 export type Settings = Clean<M.Settings>;
+export type Insights = Clean<M.Insights>;
 export type SettingsInput = Clean<M.SettingsInput>;
 export type Post = Clean<PostM.Post>;
 /** Dev.to's copy of a post next to Relay's, when it was edited on Dev.to. */
@@ -240,6 +241,11 @@ export const BufferService = {
   LastFailed: async (): Promise<FailedPost[]> => arr(await BufferBindings.LastFailed()),
   /** Deletes an article's promotions that haven't gone out yet; returns how many. */
   RemoveScheduledPromotions: (postId: string): Promise<number> => BufferBindings.RemoveScheduledPromotions(postId),
+  /** How a post and its promotions did. Buffer's part is cached for an hour; refresh skips that. */
+  Insights: async (postId: string, refresh = false): Promise<Insights> => {
+    const r = await BufferBindings.Insights(postId, refresh);
+    return { ...r, devto: r.devto ?? null, promotions: (r.promotions ?? []).map((p) => ({ ...p, metrics: p.metrics ?? [] })) } as Insights;
+  },
   /** Buffer post ID → the local article it promotes. Read from Relay's files; never asks Buffer. */
   PromotionIndex: async (): Promise<Record<string, PromotedArticle>> => {
     const idx = await BufferBindings.PromotionIndex();
@@ -307,6 +313,9 @@ export const SettingsService = {
   Get: async (): Promise<Settings> => SettingsBindings.Get(),
   Save: async (s: SettingsInput): Promise<Settings> => SettingsBindings.Save(s as M.SettingsInput),
   ClearDevtoKey: async (): Promise<Settings> => SettingsBindings.ClearDevtoKey(),
+  /** An optional Buffer personal API key, used only for post metrics. */
+  SetBufferInsightsKey: async (key: string): Promise<Settings> => SettingsBindings.SetBufferInsightsKey(key),
+  ClearBufferInsightsKey: async (): Promise<Settings> => SettingsBindings.ClearBufferInsightsKey(),
   Zoom: (): Promise<number> => SettingsBindings.Zoom(),
   ApplyZoom: (): Promise<number> => SettingsBindings.ApplyZoom(),
   SetZoom: (z: number): Promise<number> => SettingsBindings.SetZoom(z),

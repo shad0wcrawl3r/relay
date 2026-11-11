@@ -24,6 +24,8 @@ type BufferService struct {
 	// calendar holds the timeline's post lists; any write through Relay
 	// drops it, so the timeline shows the change.
 	calendar calendarCache
+	// insights holds post metrics for an hour (insights.go).
+	insights insightsCache
 }
 
 func NewBufferService(posts *PostService, plane *PlaneService) *BufferService {
@@ -33,6 +35,7 @@ func NewBufferService(posts *PostService, plane *PlaneService) *BufferService {
 		s.cache.clear()
 		s.failed.reset()
 		s.calendar.clear()
+		s.dropInsights()
 		integrationsChanged(s)
 		go s.plane.reloadBufferPlan(context.Background())
 	}

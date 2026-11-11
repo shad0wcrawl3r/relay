@@ -219,6 +219,14 @@ export interface Composed {
     "dueAt": string;
 }
 
+export interface DevtoInsights {
+    "published": boolean;
+    "views": number;
+    "reactions": number;
+    "comments": number;
+    "url": string;
+}
+
 /**
  * DevtoKeyCheck is the account a Dev.to key belongs to.
  */
@@ -332,6 +340,23 @@ export interface ImportResult {
 }
 
 /**
+ * Insights is one post's numbers.
+ */
+export interface Insights {
+    "devto": DevtoInsights | null;
+    "promotions": PromotionInsight[] | null;
+
+    /**
+     * Buffer is how the Buffer part went: "ok", "none" (no promotions),
+     * "needs-key" (Buffer withholds metrics from OAuth sign-ins), "bad-key",
+     * "not-connected" or "error".
+     */
+    "buffer": string;
+    "bufferError": string;
+    "fetchedAt": string;
+}
+
+/**
  * Integrations says which services are set up, without any network calls.
  * Plane's state comes with its snapshot.
  */
@@ -419,6 +444,24 @@ export interface Promotion {
     "dueAt": string;
 }
 
+export interface PromotionInsight {
+    "bufferId": string;
+    "channel": string;
+    "service": string;
+    "at": string;
+    "metrics": buffer$0.Metric[] | null;
+
+    /**
+     * UpdatedAt is when Buffer last refreshed the metrics; nil until it has.
+     */
+    "updatedAt": string | null;
+
+    /**
+     * Found is false once Buffer no longer has the post.
+     */
+    "found": boolean;
+}
+
 /**
  * PromotionPost is one promotion of a local article, with its Buffer post as
  * Buffer has it now.
@@ -476,6 +519,11 @@ export interface Settings {
     "planeConnected": boolean;
     "connectedSlug": string;
     "devtoKeySet": boolean;
+
+    /**
+     * BufferInsightsKeySet: an optional personal key for Buffer post metrics.
+     */
+    "bufferInsightsKeySet": boolean;
     "syncInterval": number;
     "agentName": string;
     "agentLabel": string;

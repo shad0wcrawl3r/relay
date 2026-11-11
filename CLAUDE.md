@@ -76,6 +76,11 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
   isn't trusted. Unlocking doesn't change that. Never log a refused prompt or the project it came from.
   Preload (`internal/ai/preload.go`, `[ai] PRELOAD`, on by default) warms a local Ollama / LM Studio model when the user is about to
   ask it (ship log opened, pointer or focus on an AI button: `preloadModel` / `preloadOnIntent`), never in the background. It sends no user content.
+- Insights (`insights.go`, `internal/buffer/metrics.go`, editor **Insights**): every integration that can report engagement feeds
+  `Insights`. Add it when you integrate a new service. Dev.to's views/reactions/comments come from the synced article list (no extra call).
+  Buffer's `post.metrics` (all channels, LinkedIn included) are cached an hour and fetched only when the user opens insights.
+  Buffer gives metrics only to a personal API key (`[buffer] INSIGHTS_KEY`, keychain only, optional): Relay tries OAuth first,
+  shows "needs-key" when refused, and a refused key never signs the OAuth session out.
 - UI state that's remembered per machine (last view and post, board view/filters/columns, sidebar width) lives in localStorage via
   `lib/prefs.ts`: IDs and choices only, and private projects' boards are remembered for the session only. The notification pane
   (`Toaster.tsx` `useInbox`) is in memory; errors are kept unless `keep: false`, which item-specific errors use so a relocked project isn't named.

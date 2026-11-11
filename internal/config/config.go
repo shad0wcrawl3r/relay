@@ -168,6 +168,12 @@ type Config struct {
 		// APIKey lives in the keychain (secrets.go); here in memory only.
 		APIKey string `mapstructure:"API_KEY"`
 	}
+	Buffer struct {
+		// InsightsKey is an optional Buffer personal API key, used only to
+		// read post metrics, which Buffer doesn't give OAuth apps. Keychain
+		// only (secrets.go).
+		InsightsKey string `mapstructure:"INSIGHTS_KEY"`
+	}
 	Plane struct {
 		BaseURL string `mapstructure:"BASE_URL"`
 		// AppURL is the web UI ("Open in Plane"); derived from BaseURL when empty.

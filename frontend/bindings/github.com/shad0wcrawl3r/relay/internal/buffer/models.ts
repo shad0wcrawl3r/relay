@@ -60,6 +60,17 @@ export interface Limits {
     "tags": number;
 }
 
+export interface Metric {
+    "type": string;
+    "name": string;
+    "value": number;
+
+    /**
+     * Unit is "count" or "percentage".
+     */
+    "unit": string;
+}
+
 /**
  * NewIdea is an idea to save in Buffer. Ideas are never published on their
  * own, so they don't need a Dev.to link.

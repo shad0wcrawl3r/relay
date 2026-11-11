@@ -19,6 +19,7 @@ import { PublishDialog } from "./PublishDialog";
 import { SeriesSelect } from "./SeriesSelect";
 import { countPlaceholders } from "./highlight";
 import { AIUseSelect } from "./AIUseSelect";
+import { InsightsButton } from "./Insights";
 import { Promotions } from "./Promotions";
 import { ShipLogDialog } from "./ShipLogDialog";
 import { ComposeDialog } from "@/components/ComposeDialog";
@@ -446,6 +447,7 @@ export function Editor({
                 </span>
               )}
               {post.promotions.length > 0 && !gone && <Promotions post={post} goBuffer={goBuffer} />}
+              {published && !gone && <InsightsButton post={post} goSettings={goSettings} />}
               <span className="grow" />
               {gone ? null : sent ? (
                 <>

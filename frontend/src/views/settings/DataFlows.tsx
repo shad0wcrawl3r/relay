@@ -27,6 +27,10 @@ const FLOWS: { what: string; where: string }[] = [
     where: "Posts you write or schedule. A promotion needs a live article, and Relay adds its link itself.",
   },
   {
+    what: "Insights",
+    where: "Read-only. Dev.to's numbers come from the article list Relay already syncs. Buffer's post metrics use your sign-in, or an optional personal key kept in the keychain and used for nothing else.",
+  },
+  {
     what: "AI providers",
     where: "Only what you ask them to draft. Content from private projects only goes to a provider you marked private, or Ollama and LM Studio on their default ports.",
   },

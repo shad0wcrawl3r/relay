@@ -4,6 +4,7 @@ import { Bug, Check, Compass, Copy, ExternalLink, Loader2 } from "lucide-react";
 import { BufferService, GuideService, moduleKey, PlaneService, projectKey, SettingsService, TerminalService, type BufferStatus, type Settings as SettingsT, type SettingsInput } from "@/lib/api";
 import { REPO, reportBug } from "@/lib/bugReport";
 import { DataFlows } from "@/views/settings/DataFlows";
+import { InsightsKey } from "@/views/settings/InsightsKey";
 import { useTerminal } from "@/lib/terminal";
 import { showKey } from "@/lib/keys";
 import { Switch } from "@/components/ui/switch";
@@ -429,6 +430,7 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
                 )}
               </div>
               {buffer.connected && <BufferPlanningRow />}
+              {buffer.connected && <InsightsKey set={s.bufferInsightsKeySet} onChange={(next) => setS((prev) => (prev ? { ...prev, bufferInsightsKeySet: next.bufferInsightsKeySet } : next))} />}
             </Section>
 
               </TabsContent>

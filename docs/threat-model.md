@@ -14,7 +14,7 @@ hold as described in [SECURITY.md](../SECURITY.md).
 
 | Asset | Why it matters |
 |---|---|
-| Tokens and keys: Plane app secret and bot token, Buffer OAuth tokens, Dev.to API key | Anyone holding them can read private work, publish as the user or post to their social accounts. |
+| Tokens and keys: Plane app secret and bot token, Buffer OAuth tokens, the optional Buffer insights key, Dev.to API key | Anyone holding them can read private work, publish as the user or post to their social accounts. |
 | Private project content (projects or modules the user locked) | Client or employer work that must not leak to the screen, the logs, or an AI provider. |
 | Drafts and article text | Unpublished writing. |
 | The user's public accounts | A wrong publish or promotion is public within seconds and can't always be taken back (Dev.to's API can't delete an article). |
@@ -120,6 +120,19 @@ unintended, or promotes an article that isn't live.
 - Deleting an article (which the Dev.to API can't do) unpublishes it first, can
   remove its pending promotions, and then hands the final step to Dev.to's own
   confirmation page.
+
+### Insights
+
+**Threat:** the optional Buffer personal key (Buffer only gives post metrics to
+personal keys) used for more than reading metrics, or a bad key breaking the
+OAuth sign-in.
+
+- The key lives in the keychain like every other secret and is only sent with
+  the metrics query (`internal/buffer/metrics.go`). Everything else uses OAuth.
+- A refused key reports `ErrBadKey`; it never triggers the sign-out that a 401
+  on the OAuth token does (`TestBadInsightsKeyKeepsSignIn`).
+- Metrics are cached for an hour and fetched only when the user opens a post's
+  insights, so viewing them can't spend the Buffer rate limit.
 
 ### The terminal
 

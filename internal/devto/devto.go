@@ -35,9 +35,12 @@ type Article struct {
 	BodyMarkdown   string   `json:"body_markdown"`
 	TagList        flexTags `json:"tag_list"`
 	PageViewsCount int      `json:"page_views_count"`
-	Series         *string  `json:"series"`
-	EditedAt       string   `json:"edited_at"`
-	CreatedAt      string   `json:"created_at"`
+	// Reactions and comments, for insights.
+	PublicReactionsCount int     `json:"public_reactions_count"`
+	CommentsCount        int     `json:"comments_count"`
+	Series               *string `json:"series"`
+	EditedAt             string  `json:"edited_at"`
+	CreatedAt            string  `json:"created_at"`
 	// AIDisclosureLevel is Forem's AI-use marker: not_disclosed, no_ai,
 	// some_ai or fully_autonomous.
 	AIDisclosureLevel string    `json:"ai_disclosure_level"`

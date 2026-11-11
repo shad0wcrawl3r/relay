@@ -131,6 +131,13 @@ export function Ideas(orgID: string, after: string): $CancellablePromise<buffer$
 }
 
 /**
+ * Insights returns a post's numbers. refresh skips the cache.
+ */
+export function Insights(postID: string, refresh: boolean): $CancellablePromise<$models.Insights> {
+    return $Call.ByID(3308578846, postID, refresh);
+}
+
+/**
  * ItemToIdea saves a work item as a Buffer idea: its name as the title and
  * its description as the text.
  */
