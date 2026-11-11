@@ -40,6 +40,9 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
   (renew `Expires` before 2027-11-11), `docs/threat-model.md`, and Settings → Security & privacy (`views/settings/DataFlows.tsx`).
   When a change moves data somewhere new or changes a protection, update the threat model and DataFlows in the same PR.
   `.github/workflows/security.yml` (govulncheck, gitleaks, CodeQL, dependency review) reports but isn't required to merge.
+- Dependabot (`.github/dependabot.yml`): minor/patch updates grouped per ecosystem, each major as its own PR. Never merge a red one:
+  read the failing log; for a major that can't work yet, add a commented `ignore` with when to remove it; for one that breaks
+  Relay, fix the code on its branch. Security alerts Relay's code reaches come first. No dependency updates during judging.
 - Bugs are tracked in GitHub Issues (`.github/ISSUE_TEMPLATE/bug_report.yml`). Report a bug (`lib/bugReport.ts`) prefills only the version,
   platform and build info; never add logs, settings or user content to the URL.
 - No risky changes or releases during judging (Nov 16–20, 2026) unless the user asks.
