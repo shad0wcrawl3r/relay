@@ -165,6 +165,18 @@ export interface CalendarPosts {
 }
 
 /**
+ * ChangelogEntry is one release's changes.
+ */
+export interface ChangelogEntry {
+    /**
+     * Version is X.Y.Z, or "Unreleased" (dev builds only).
+     */
+    "version": string;
+    "date": string;
+    "changes": string[] | null;
+}
+
+/**
  * ComposeResult is how one channel's post went: PostID when Buffer took
  * it, Error when it didn't.
  */
@@ -604,4 +616,13 @@ export interface UpdateStatus {
      * Last is the most recent check this session, if any.
      */
     "last": UpdateInfo | null;
+}
+
+/**
+ * WhatsNew is what to show after an update: the entries newer than the
+ * version last seen, up to this one. Empty when there's nothing new.
+ */
+export interface WhatsNew {
+    "version": string;
+    "entries": ChangelogEntry[] | null;
 }

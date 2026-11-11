@@ -26,12 +26,16 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
   (`build/config.yml`, `build/darwin/Info.plist`, `Info.dev.plist`, `build/ios/Info.plist`, `Info.dev.plist`,
   `build/linux/nfpm/nfpm.yaml`, `build/windows/info.json`, `build/windows/msix/app_manifest.xml`, `template.xml`,
   `build/windows/nsis/wails_tools.nsh`, `build/windows/wails.exe.manifest`); `git grep` for the old version to check.
+  Rename `## Unreleased` in `CHANGELOG.md` to `## X.Y.Z — YYYY-MM-DD` (and start a new empty Unreleased); `TestChangelogHasThisVersion` fails without it.
   Commit and title the PR exactly `Release X.Y.Z`, with nothing after the version, since a squash merge uses the PR title.
 - When it merges, `.github/workflows/tag-release.yml` checks `build/config.yml` matches, tags the commit `vX.Y.Z` and
   starts `build.yml` on the tag, which publishes a pre-release with `SHA256SUMS` and rebuilds the site. A mismatched
   version fails the run without tagging. Installed copies are offered the update at their next launch.
 - Builds stamp the commit and its date via `-ldflags -X main.buildCommit/buildCommitDate` (platform Taskfiles,
   `buildinfo.go`). Dev builds show the commit instead of the version (Dev mode tag, Settings, tray, Settings → About).
+- `CHANGELOG.md` is built into the app (`changelog.go`): plain `- ` lines under version headings, user-facing, no markup.
+  Release builds show the entries since `[updates] SEEN` once after an update (never on a fresh install) and list all of them
+  in Settings → About. Add user-visible changes under Unreleased as you make them. `RELAY_WHATS_NEW=1 wails3 dev` previews the dialog.
 - No risky changes or releases during judging (Nov 16–20, 2026) unless the user asks.
 
 ## Rules

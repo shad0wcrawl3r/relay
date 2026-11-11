@@ -388,3 +388,32 @@
   color: #a1a1aa;
   margin: 0.9em 0 0.15em;
 }
+
+/* Radix accordion: open and close to the content's measured height. */
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
+}
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+.accordion-content[data-state="open"] {
+  animation: accordion-down 0.18s ease-out;
+}
+.accordion-content[data-state="closed"] {
+  animation: accordion-up 0.18s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .accordion-content {
+    animation: none !important;
+  }
+}
