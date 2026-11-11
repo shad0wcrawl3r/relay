@@ -9,6 +9,7 @@ that heading to the new version.
 
 ## Unreleased
 
+- Plane checklists in an item's description show as checkboxes you can tick in Relay; the change saves to Plane.
 - Posts can be linked to the Plane items they're about. A Plane item shows its posts and where each one is (draft, published, promoted), and a ship log links the items it used.
 - Attention: Ready to write about lists what you finished this week that no post covers yet, with a button to write a ship log from it.
 - Built with Go 1.26.11, which fixes a vulnerability in Go's HTTP library (GO-2026-6859) that Relay's code could reach.

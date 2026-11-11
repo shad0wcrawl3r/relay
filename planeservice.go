@@ -270,6 +270,19 @@ func (s *PlaneService) Update(ctx context.Context, projectID, itemID string, pat
 	return nil
 }
 
+// SetTask ticks or unticks the index-th checklist item in an item's
+// description. Go re-reads the description from Plane and changes only that
+// item, so the UI never sends description HTML back.
+func (s *PlaneService) SetTask(ctx context.Context, projectID, itemID string, index int, checked bool) error {
+	if projectID == planning.ProjectID {
+		return errors.New("Buffer cards have no checklists")
+	}
+	if !s.allowed(projectID, itemID) {
+		return plane.ErrLocked
+	}
+	return s.client.SetTask(ctx, projectID, itemID, index, checked)
+}
+
 func (s *PlaneService) Create(ctx context.Context, item plane.NewItem) (plane.Item, error) {
 	if item.ProjectID == planning.ProjectID {
 		var it plane.Item

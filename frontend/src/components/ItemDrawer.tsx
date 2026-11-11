@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { DueChip } from "@/components/Reschedule";
 import { LinkedPosts } from "@/components/LinkedPosts";
+import { useToast } from "@/components/Toaster";
 import { shelveState } from "@/views/Attention";
 
 /** Sanitise Plane HTML and promote "Verdict · …" lines to the verdict pill. */
@@ -24,8 +25,26 @@ function renderHTML(html: string): string {
     if (/^\s*verdict\b/i.test(el.textContent ?? "") && (el.textContent ?? "").length < 80) el.classList.add("verdict");
   });
   doc.querySelectorAll("a").forEach((a) => a.setAttribute("data-external", "1"));
+  // Plane checklists: one checkbox per item, ticked from data-checked, with
+  // its position so a click can tell Go which item to flip.
+  doc.querySelectorAll('li[data-type="taskItem"]').forEach((li, i) => {
+    li.querySelectorAll("input").forEach((el) => el.remove());
+    const box = doc.createElement("input");
+    box.type = "checkbox";
+    box.setAttribute("data-task-index", String(i));
+    if (li.getAttribute("data-checked") === "true") box.setAttribute("checked", "");
+    const label = li.querySelector("label") ?? li.insertBefore(doc.createElement("label"), li.firstChild);
+    label.prepend(box);
+  });
   return doc.body.firstElementChild?.innerHTML ?? "";
 }
+
+/** The checklist index of a clicked checkbox, or null. */
+const taskIndex = (e: React.MouseEvent) => {
+  const el = e.target as HTMLElement;
+  if (el.tagName !== "INPUT" || !el.hasAttribute("data-task-index")) return null;
+  return { index: Number(el.getAttribute("data-task-index")), checked: (el as HTMLInputElement).checked };
+};
 
 function openLinks(e: React.MouseEvent) {
   const a = (e.target as HTMLElement).closest("a");
@@ -50,6 +69,7 @@ interface Props {
 
 export function ItemDrawer({ project, itemId, siblings, focusComposer, onNavigate, onClose, openPost }: Props) {
   const { update, comment, snapshot } = usePlane();
+  const toast = useToast();
   const item = project.items.find((i) => i.id === itemId);
   const [detail, setDetail] = useState<ItemDetail | null>(null);
   const [loadError, setLoadError] = useState("");
@@ -70,6 +90,18 @@ export function ItemDrawer({ project, itemId, siblings, focusComposer, onNavigat
     setDraft("");
     load();
   }, [load]);
+
+  // Ticks a checklist item in the description. Go re-reads the description
+  // from Plane and flips only that item; the box shows the new state at once
+  // and the reload puts it back if Plane refused.
+  const toggleTask = async (index: number, checked: boolean) => {
+    try {
+      await PlaneService.SetTask(project.id, itemId, index, checked);
+    } catch (err) {
+      toast({ tone: "error", title: "Couldn't update the checklist", body: errorMessage(err), keep: false });
+    }
+    load();
+  };
 
   // Refresh the thread when a sync shows the item changed underneath us.
   useEffect(() => {
@@ -290,7 +322,15 @@ export function ItemDrawer({ project, itemId, siblings, focusComposer, onNavigat
             <p className="mb-2 mt-0 text-[11px] font-medium uppercase tracking-[.06em] text-dim">Description</p>
             {detail ? (
               detail.descriptionHtml && detail.descriptionHtml.replace(/<[^>]+>/g, "").trim() ? (
-                <div className="prose-relay text-[13.5px]" onClick={openLinks} dangerouslySetInnerHTML={{ __html: renderHTML(detail.descriptionHtml) }} />
+                <div
+                  className="prose-relay text-[13.5px]"
+                  onClick={(e) => {
+                    const t = taskIndex(e);
+                    if (t) void toggleTask(t.index, t.checked);
+                    else openLinks(e);
+                  }}
+                  dangerouslySetInnerHTML={{ __html: renderHTML(detail.descriptionHtml) }}
+                />
               ) : (
                 <p className="m-0 text-[13px] text-dim">No description.</p>
               )

@@ -80,6 +80,9 @@ export const PlaneService = {
   SyncNow: async () => snapshot(await PlaneBindings.SyncNow()),
   Connect: () => PlaneBindings.Connect(),
   Disconnect: () => PlaneBindings.Disconnect(),
+  /** Ticks or unticks the index-th checklist item in an item's description. */
+  SetTask: (projectId: string, itemId: string, index: number, checked: boolean): Promise<void> =>
+    PlaneBindings.SetTask(projectId, itemId, index, checked),
   Detail: async (projectId: string, itemId: string): Promise<ItemDetail> => {
     const d = await PlaneBindings.Detail(projectId, itemId);
     return { ...item(d as unknown as PM.Item), descriptionHtml: d.descriptionHtml, comments: arr(d.comments), activity: arr(d.activity) } as ItemDetail;

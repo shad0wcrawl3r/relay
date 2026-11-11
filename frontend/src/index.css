@@ -233,6 +233,40 @@
 .prose-relay li + li {
   margin-top: 0.2em;
 }
+/* Plane checklists */
+.prose-relay ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0.1em;
+}
+.prose-relay li[data-type="taskItem"] {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+}
+.prose-relay li[data-type="taskItem"] > label {
+  display: flex;
+  padding-top: 0.25em;
+}
+.prose-relay li[data-type="taskItem"] > label > span {
+  display: none;
+}
+.prose-relay li[data-type="taskItem"] > div {
+  min-width: 0;
+  flex: 1;
+}
+.prose-relay li[data-type="taskItem"] > div > p {
+  margin: 0;
+}
+.prose-relay li[data-type="taskItem"][data-checked="true"] > div {
+  color: #71717a;
+  text-decoration: line-through;
+}
+.prose-relay input[data-task-index] {
+  width: 14px;
+  height: 14px;
+  accent-color: #46a758;
+  cursor: pointer;
+}
 .prose-relay h1,
 .prose-relay h2,
 .prose-relay h3,
