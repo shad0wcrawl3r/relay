@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"sync/atomic"
 
+	"github.com/shad0wcrawl3r/relay/internal/buffer"
 	"github.com/shad0wcrawl3r/relay/internal/config"
 	"github.com/shad0wcrawl3r/relay/internal/logs"
 	"github.com/shad0wcrawl3r/relay/internal/plane"
@@ -66,6 +67,9 @@ func main() {
 	postSvc, err := NewPostService()
 	if err != nil {
 		log.Fatal(err)
+	}
+	if !releaseBuild {
+		buffer.UseAccount(buffer.DevKeychainAccount)
 	}
 	bufferSvc := NewBufferService(postSvc, planeSvc)
 	aiSvc := NewAIService(postSvc)
