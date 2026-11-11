@@ -9,6 +9,8 @@ that heading to the new version.
 
 ## Unreleased
 
+## 0.0.9 — 2026-11-11
+
 - Plane checklists in an item's description show as checkboxes you can tick in Relay; the change saves to Plane.
 - Posts can be linked to the Plane items they're about. A Plane item shows its posts and where each one is (draft, published, promoted), and a ship log links the items it used.
 - Attention: Ready to write about lists what you finished this week that no post covers yet, with a button to write a ship log from it.
