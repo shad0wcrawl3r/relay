@@ -25,7 +25,7 @@ const daysAgo = (n: number) => {
 const shortDay = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
 /**
- * Ship log: drafts a build-in-public post from work finished in a date
+ * Ship log: drafts a post about work finished in a date
  * range (completed Plane or Buffer-board items, plus commits from a repo
  * you pick). You choose what goes in; the model drafts; the result opens as
  * a new post.
@@ -168,7 +168,7 @@ export function ShipLogDialog({
         <DialogHeader>
           <DialogTitle>Ship log</DialogTitle>
           <DialogDescription>
-            Draft a build-in-public update from what you finished. Pick what goes in; AI writes an article you edit like any post
+            Draft a post about what you finished. Pick what goes in; AI writes an article you edit like any post
             {bufferOn ? ", or a short post you finish in the Buffer composer" : ""}.
           </DialogDescription>
         </DialogHeader>

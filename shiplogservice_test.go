@@ -102,3 +102,17 @@ func TestReadyToWriteSkipsLinkedAndLocked(t *testing.T) {
 		t.Fatalf("ready = %+v, want only RELAY-2", got)
 	}
 }
+
+func TestSplitTags(t *testing.T) {
+	tags, body := splitTags("Tags: Go, #SQLite, build-in-public, go, oauth, wails, extra\n\nBody.\n", "- Cache Buffer (Relay)")
+	if strings.Join(tags, ",") != "go,sqlite,oauth,wails" || body != "Body.\n" {
+		t.Errorf("got %v / %q", tags, body)
+	}
+	// A generic tag stays when the material uses it.
+	if tags, _ := splitTags("Tags: devlog\nBody.", "notes: my devlog"); strings.Join(tags, ",") != "devlog" {
+		t.Errorf("got %v", tags)
+	}
+	if tags, body := splitTags("Body only.\n", ""); tags != nil || body != "Body only.\n" {
+		t.Errorf("got %v / %q", tags, body)
+	}
+}
