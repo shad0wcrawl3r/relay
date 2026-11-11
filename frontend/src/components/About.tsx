@@ -3,6 +3,7 @@ import { Clipboard } from "@wailsio/runtime";
 import { Check, Copy } from "lucide-react";
 import { UpdateService, type BuildInfo } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import { ChangelogList } from "@/components/Changelog";
 
 const date = (iso: string) => {
   const d = new Date(iso);
@@ -54,6 +55,10 @@ export function About() {
           {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
           {copied ? "Copied" : "Copy build info"}
         </Button>
+      </div>
+      <div className="mt-2 flex flex-col gap-2">
+        <h3 className="m-0 text-[14px] font-semibold text-strong">Changelog</h3>
+        <ChangelogList current={b.dev ? "Unreleased" : b.version} />
       </div>
     </section>
   );

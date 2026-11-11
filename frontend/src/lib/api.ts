@@ -355,5 +355,24 @@ export const UpdateService = {
   Install: (): Promise<void> => UpdateBindings.Install(),
   /** Version and build details, for About. */
   Build: (): Promise<BuildInfo> => UpdateBindings.Build(),
+  /** Every release's changes, newest first, for About. */
+  Changelog: async (): Promise<ChangelogEntry[]> => arr(await UpdateBindings.Changelog()).map(entry),
+  /** The changes to show once after an update; none on a fresh install or in dev builds. */
+  WhatsNew: async (): Promise<WhatsNew> => {
+    const w = await UpdateBindings.WhatsNew();
+    return { version: w.version, entries: arr(w.entries).map(entry) };
+  },
+  /** Records that this version's What's new was shown. */
+  MarkSeen: (): Promise<void> => UpdateBindings.MarkSeen(),
 };
 export type BuildInfo = Clean<M.BuildInfo>;
+export interface ChangelogEntry {
+  version: string;
+  date: string;
+  changes: string[];
+}
+export interface WhatsNew {
+  version: string;
+  entries: ChangelogEntry[];
+}
+const entry = (e: M.ChangelogEntry): ChangelogEntry => ({ version: e.version, date: e.date, changes: arr(e.changes) });

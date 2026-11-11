@@ -147,6 +147,7 @@ func write(next Config) error {
 	v.Set("planning.BUFFER", next.Planning.Buffer)
 	v.Set("planning.BUFFER_ORG", next.Planning.BufferOrg)
 	v.Set("updates.CHECK", next.Updates.Check)
+	v.Set("updates.SEEN", next.Updates.Seen)
 	v.Set("shiplog.REPO", next.ShipLog.Repo)
 	path := Path()
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
@@ -238,6 +239,9 @@ type Config struct {
 	Updates struct {
 		// Check: look for a newer GitHub release when Relay starts.
 		Check bool `mapstructure:"CHECK"`
+		// Seen is the last version whose changelog was shown, so What's
+		// new appears once per update.
+		Seen string `mapstructure:"SEEN"`
 	}
 	ShipLog struct {
 		// Repo is the folder the last ship log read commits from.

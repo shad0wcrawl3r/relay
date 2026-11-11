@@ -34,6 +34,7 @@ export type {
     BuildInfo,
     CalendarPost,
     CalendarPosts,
+    ChangelogEntry,
     ComposeResult,
     Composed,
     DevtoKeyCheck,
@@ -66,5 +67,6 @@ export type {
     ShipProject,
     UpdateInfo,
     UpdateProgress,
-    UpdateStatus
+    UpdateStatus,
+    WhatsNew
 } from "./models.js";

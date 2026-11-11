@@ -89,7 +89,9 @@ func TestCalendarServesLoadedListsWithoutAskingBuffer(t *testing.T) {
 
 func TestCalendarListCoverage(t *testing.T) {
 	now := time.Now()
-	at := func(d time.Duration) buffer.Post { return buffer.Post{Status: "scheduled", DueAt: now.Add(d).UTC().Format(time.RFC3339)} }
+	at := func(d time.Duration) buffer.Post {
+		return buffer.Post{Status: "scheduled", DueAt: now.Add(d).UTC().Format(time.RFC3339)}
+	}
 	from, to := now, now.Add(7*24*time.Hour)
 
 	up := &calendarList{upcoming: true, more: true, posts: []buffer.Post{at(time.Hour)}}

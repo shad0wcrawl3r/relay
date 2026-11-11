@@ -17,6 +17,13 @@ export function Build(): $CancellablePromise<$models.BuildInfo> {
 }
 
 /**
+ * Changelog lists every release's changes, newest first, for About.
+ */
+export function Changelog(): $CancellablePromise<$models.ChangelogEntry[] | null> {
+    return $Call.ByID(3797252362);
+}
+
+/**
  * Check asks GitHub for the newest published release, pre-releases
  * included (every Relay release so far is one).
  */
@@ -32,10 +39,27 @@ export function Install(): $CancellablePromise<void> {
     return $Call.ByID(3897086627);
 }
 
+/**
+ * MarkSeen records that this version's changes were shown. Dev builds
+ * don't record anything.
+ */
+export function MarkSeen(): $CancellablePromise<void> {
+    return $Call.ByID(2324049758);
+}
+
 export function SetAutoCheck(on: boolean): $CancellablePromise<$models.UpdateStatus> {
     return $Call.ByID(1532024281, on);
 }
 
 export function Status(): $CancellablePromise<$models.UpdateStatus> {
     return $Call.ByID(1095988866);
+}
+
+/**
+ * WhatsNew is the changelog to show once after an update. A fresh install
+ * has nothing to show: it records this version and returns none. Dev
+ * builds show it only with RELAY_WHATS_NEW set, as the newest entry.
+ */
+export function WhatsNew(): $CancellablePromise<$models.WhatsNew> {
+    return $Call.ByID(2338232835);
 }

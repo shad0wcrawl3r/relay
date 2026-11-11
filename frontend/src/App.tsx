@@ -17,6 +17,7 @@ import { Timeline } from "@/views/timeline/Timeline";
 import { QuickTerminal } from "@/views/terminal/QuickTerminal";
 import { UpdateNotifier } from "@/components/Updates";
 import { FailedPostNotifier } from "@/components/FailedPosts";
+import { WhatsNewDialog } from "@/components/Changelog";
 
 export type Route = { name: "attention" } | { name: "project"; projectId: string } | { name: "editor"; postId?: string } | { name: "buffer"; focus?: BufferFocus } | { name: "timeline" } | { name: "terminal" } | { name: "settings"; tab?: SettingsTab };
 
@@ -207,6 +208,7 @@ export default function App() {
       )}
       <UpdateNotifier />
       <FailedPostNotifier goBuffer={(focus) => go({ name: "buffer", focus })} />
+      <WhatsNewDialog onShowAll={() => go({ name: "settings", tab: "about" })} />
       <Capture
         open={capture}
         onOpenChange={setCapture}
