@@ -21,6 +21,7 @@ import { ComposeDialog } from "@/components/ComposeDialog";
 import { IdeasInBufferNote, SyncNote, openIdeasInBuffer } from "@/components/SyncNote";
 import { addIdea, loadIdeas, loadMoreIdeas, useIdeas } from "@/lib/ideas";
 import { EmptyState, Page, SkeletonRows } from "@/components/Page";
+import { BufferTeamNote } from "@/components/BufferTeamNote";
 
 type TabId = "queue" | "approval" | "drafts" | "sent" | "failed" | "ideas";
 
@@ -226,6 +227,8 @@ export function Buffer({ goSettings, goPost, focus }: { goSettings: () => void; 
           <AlertTriangle className="size-3.5" /> {error}
         </p>
       )}
+
+      {overview?.staff && <BufferTeamNote />}
 
       {channels.length > 0 && (
         <section aria-label="Channels" className="mb-6 grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-2.5">

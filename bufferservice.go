@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"os"
 	"strings"
 	"time"
 
@@ -41,6 +42,20 @@ func NewBufferService(posts *PostService, plane *PlaneService) *BufferService {
 type BufferStatus struct {
 	Connected bool   `json:"connected"`
 	Account   string `json:"account"`
+}
+
+// bufferStaff reports whether email is a buffer.com address (not a
+// subdomain or a lookalike such as notbuffer.com).
+// The Buffer tab shows a note for the Buffer team when it is; only that
+// flag (BufferOverview.Staff) leaves Go, never the email, and it isn't
+// logged. RELAY_BUFFER_NOTE=1 shows it for any account, to preview it.
+func bufferStaff(email string) bool {
+	if os.Getenv("RELAY_BUFFER_NOTE") == "1" {
+		return true
+	}
+	e := strings.ToLower(strings.TrimSpace(email))
+	at := strings.LastIndexByte(e, '@')
+	return at > 0 && e[at+1:] == "buffer.com"
 }
 
 // Status looks up the account when signed in. A failed lookup still reports
@@ -198,6 +213,7 @@ func (s *BufferService) Compose(ctx context.Context, in Composed) ([]ComposeResu
 // organizations (with plan limits) and every channel.
 type BufferOverview struct {
 	Account       string                `json:"account"`
+	Staff         bool                  `json:"staff"`
 	Organizations []buffer.Organization `json:"organizations"`
 	Channels      []buffer.Channel      `json:"channels"`
 }
@@ -219,7 +235,7 @@ func (s *BufferService) Overview(ctx context.Context) (BufferOverview, error) {
 	if orgs == nil {
 		orgs = []buffer.Organization{}
 	}
-	o := BufferOverview{Account: name, Organizations: orgs, Channels: channels}
+	o := BufferOverview{Account: name, Staff: bufferStaff(a.Email), Organizations: orgs, Channels: channels}
 	s.cache.setOverview(o)
 	return o, nil
 }

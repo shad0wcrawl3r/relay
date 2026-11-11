@@ -74,6 +74,9 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
 - UI state that's remembered per machine (last view and post, board view/filters/columns, sidebar width) lives in localStorage via
   `lib/prefs.ts`: IDs and choices only, and private projects' boards are remembered for the session only. The notification pane
   (`Toaster.tsx` `useInbox`) is in memory; errors are kept unless `keep: false`, which item-specific errors use so a relocked project isn't named.
+- A note for the Buffer team (`components/BufferTeamNote.tsx`: a dismissible card on the Buffer tab that opens a dialog) shows only when
+  the Buffer account's email is exactly `@buffer.com` (`bufferStaff`). Go sends the UI only `BufferOverview.Staff`, never the email; don't log it.
+  `RELAY_BUFFER_NOTE=1 wails3 dev` previews it.
 - Planning in Buffer (`[planning] BUFFER`) is **experimental** in Relay because the upstream API is; keep it labelled so in the UI and docs. `internal/planning` maps Buffer content items (an Experimental Buffer API) to a
   board project (`buffer-plan`, source "buffer"); PlaneService routes its writes to `bufferplan.go`. Columns before
   posting are "Relay: …" tags; Scheduled/Published come from the item's posts and can't be dragged into. Card text stays in memory.

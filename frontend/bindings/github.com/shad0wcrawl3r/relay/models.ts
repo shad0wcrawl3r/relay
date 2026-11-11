@@ -99,6 +99,7 @@ export interface BufferCached {
  */
 export interface BufferOverview {
     "account": string;
+    "staff": boolean;
     "organizations": buffer$0.Organization[] | null;
     "channels": buffer$0.Channel[] | null;
 }
