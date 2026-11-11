@@ -1,5 +1,11 @@
 # Dependabot: security updates come from the repo's Dependabot settings; these
-# are routine version updates, weekly and grouped so they stay reviewable.
+# are routine version updates, weekly.
+#
+# Minor and patch updates are grouped into one PR per ecosystem, which should
+# pass as-is. Each major update comes as its own PR, so one breaking upgrade
+# (a new React or TypeScript) can't hold the small ones back, and gets its
+# own testing. Never merge a red Dependabot PR; see CLAUDE.md.
+#
 # Releases still only come from CI (CLAUDE.md), so a merged update ships in
 # the next release, never on its own.
 version: 2
@@ -8,23 +14,30 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 5
     groups:
       go:
-        patterns: ["*"]
+        update-types: [minor, patch]
+
   - package-ecosystem: npm
     directory: /frontend
     schedule:
       interval: weekly
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 5
     groups:
       npm:
-        patterns: ["*"]
+        update-types: [minor, patch]
+    ignore:
+      # typescript-eslint 8 doesn't accept TypeScript 7 yet, so npm can't
+      # install it (ERESOLVE). Remove once typescript-eslint supports 7.
+      - dependency-name: typescript
+        versions: [">=7.0.0"]
+
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 5
     groups:
       actions:
-        patterns: ["*"]
+        update-types: [minor, patch]
