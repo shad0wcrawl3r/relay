@@ -289,3 +289,85 @@ func TestGraphQLErrorsSurface(t *testing.T) {
 		t.Fatalf("err = %v", err)
 	}
 }
+
+// elsewhere saves tok as another Relay process would: in the keychain, behind
+// this client's back.
+func elsewhere(t *testing.T, tok Token) {
+	t.Helper()
+	raw, _ := json.Marshal(tok)
+	if err := keyring.Set(keyringService, keyringUser, string(raw)); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestRefreshUsesATokenAnotherInstanceRotated(t *testing.T) {
+	var calls atomic.Int32
+	c := newClient(t, func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		tokenJSON(w, "x", "y", 3600)
+	}, nil)
+	seed(t, c, Token{AccessToken: "stale", RefreshToken: "old", Expiry: time.Now().Add(-time.Hour)})
+	c.load()
+	elsewhere(t, Token{AccessToken: "theirs", RefreshToken: "rotated", Expiry: time.Now().Add(time.Hour)})
+
+	tok, err := c.valid(context.Background())
+	if err != nil || tok.AccessToken != "theirs" {
+		t.Fatalf("valid = %+v, %v", tok, err)
+	}
+	if calls.Load() != 0 {
+		t.Errorf("refreshed %d times with a spent token", calls.Load())
+	}
+}
+
+func TestRefusedRefreshKeepsATokenRotatedMeanwhile(t *testing.T) {
+	c := newClient(t, func(w http.ResponseWriter, r *http.Request) {
+		// The other instance wins the race while this refresh is in flight.
+		elsewhere(t, Token{AccessToken: "theirs", RefreshToken: "rotated", Expiry: time.Now().Add(time.Hour)})
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, `{"error":"invalid_grant"}`)
+	}, nil)
+	seed(t, c, Token{AccessToken: "stale", RefreshToken: "old", Expiry: time.Now().Add(-time.Hour)})
+
+	tok, err := c.valid(context.Background())
+	if err != nil || tok.AccessToken != "theirs" {
+		t.Fatalf("valid = %+v, %v", tok, err)
+	}
+	if got := stored(t); got.RefreshToken != "rotated" {
+		t.Errorf("stored = %+v; the other instance's sign-in was deleted", got)
+	}
+}
+
+func TestUnauthorizedRetriesWithAReplacedToken(t *testing.T) {
+	c := newClient(t, nil, func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer theirs" {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		fmt.Fprint(w, `{"data":{"account":{"name":"A","email":"a@example.com","organizations":[]}}}`)
+	})
+	seed(t, c, Token{AccessToken: "ours", RefreshToken: "old", Expiry: time.Now().Add(time.Hour)})
+	c.load()
+	elsewhere(t, Token{AccessToken: "theirs", RefreshToken: "rotated", Expiry: time.Now().Add(time.Hour)})
+
+	if _, err := c.Account(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if !c.Connected() {
+		t.Error("signed out over a token another instance replaced")
+	}
+}
+
+func TestSignOutElsewhereIsFollowed(t *testing.T) {
+	var calls atomic.Int32
+	c := newClient(t, func(w http.ResponseWriter, r *http.Request) { calls.Add(1) }, nil)
+	seed(t, c, Token{AccessToken: "stale", RefreshToken: "old", Expiry: time.Now().Add(-time.Hour)})
+	c.load()
+	_ = keyring.Delete(keyringService, keyringUser)
+
+	if _, err := c.valid(context.Background()); !errors.Is(err, ErrNotConnected) {
+		t.Fatalf("err = %v", err)
+	}
+	if calls.Load() != 0 {
+		t.Error("refreshed a sign-in that was removed")
+	}
+}

@@ -21,9 +21,22 @@ import (
 
 var log = logs.For("buffer")
 
+// Keychain accounts for the sign-in. Dev builds keep their own, so running
+// wails3 dev beside the installed app never spends its refresh token.
+const (
+	KeychainAccount    = "buffer-oauth"
+	DevKeychainAccount = "buffer-oauth-dev"
+)
+
+// keyringUser is the account in use; main switches dev builds to DevKeychainAccount
+// before the first call.
+var keyringUser = KeychainAccount
+
+// UseAccount sets the keychain account the sign-in lives under.
+func UseAccount(name string) { keyringUser = name }
+
 const (
 	keyringService = "relay"
-	keyringUser    = "buffer-oauth"
 
 	// clientID identifies Relay's public OAuth client. It isn't a secret:
 	// desktop apps sign in with PKCE alone.
@@ -156,6 +169,13 @@ func (c *Client) load() *Token {
 	if c.token != nil {
 		return c.token
 	}
+	return c.reload()
+}
+
+// reload reads the sign-in from the keychain, skipping the copy in memory:
+// another Relay (a second build, or the one an update replaced) may have
+// rotated it since. Callers hold mu.
+func (c *Client) reload() *Token {
 	raw, err := keychain.Get(keyringService, keyringUser)
 	if err != nil {
 		return nil
@@ -195,8 +215,20 @@ func (c *Client) valid(ctx context.Context) (*Token, error) {
 	if t == nil {
 		return nil, ErrNotConnected
 	}
-	if time.Now().Before(t.Expiry.Add(-refreshSkew)) {
+	if fresh(t) {
 		return t, nil
+	}
+	// Another Relay may have refreshed already. Its token is in the keychain,
+	// and ours is spent: using it would make Buffer revoke the grant.
+	if s := c.reload(); s != nil && s.RefreshToken != t.RefreshToken {
+		t = s
+		if fresh(t) {
+			return t, nil
+		}
+	} else if s == nil {
+		// Signed out elsewhere (or cleared): don't revive the old token.
+		c.token = nil
+		return nil, ErrNotConnected
 	}
 	next, err := c.redeem(ctx, url.Values{
 		"grant_type":    {"refresh_token"},
@@ -204,6 +236,11 @@ func (c *Client) valid(ctx context.Context) (*Token, error) {
 	})
 	var refused *oauthError
 	if errors.As(err, &refused) {
+		// Refused because another Relay rotated it in the meantime: keep theirs.
+		if s := c.reload(); s != nil && s.RefreshToken != t.RefreshToken {
+			log.Info("refresh refused, using the token another instance saved")
+			return s, nil
+		}
 		log.Warn("refresh refused, signing out", "error", err)
 		_ = c.clear()
 		c.signedOut()
@@ -224,6 +261,20 @@ func (c *Client) valid(ctx context.Context) (*Token, error) {
 	}
 	return next, nil
 }
+
+func fresh(t *Token) bool { return time.Now().Before(t.Expiry.Add(-refreshSkew)) }
+
+// replaced reports whether the keychain holds a different access token than
+// bearer, which means another Relay refreshed the sign-in. The client adopts it.
+func (c *Client) replaced(bearer string) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	s := c.reload()
+	return s != nil && s.AccessToken != bearer
+}
+
+// errReplaced is a 401 for a token another Relay has since replaced.
+var errReplaced = errors.New("buffer: token replaced by another instance")
 
 func (c *Client) redeem(ctx context.Context, form url.Values) (*Token, error) {
 	form.Set("client_id", clientID)
@@ -269,11 +320,16 @@ func (c *Client) queryVars(ctx context.Context, query string, vars map[string]an
 	if until, limited := c.RateLimit(); limited {
 		return &RateLimited{Until: until}
 	}
-	t, err := c.valid(ctx)
-	if err != nil {
-		return err
+	for try := 0; ; try++ {
+		t, err := c.valid(ctx)
+		if err != nil {
+			return err
+		}
+		err = c.send(ctx, t.AccessToken, false, query, vars, out)
+		if !errors.Is(err, errReplaced) || try > 0 {
+			return err
+		}
 	}
-	return c.send(ctx, t.AccessToken, false, query, vars, out)
 }
 
 // ErrBadKey is a personal API key Buffer refused.
@@ -312,6 +368,10 @@ func (c *Client) send(ctx context.Context, bearer string, personal bool, query s
 	case http.StatusUnauthorized:
 		if personal {
 			return ErrBadKey
+		}
+		// A token another Relay already rotated away: retry with theirs.
+		if c.replaced(bearer) {
+			return errReplaced
 		}
 		// Buffer answers 401 once the user revokes access.
 		log.Warn("access revoked, signing out")

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/shad0wcrawl3r/relay/internal/ai"
+	"github.com/shad0wcrawl3r/relay/internal/buffer"
 	"github.com/shad0wcrawl3r/relay/internal/config"
 	"github.com/shad0wcrawl3r/relay/internal/keychain"
 	"github.com/shad0wcrawl3r/relay/internal/logs"
@@ -42,12 +43,13 @@ const clearDataFlag = "--clear-data"
 // config.KeyringService. Add new ones here.
 func keychainAccounts() []string {
 	names := []string{
-		"data-key",            // internal/vault
-		backupKeyUser,         // backupservice.go
-		"buffer-oauth",        // internal/buffer
-		"plane-oauth",         // internal/plane
-		"devto-api-key",       // internal/config/secrets.go
-		"plane-client-secret", // internal/config/secrets.go
+		"data-key",                // internal/vault
+		backupKeyUser,             // backupservice.go
+		buffer.KeychainAccount,    // internal/buffer
+		buffer.DevKeychainAccount, // internal/buffer, dev builds
+		"plane-oauth",             // internal/plane
+		"devto-api-key",           // internal/config/secrets.go
+		"plane-client-secret",     // internal/config/secrets.go
 	}
 	for _, p := range ai.Providers() {
 		names = append(names, "ai-"+p.ID) // internal/ai

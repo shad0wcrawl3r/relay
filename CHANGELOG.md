@@ -9,6 +9,8 @@ that heading to the new version.
 
 ## Unreleased
 
+- Buffer no longer signs you out after an update, or when two copies of Relay are open.
+
 ## 0.1.0 — 2026-11-11
 
 - Relay 0.1.0 is the first stable release. It has everything from 0.0.9; from now on, releases are marked stable and offered as the latest version.
