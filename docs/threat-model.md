@@ -7,7 +7,7 @@ what Relay protects, where the trust boundaries are, what could go wrong, and
 what the code does about each threat. It names files so each claim can be
 checked.
 
-It was written for Relay 0.0.9 (November 2026). Report anything that doesn't
+It was written for Relay 0.1.0 (November 2026). Report anything that doesn't
 hold as described in [SECURITY.md](../SECURITY.md).
 
 ## What Relay protects
