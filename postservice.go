@@ -163,7 +163,7 @@ func (s *PostService) Get(id string) (posts.Post, error) {
 	if !ok {
 		return posts.Post{}, errors.New("article not found; sync with Dev.to")
 	}
-	body, level := splitDisclosure(a.BodyMarkdown)
+	body, level := remoteBody(a.BodyMarkdown, a.AIDisclosureLevel)
 	if level == "" {
 		level = AINone
 	}
@@ -244,8 +244,9 @@ func (s *PostService) Delete(id string) error {
 
 func payload(p posts.Post) devto.Payload {
 	return devto.Payload{
-		Title: p.Title, BodyMarkdown: withDisclosure(p.Body, p.AI), Series: p.Series,
+		Title: p.Title, BodyMarkdown: p.Body, Series: p.Series,
 		CanonicalURL: p.CanonicalURL, Description: p.Description, Tags: strings.Join(p.Tags, ","),
+		AIDisclosureLevel: devtoLevel(p.AI),
 	}
 }
 

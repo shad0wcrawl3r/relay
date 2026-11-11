@@ -9,6 +9,8 @@ that heading to the new version.
 
 ## Unreleased
 
+- Posts: AI use is now set with Dev.to's own AI marker instead of a line at the end of the article. Articles sent before keep their level, and the line comes off the next time you send them.
+
 ## 0.0.8 — 2026-11-11
 
 - Settings → About → Report a bug opens a GitHub issue with your version and platform filled in, and nothing else.

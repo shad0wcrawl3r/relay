@@ -129,11 +129,6 @@ export const PostService = {
   /** Forgets the Dev.to article; the post becomes local again. */
   Unlink: async (id: string) => post(await PostBindings.Unlink(id)),
   Series: async (): Promise<string[]> => arr(await PostBindings.Series()),
-  /** The line each AI-use level adds at the end of the article on Dev.to. */
-  Disclosures: async (): Promise<Record<string, string>> => {
-    const m = (await PostBindings.Disclosures()) ?? {};
-    return Object.fromEntries(Object.entries(m).filter((e): e is [string, string] => !!e[1]));
-  },
 };
 
 /** How much AI went into a post. Dev.to asks authors to say so. */

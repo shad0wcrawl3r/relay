@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const OPTIONS: { value: AIUse; label: string; hint: string }[] = [
-  { value: "none", label: "No AI", hint: "Nothing is added." },
+  { value: "none", label: "No AI", hint: "You wrote it without AI." },
   { value: "assisted", label: "AI-assisted", hint: "You wrote it, with help from AI." },
   { value: "generated", label: "AI-generated", hint: "AI wrote most of it." },
 ];
@@ -13,9 +13,9 @@ const OPTIONS: { value: AIUse; label: string; hint: string }[] = [
 /** Normalises a stored value: empty (posts from before the setting) is "none". */
 export const aiUse = (v: string): AIUse => (v === "assisted" || v === "generated" ? v : "none");
 
-/** How much AI went into the post. Dev.to's guidelines ask authors to say;
- *  its API has no field, so Relay adds a line at the end of the article. */
-export function AIUseSelect({ value, lines, onChange }: { value: string; lines: Record<string, string>; onChange: (v: AIUse) => void }) {
+/** How much AI went into the post. Relay sets Dev.to's own AI-use marker
+ *  (the "AI:" setting in its editor) when it sends the article. */
+export function AIUseSelect({ value, onChange }: { value: string; onChange: (v: AIUse) => void }) {
   const [open, setOpen] = useState(false);
   const current = OPTIONS.find((o) => o.value === aiUse(value))!;
   return (
@@ -32,7 +32,7 @@ export function AIUseSelect({ value, lines, onChange }: { value: string; lines: 
         </PopoverTrigger>
         <PopoverContent align="start" className="flex w-[340px] flex-col gap-1 p-2">
           <p className="m-0 px-2 pb-1 pt-0.5 text-xs leading-snug text-dim">
-            Dev.to asks you to disclose AI use. Relay adds the line below at the end of the article when it sends it.
+            Dev.to asks you to disclose AI use. Relay sets Dev.to's AI marker (the “AI:” setting in its editor) when it sends the article.
           </p>
           {OPTIONS.map((o) => (
             <button
@@ -45,7 +45,7 @@ export function AIUseSelect({ value, lines, onChange }: { value: string; lines: 
             >
               <span className="flex min-w-0 grow flex-col gap-0.5">
                 <span className="text-[13px] text-foreground">{o.label}</span>
-                <span className="text-xs text-dim">{lines[o.value] ? `Adds “${lines[o.value].replace(/^\*|\*$/g, "")}”` : o.hint}</span>
+                <span className="text-xs text-dim">{o.hint}</span>
               </span>
               {o.value === current.value && <Check className="mt-0.5 size-3.5 shrink-0" />}
             </button>

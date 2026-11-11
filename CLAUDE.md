@@ -60,8 +60,9 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
   (IDs, channel and error only, never post text). Follow-up promotions are ordinary scheduled promotions, so Go adds the link to each.
   After a 429 the Buffer client refuses every call until Retry-After passes (`buffer.RateLimited`). The Timeline's post lists are
   cached in memory only (`buffercalendar.go`, 3 min) and dropped on any write through Relay; don't add per-click Buffer calls.
-- Dev.to AI disclosure: `posts.Meta.AI` (none/assisted/generated, empty = none). Go appends the matching line when sending (`disclosure.go`)
-  and strips it when pulling, so the local body never carries it.
+- Dev.to AI disclosure: `posts.Meta.AI` (none/assisted/generated, empty = none). Go sends it as Forem's `ai_disclosure_level`
+  (no_ai/some_ai/fully_autonomous, the "AI:" marker in Dev.to's editor) and reads it back on pull (`disclosure.go`); the body never carries it.
+  Relay used to append a line instead: `splitDisclosure` still strips those from Dev.to bodies, and the next send leaves it out.
 - Ship log (`shiplogservice.go`): completed items in a window (Plane `completed_at`) plus `git log` subjects from a repo the
   user picks. Lockable projects/modules are always left out (unlocked or not); only titles and subjects reach the model,
   through `ai.Plane(PrivacyKeys…)`. Go re-reads the kept items by ID rather than trusting text from the UI.

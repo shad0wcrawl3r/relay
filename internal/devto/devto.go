@@ -25,20 +25,23 @@ var httpClient = &http.Client{Timeout: 30 * time.Second, Transport: logs.Transpo
 var ErrNoKey = errors.New("dev.to: no API key; add it in Settings")
 
 type Article struct {
-	ID             int       `json:"id"`
-	Title          string    `json:"title"`
-	Description    string    `json:"description"`
-	Published      bool      `json:"published"`
-	PublishedAt    string    `json:"published_at"`
-	URL            string    `json:"url"`
-	CanonicalURL   string    `json:"canonical_url"`
-	BodyMarkdown   string    `json:"body_markdown"`
-	TagList        flexTags  `json:"tag_list"`
-	PageViewsCount int       `json:"page_views_count"`
-	Series         *string   `json:"series"`
-	EditedAt       string    `json:"edited_at"`
-	CreatedAt      string    `json:"created_at"`
-	FetchedAt      time.Time `json:"-"`
+	ID             int      `json:"id"`
+	Title          string   `json:"title"`
+	Description    string   `json:"description"`
+	Published      bool     `json:"published"`
+	PublishedAt    string   `json:"published_at"`
+	URL            string   `json:"url"`
+	CanonicalURL   string   `json:"canonical_url"`
+	BodyMarkdown   string   `json:"body_markdown"`
+	TagList        flexTags `json:"tag_list"`
+	PageViewsCount int      `json:"page_views_count"`
+	Series         *string  `json:"series"`
+	EditedAt       string   `json:"edited_at"`
+	CreatedAt      string   `json:"created_at"`
+	// AIDisclosureLevel is Forem's AI-use marker: not_disclosed, no_ai,
+	// some_ai or fully_autonomous.
+	AIDisclosureLevel string    `json:"ai_disclosure_level"`
+	FetchedAt         time.Time `json:"-"`
 }
 
 // flexTags accepts tag_list as either an array or a comma-separated string;
@@ -74,6 +77,8 @@ type Payload struct {
 	CanonicalURL string `json:"canonical_url,omitempty"`
 	Description  string `json:"description,omitempty"`
 	Tags         string `json:"tags,omitempty"`
+	// AIDisclosureLevel sets the article's AI-use marker (see Article).
+	AIDisclosureLevel string `json:"ai_disclosure_level,omitempty"`
 }
 
 func do(ctx context.Context, method, path string, body, out any) error {
