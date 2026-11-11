@@ -10,6 +10,7 @@ that heading to the new version.
 ## Unreleased
 
 - Buffer no longer signs you out after an update, or when two copies of Relay are open.
+- Ship log: the title, tags and sections now come from the work and commits you picked, and posts no longer call themselves build-in-public updates.
 
 ## 0.1.0 — 2026-11-11
 

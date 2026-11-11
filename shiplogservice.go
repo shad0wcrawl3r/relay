@@ -22,7 +22,7 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
-// Ship log drafts a build-in-public post from finished work: items moved to
+// Ship log drafts a post about finished work: items moved to
 // a completed state in Plane (or on the Buffer board) and, optionally, the
 // commits in a git repository the user picks. The user reviews the material,
 // the model drafts, and the result is an ordinary local post.
@@ -219,12 +219,25 @@ type ShipLogDraft struct {
 	Notes   string   `json:"notes"`
 }
 
-const shipSystem = `You help a developer write a build-in-public update for their blog on Dev.to, in their own first-person voice.
+const shipSystem = `You write a blog post for Dev.to about work a developer finished, in their own voice: "I", never "we".
 
-Use only the finished work items, commits and notes you are given. Never invent features, numbers, results, motivations, quotes or feelings. If the material is thin, write a short post rather than padding it.
+Everything in the post comes from the material you are given: the finished work items, the commits and the author's notes. The title, the tags and every section name what was actually built, fixed or changed.
+
+The title says what the work is, specifically, for example "Offline sync and faster search in Relay". It is not a label for the post: no "build in public", "ship log", "devlog", "weekly update", "progress update", "what I shipped" and no dates.
+Don't describe the post itself or the habit of sharing progress: never mention building in public, devlogs, challenges or communities, unless the author's notes do.
+
+Use only the material. Never invent features, numbers, results, motivations, quotes or feelings. If the material is thin, write a short post rather than padding it.
 Group the work by theme instead of listing commits one by one, and say why a change matters only when the material says so.
 
-Reply in Markdown. The first line is the title, starting with "# ". Then the body: a short opening, ## sections for the themes, and a brief "What's next" only if the notes mention plans. Short paragraphs, plain words, no hype ("excited", "thrilled", "game-changer").`
+Reply in Markdown, in this order:
+1. The title, on one line starting with "# ".
+2. One line starting with "Tags: ", then up to four Dev.to tags for the technologies and topics the work is about, lowercase letters and numbers only, comma-separated (for example "Tags: go, sqlite, oauth"). No generic tags such as buildinpublic, devlog, programming or update.
+3. The body: an opening that says what changed, ## sections for the themes, and a brief "What's next" only if the notes mention plans. Short paragraphs, plain words, no hype ("excited", "thrilled", "game-changer").`
+
+// shipSocialRule is added to the social prompt for ship log posts: the
+// hashtags, like the post, come from the work.
+const shipSocialRule = `
+Any hashtags name the technologies or topics of the work, never generic ones such as #buildinpublic, #devlog or #100daysofcode, and the post doesn't talk about building in public, unless the notes do.`
 
 // kept is the material the user kept, re-read by ID from a fresh query
 // rather than taken from the UI, and the privacy keys of its items.
@@ -271,8 +284,9 @@ func (s *ShipLogService) Draft(ctx context.Context, d ShipLogDraft) (posts.Post,
 		return posts.Post{}, err
 	}
 	title, body := splitTitle(reply)
+	tags, body := splitTags(body, shipPrompt(d.Query, items, commits, d.Notes))
 	if title == "" {
-		title = "What I shipped, " + shipRange(d.Query)
+		title = fallbackTitle(items)
 	}
 	// The items become the post's links, so Attention stops offering them as
 	// ready to write about.
@@ -281,7 +295,7 @@ func (s *ShipLogService) Draft(ctx context.Context, d ShipLogDraft) (posts.Post,
 		links = append(links, posts.PlaneLink{ProjectID: it.ProjectID, ItemID: it.ID})
 	}
 	p, err := s.posts.store.Save(posts.Post{
-		Meta: posts.Meta{Title: title, Tags: []string{"buildinpublic"}, AI: AIAssisted, PlaneItems: links},
+		Meta: posts.Meta{Title: title, Tags: tags, AI: AIAssisted, PlaneItems: links},
 		Body: body,
 	})
 	if err != nil {
@@ -291,7 +305,7 @@ func (s *ShipLogService) Draft(ctx context.Context, d ShipLogDraft) (posts.Post,
 	return p, nil
 }
 
-// DraftSocial asks the model for a short build-in-public post from the kept
+// DraftSocial asks the model for a short social post from the kept
 // material, fitting limit characters, for the Buffer composer. Nothing is
 // saved or sent: the user reviews it there.
 func (s *ShipLogService) DraftSocial(ctx context.Context, d ShipLogDraft, limit int) (string, error) {
@@ -304,12 +318,27 @@ func (s *ShipLogService) DraftSocial(ctx context.Context, d ShipLogDraft, limit 
 		return "", err
 	}
 	system, user := ai.SocialPrompt(shipPrompt(d.Query, items, commits, d.Notes), limit)
+	system += shipSocialRule
 	reply, err := s.ai.client.Complete(ctx, ai.Plane(keys...), st.Provider, st.Model, system, user)
 	if err != nil {
 		return "", err
 	}
 	shipLog.Info("ship log social post drafted", "items", len(items), "commits", len(commits), "chars", len([]rune(reply)))
 	return strings.TrimSpace(reply), nil
+}
+
+// fallbackTitle names the projects the work was in, for a reply with no title.
+func fallbackTitle(items []ShipItem) string {
+	var names []string
+	for _, it := range items {
+		if it.ProjectName != "" && !slices.Contains(names, it.ProjectName) {
+			names = append(names, it.ProjectName)
+		}
+	}
+	if len(names) == 0 {
+		return "Recent work"
+	}
+	return "Recent work on " + strings.Join(names, " and ")
 }
 
 func shipRange(q ShipLogQuery) string {
@@ -353,6 +382,37 @@ func splitTitle(reply string) (title, body string) {
 		return strings.TrimSpace(t), strings.TrimSpace(rest) + "\n"
 	}
 	return "", reply + "\n"
+}
+
+// genericTags are labels for the habit of posting, not for the work. They're
+// dropped unless the material itself uses them.
+var genericTags = []string{"buildinpublic", "devlog", "100daysofcode", "shiplog", "update", "weeklyupdate", "progress"}
+
+// splitTags takes a leading "Tags: a, b" line off body and returns at most
+// four Dev.to tags (lowercase letters and numbers).
+func splitTags(body, material string) (tags []string, rest string) {
+	first, after, _ := strings.Cut(strings.TrimLeft(body, "\n"), "\n")
+	line, ok := strings.CutPrefix(strings.TrimSpace(first), "Tags:")
+	if !ok {
+		return nil, body
+	}
+	plain := strings.ToLower(strings.NewReplacer("-", "", " ", "", "#", "").Replace(material))
+	for _, t := range strings.Split(line, ",") {
+		var b strings.Builder
+		for _, r := range strings.ToLower(t) {
+			if r >= 'a' && r <= 'z' || r >= '0' && r <= '9' {
+				b.WriteRune(r)
+			}
+		}
+		tag := b.String()
+		if tag == "" || slices.Contains(tags, tag) || (slices.Contains(genericTags, tag) && !strings.Contains(plain, tag)) {
+			continue
+		}
+		if tags = append(tags, tag); len(tags) == 4 {
+			break
+		}
+	}
+	return tags, strings.TrimSpace(after) + "\n"
 }
 
 // RecentRepo is the folder the last ship log read commits from.
