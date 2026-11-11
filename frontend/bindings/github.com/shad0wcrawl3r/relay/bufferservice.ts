@@ -177,6 +177,14 @@ export function Promote($in: $models.Promotion): $CancellablePromise<posts$0.Pos
 }
 
 /**
+ * PromotionIndex maps Buffer post IDs to the articles Relay promoted with
+ * them, from the local post files. It never asks Buffer.
+ */
+export function PromotionIndex(): $CancellablePromise<{ [_ in string]?: $models.PromotedArticle } | null> {
+    return $Call.ByID(3149956876);
+}
+
+/**
  * PromotionPosts looks up the Buffer posts a local article was promoted
  * with, newest first.
  */

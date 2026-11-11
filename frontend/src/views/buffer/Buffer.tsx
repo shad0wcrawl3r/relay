@@ -1,26 +1,26 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Browser } from "@wailsio/runtime";
-import { AlertTriangle, ExternalLink, FileText, Lightbulb, Loader2, Pause, Pencil, PenLine, RefreshCw, Trash2, Unplug } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Events } from "@wailsio/runtime";
+import { loadPref, savePref } from "@/lib/prefs";
+import { PostList } from "@/views/buffer/Queue";
+import { AlertTriangle, ExternalLink, FileText, Lightbulb, Loader2, Pause, PenLine, RefreshCw, Unplug } from "lucide-react";
 import {
   BufferService,
   PostService,
   type BufferChannel,
   type BufferIdea,
   type BufferOverview,
-  type BufferPost,
   type BufferPostStatus,
 } from "@/lib/api";
 import { ago } from "@/lib/time";
 import { cn, errorMessage } from "@/lib/utils";
 import { useToast } from "@/components/Toaster";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { IdeaDialog } from "@/components/IdeaDialog";
 import { ComposeDialog } from "@/components/ComposeDialog";
 import { IdeasInBufferNote, SyncNote, openIdeasInBuffer } from "@/components/SyncNote";
 import { addIdea, loadIdeas, loadMoreIdeas, useIdeas } from "@/lib/ideas";
+import { EmptyState, Page, SkeletonRows } from "@/components/Page";
 
 type TabId = "queue" | "approval" | "drafts" | "sent" | "failed" | "ideas";
 
@@ -51,11 +51,6 @@ export const serviceName = (s: string) => SERVICE_NAMES[s] ?? (s ? s[0].toUpperC
 
 const DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
-const when = (iso: string) => {
-  if (!iso) return "";
-  const d = new Date(iso);
-  return d.toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-};
 
 /** The next posting slot in the channel's schedule, as text in its timezone. */
 function nextSlot(c: BufferChannel): string {
@@ -80,7 +75,7 @@ function nextSlot(c: BufferChannel): string {
 const GOAL_COLOR: Record<string, string> = { Hit: "#46a758", OnTrack: "#60a5fa", AtRisk: "#f59e0b" };
 const GOAL_LABEL: Record<string, string> = { Hit: "Goal hit", OnTrack: "On track", AtRisk: "At risk" };
 
-function Avatar({ channel, size = 28 }: { channel?: BufferChannel; size?: number }) {
+export function Avatar({ channel, size = 28 }: { channel?: BufferChannel; size?: number }) {
   if (channel?.avatar) return <img src={channel.avatar} alt="" className="shrink-0 rounded-full object-cover" style={{ width: size, height: size }} />;
   return (
     <span className="grid shrink-0 place-items-center rounded-full bg-[#232328] text-[11px] text-muted-foreground" style={{ width: size, height: size }}>
@@ -89,6 +84,10 @@ function Avatar({ channel, size = 28 }: { channel?: BufferChannel; size?: number
   );
 }
 
+const TAB_KEY = "relay.buffer.tab";
+const CHANNEL_KEY = "relay.buffer.channel";
+const TAB_IDS: TabId[] = ["queue", "approval", "drafts", "sent", "failed", "ideas"];
+
 const tabFor = (status: string): TabId => TABS.find((t) => (t.statuses as string[]).includes(status))?.id ?? "queue";
 
 export function Buffer({ goSettings, goPost, focus }: { goSettings: () => void; goPost: (postId: string) => void; focus?: BufferFocus }) {
@@ -96,8 +95,24 @@ export function Buffer({ goSettings, goPost, focus }: { goSettings: () => void; 
   const [connected, setConnected] = useState<boolean | null>(null);
   const [overview, setOverview] = useState<BufferOverview | null>(null);
   const [orgId, setOrgId] = useState("");
-  const [tab, setTab] = useState<TabId>(() => (focus ? tabFor(focus.status) : "queue"));
-  const [channelFilter, setChannelFilter] = useState("");
+  const [tab, setTabState] = useState<TabId>(() => (focus ? tabFor(focus.status) : loadPref<TabId>(TAB_KEY, "queue", (v): v is TabId => typeof v === "string" && TAB_IDS.includes(v as TabId))));
+  const setTab = (t: TabId) => {
+    setTabState(t);
+    savePref(TAB_KEY, t);
+  };
+  const [channelFilter, setChannelFilterState] = useState(() => (focus ? "" : loadPref<string>(CHANNEL_KEY, "")));
+  const setChannelFilter = (next: string | ((f: string) => string)) =>
+    setChannelFilterState((cur) => {
+      const v = typeof next === "function" ? next(cur) : next;
+      savePref(CHANNEL_KEY, v || undefined);
+      return v;
+    });
+  // Failed posts from the 15-minute check (bufferwatch.go); no extra Buffer call.
+  const [failedCount, setFailedCount] = useState(0);
+  useEffect(() => {
+    BufferService.LastFailed().then((f) => setFailedCount(f.length), () => {});
+    return Events.On("buffer:failed", (ev) => setFailedCount(((ev.data as { all?: unknown[] | null })?.all ?? []).length));
+  }, []);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [connecting, setConnecting] = useState(false);
@@ -136,8 +151,8 @@ export function Buffer({ goSettings, goPost, focus }: { goSettings: () => void; 
 
   useEffect(() => {
     if (!focus) return;
-    setTab(tabFor(focus.status));
-    setChannelFilter("");
+    setTabState(tabFor(focus.status));
+    setChannelFilterState("");
   }, [focus]);
 
   const connect = async () => {
@@ -158,7 +173,7 @@ export function Buffer({ goSettings, goPost, focus }: { goSettings: () => void; 
 
   if (connected === false) {
     return (
-      <Shell title="Buffer" subtitle="See your queue, sent posts, drafts and ideas in one place.">
+      <Page title="Buffer" subtitle="See your queue, sent posts, drafts and ideas in one place.">
         <div className="flex max-w-[460px] flex-col items-start gap-3 rounded-[10px] border border-column-border bg-column p-5">
           <p className="m-0 text-[13px] text-[#d4d4d8]">Sign in to Buffer to see your channels and posts here. Relay keeps the sign-in in your OS keychain.</p>
           <div className="flex gap-2">
@@ -171,12 +186,12 @@ export function Buffer({ goSettings, goPost, focus }: { goSettings: () => void; 
             </Button>
           </div>
         </div>
-      </Shell>
+      </Page>
     );
   }
 
   return (
-    <Shell
+    <Page
       title="Buffer"
       subtitle={overview ? `${overview.account} · ${channels.length} channel${channels.length === 1 ? "" : "s"}` : loading ? "Loading…" : ""}
       actions={
@@ -226,6 +241,11 @@ export function Buffer({ goSettings, goPost, focus }: { goSettings: () => void; 
             {TABS.map((t) => (
               <TabsTrigger key={t.id} value={t.id}>
                 {t.label}
+                {t.id === "failed" && failedCount > 0 && (
+                  <span className="ml-1.5 rounded-full bg-[#3b1a1a] px-1.5 py-px text-[10px] text-[#fecaca]" aria-label={`${failedCount} failed`}>
+                    {failedCount}
+                  </span>
+                )}
               </TabsTrigger>
             ))}
             <TabsTrigger value="ideas">Ideas</TabsTrigger>
@@ -245,6 +265,8 @@ export function Buffer({ goSettings, goPost, focus }: { goSettings: () => void; 
               channelIds={channelFilter ? [channelFilter] : []}
               channelById={channelById}
               highlightId={focus?.postId}
+              onCompose={(text) => setComposing(text)}
+              goPost={goPost}
             />
           )}
         </Tabs>
@@ -265,27 +287,10 @@ export function Buffer({ goSettings, goPost, focus }: { goSettings: () => void; 
           metrics aren't shown: Buffer only offers them to personal API keys.
         </p>
       )}
-    </Shell>
+    </Page>
   );
 }
 
-function Shell({ title, subtitle, actions, children }: { title: string; subtitle?: string; actions?: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">
-      <div className="drag h-10 shrink-0" />
-      <div className="mx-auto flex max-w-[980px] flex-col px-8 pb-10">
-        <div className="mb-6 flex items-end gap-4">
-          <div className="flex-1">
-            <h1 className="m-0 text-[22px] font-semibold tracking-[-.01em] text-strong">{title}</h1>
-            {subtitle && <p className="mt-1 text-[13px] text-dim">{subtitle}</p>}
-          </div>
-          {actions}
-        </div>
-        {children}
-      </div>
-    </main>
-  );
-}
 
 function ChannelCard({ channel: c, active, onClick }: { channel: BufferChannel; active: boolean; onClick: () => void }) {
   const goal = c.postingGoal;
@@ -326,288 +331,6 @@ function ChannelCard({ channel: c, active, onClick }: { channel: BufferChannel; 
         {slot && !c.isQueuePaused && <span>Next slot {slot}</span>}
       </div>
     </button>
-  );
-}
-
-function PostList({
-  orgId,
-  tab,
-  channelIds,
-  channelById,
-  highlightId,
-}: {
-  orgId: string;
-  tab: (typeof TABS)[number];
-  channelIds: string[];
-  channelById: Map<string, BufferChannel>;
-  highlightId?: string;
-}) {
-  const toast = useToast();
-  const [posts, setPosts] = useState<BufferPost[]>([]);
-  const [cursor, setCursor] = useState("");
-  const [more, setMore] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [editing, setEditing] = useState<BufferPost | null>(null);
-  const [deleting, setDeleting] = useState<BufferPost | null>(null);
-
-  const fetchPage = useCallback(
-    async (after: string) => {
-      setLoading(true);
-      setError("");
-      const q = { organizationId: orgId, statuses: tab.statuses, channelIds, after };
-      if (!after) {
-        // Show the last copy at once; the fresh page replaces it.
-        const cached = await BufferService.CachedPosts(q).catch(() => null);
-        if (cached) {
-          setPosts(cached.posts);
-          setCursor(cached.cursor);
-          setMore(cached.more);
-        }
-      }
-      try {
-        const page = await BufferService.Posts(q);
-        setPosts((cur) => (after ? [...cur, ...page.posts] : page.posts));
-        setCursor(page.cursor);
-        setMore(page.more);
-      } catch (err) {
-        setError(errorMessage(err));
-      } finally {
-        setLoading(false);
-      }
-    },
-    // channelIds is a fresh array each render; the key on PostList remounts on change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [orgId, tab],
-  );
-
-  useEffect(() => {
-    fetchPage("");
-  }, [fetchPage]);
-
-  const remove = async (p: BufferPost) => {
-    try {
-      await BufferService.DeletePost(p.id);
-      setPosts((cur) => cur.filter((x) => x.id !== p.id));
-      toast({ tone: "success", title: "Post deleted from Buffer" });
-    } catch (err) {
-      toast({ tone: "error", title: "Couldn't delete the post", body: errorMessage(err) });
-    } finally {
-      setDeleting(null);
-    }
-  };
-
-  if (error && posts.length === 0) return <p className="text-xs text-overdue">{error}</p>;
-  if (!loading && posts.length === 0) return <p className="px-1 text-[13px] text-dim">{tab.empty}</p>;
-
-  return (
-    <div className="flex flex-col gap-3">
-      {error && <p className="m-0 text-xs text-overdue">Couldn't refresh: {error}. Showing the last copy.</p>}
-      {posts.length > 0 && (
-        <div className="overflow-hidden rounded-[10px] border border-column-border bg-column">
-          {posts.map((p) => (
-            <PostRow
-              key={p.id}
-              post={p}
-              channel={channelById.get(p.channelId)}
-              highlight={p.id === highlightId}
-              onEdit={() => setEditing(p)}
-              onDelete={() => setDeleting(p)}
-            />
-          ))}
-        </div>
-      )}
-      {loading ? (
-        <p className="flex items-center gap-2 px-1 text-xs text-dim">
-          <Loader2 className="size-3.5 animate-spin" /> {posts.length > 0 ? "Refreshing…" : "Loading posts…"}
-        </p>
-      ) : (
-        more && (
-          <Button variant="outline" className="self-start" onClick={() => fetchPage(cursor)}>
-            Load more
-          </Button>
-        )
-      )}
-      {editing && (
-        <EditDialog
-          post={editing}
-          onClose={() => setEditing(null)}
-          onSaved={(p) => {
-            setPosts((cur) => cur.map((x) => (x.id === p.id ? p : x)));
-            setEditing(null);
-          }}
-        />
-      )}
-      <Dialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
-        <DialogContent className="flex flex-col gap-4">
-          <DialogHeader>
-            <DialogTitle>Delete this post from Buffer?</DialogTitle>
-            <DialogDescription>It's removed from Buffer{deleting?.status === "sent" ? ", but stays on the social network" : ""}. This can't be undone.</DialogDescription>
-          </DialogHeader>
-          {deleting && <p className="m-0 line-clamp-4 whitespace-pre-wrap rounded-md bg-[#0f0f11] p-3 text-xs text-[#d4d4d8]">{deleting.text}</p>}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleting(null)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={() => deleting && remove(deleting)}>
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
-
-function PostRow({
-  post: p,
-  channel,
-  highlight,
-  onEdit,
-  onDelete,
-}: {
-  post: BufferPost;
-  channel?: BufferChannel;
-  highlight?: boolean;
-  onEdit: () => void;
-  onDelete: () => void;
-}) {
-  const can = (a: string) => p.actions.includes(a);
-  const row = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (highlight) row.current?.scrollIntoView({ block: "center" });
-  }, [highlight]);
-  const time =
-    p.status === "sent"
-      ? `Sent ${ago(p.sentAt || p.dueAt)}`
-      : p.status === "draft"
-        ? `Created ${ago(p.createdAt)}`
-        : p.dueAt
-          ? `${p.status === "error" ? "Was due" : "Due"} ${when(p.dueAt)}`
-          : "No time set";
-  return (
-    <div
-      ref={row}
-      className={cn(
-        "flex gap-3 border-b border-column-border px-3.5 py-3 last:border-b-0 hover:bg-[#121215]",
-        highlight && "bg-[rgba(96,165,250,.08)] shadow-[inset_2px_0_0_#60a5fa]",
-      )}
-    >
-      <Avatar channel={channel} />
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <div className="flex items-center gap-2 text-[11px] text-dim">
-          <span className="text-[#d4d4d8]">{channel?.displayName || channel?.name || serviceName(p.channelService)}</span>
-          <span>·</span>
-          <span>{time}</span>
-          {p.author && <span>· {p.author}</span>}
-          {p.tags.map((t) => (
-            <span key={t.name} className="rounded-full border px-1.5 text-[10px]" style={{ borderColor: t.color, color: t.color }}>
-              {t.name}
-            </span>
-          ))}
-        </div>
-        <p className="m-0 line-clamp-3 whitespace-pre-wrap text-[13px] leading-snug text-[#f4f4f5]">{p.text || <span className="text-dim">No text</span>}</p>
-        {p.images.length > 0 && (
-          <div className="mt-1 flex gap-1.5">
-            {p.images.slice(0, 4).map((src) => (
-              <img key={src} src={src} alt="" className="size-12 rounded-md object-cover" />
-            ))}
-          </div>
-        )}
-        {p.error && (
-          <p className="m-0 flex items-center gap-1.5 text-xs text-overdue">
-            <AlertTriangle className="size-3.5 shrink-0" />
-            {p.error}
-            {p.errorHelp && (
-              <button className="underline" onClick={() => Browser.OpenURL(p.errorHelp)}>
-                Help
-              </button>
-            )}
-          </p>
-        )}
-      </div>
-      <div className="flex shrink-0 items-start gap-1">
-        {p.externalLink && (
-          <Button variant="ghost" size="icon" aria-label="Open the post" onClick={() => Browser.OpenURL(p.externalLink)}>
-            <ExternalLink className="size-3.5" />
-          </Button>
-        )}
-        {(can("updatePost") || can("updatePostSchedule")) && (
-          <Button variant="ghost" size="icon" aria-label="Edit" onClick={onEdit}>
-            <Pencil className="size-3.5" />
-          </Button>
-        )}
-        {can("deletePost") && (
-          <Button variant="ghost" size="icon" aria-label="Delete" onClick={onDelete}>
-            <Trash2 className="size-3.5" />
-          </Button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-const localInput = (iso: string) => {
-  if (!iso) return "";
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-};
-
-function EditDialog({ post, onClose, onSaved }: { post: BufferPost; onClose: () => void; onSaved: (p: BufferPost) => void }) {
-  const toast = useToast();
-  const canText = post.actions.includes("updatePost");
-  const canTime = post.actions.includes("updatePostSchedule") && post.status !== "sent";
-  const [text, setText] = useState(post.text);
-  const [due, setDue] = useState(localInput(post.dueAt));
-  const [saving, setSaving] = useState(false);
-  const timeChanged = canTime && due !== localInput(post.dueAt);
-
-  const save = async () => {
-    setSaving(true);
-    try {
-      const saved = await BufferService.EditPost(post.id, text, timeChanged && due ? new Date(due).toISOString() : "");
-      toast({ tone: "success", title: "Post updated in Buffer" });
-      onSaved(saved);
-    } catch (err) {
-      toast({ tone: "error", title: "Couldn't update the post", body: errorMessage(err) });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="flex max-w-[560px] flex-col gap-4">
-        <DialogHeader>
-          <DialogTitle>Edit post</DialogTitle>
-          <DialogDescription>Changes go straight to Buffer. A post Relay sent about an article keeps its Dev.to link.</DialogDescription>
-        </DialogHeader>
-        <textarea
-          aria-label="Post text"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          disabled={!canText}
-          rows={8}
-          className="w-full resize-y rounded-md border border-border bg-[#0f0f11] p-3 text-[13px] leading-snug text-[#f4f4f5] outline-none focus:border-border-strong"
-        />
-        {canTime && (
-          <label className="flex items-center gap-3 text-xs text-muted-foreground">
-            Time
-            <Input type="datetime-local" value={due} onChange={(e) => setDue(e.target.value)} className="w-auto" />
-          </label>
-        )}
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={save} disabled={saving || !text.trim() || (text === post.text && !timeChanged)}>
-            {saving && <Loader2 className="size-3.5 animate-spin" />}
-            Save
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }
 
@@ -658,7 +381,8 @@ function Ideas({ orgId, onWrite, goPost }: { orgId: string; onWrite: (text: stri
       </div>
       <IdeasInBufferNote />
       {error && <p className="text-xs text-overdue">{error}</p>}
-      {current && !loading && !error && ideas.length === 0 && <p className="px-1 text-[13px] text-dim">No ideas yet.</p>}
+      {current && !loading && !error && ideas.length === 0 && <EmptyState title="No ideas yet." body="Save one from quick capture (⌘K), or from a Plane board's ideas column." />}
+      {loading && ideas.length === 0 && <SkeletonRows label="Loading ideas" />}
       {current &&
         sections.map((s) => (
           <section key={s.id} aria-label={s.name}>
@@ -699,9 +423,9 @@ function Ideas({ orgId, onWrite, goPost }: { orgId: string; onWrite: (text: stri
             </div>
           </section>
         ))}
-      {loading ? (
+      {loading && ideas.length > 0 ? (
         <p className="flex items-center gap-2 px-1 text-xs text-dim">
-          <Loader2 className="size-3.5 animate-spin" /> Loading ideas…
+          <Loader2 className="size-3.5 animate-spin" /> Refreshing…
         </p>
       ) : (
         more &&

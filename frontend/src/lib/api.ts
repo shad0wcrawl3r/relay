@@ -237,6 +237,11 @@ export const BufferService = {
   },
   /** The last check's failed posts, without asking Buffer. */
   LastFailed: async (): Promise<FailedPost[]> => arr(await BufferBindings.LastFailed()),
+  /** Buffer post ID → the local article it promotes. Read from Relay's files; never asks Buffer. */
+  PromotionIndex: async (): Promise<Record<string, PromotedArticle>> => {
+    const idx = await BufferBindings.PromotionIndex();
+    return Object.fromEntries(Object.entries(idx ?? {}).filter((e): e is [string, M.PromotedArticle] => !!e[1]));
+  },
 };
 export type CalendarPost = BufferPost & { organizationId: string };
 export type CalendarPosts = { posts: CalendarPost[]; partial: boolean; limited: string; loadedAt: string };
@@ -370,6 +375,7 @@ export const UpdateService = {
   MarkSeen: (): Promise<void> => UpdateBindings.MarkSeen(),
 };
 export type BuildInfo = Clean<M.BuildInfo>;
+export type PromotedArticle = Clean<M.PromotedArticle>;
 export interface ChangelogEntry {
   version: string;
   date: string;

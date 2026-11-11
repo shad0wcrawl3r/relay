@@ -54,6 +54,7 @@ export type {
     ModelTest,
     PostList,
     PostSummary,
+    PromotedArticle,
     Promotion,
     PromotionPost,
     SendResult,

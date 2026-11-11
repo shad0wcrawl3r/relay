@@ -355,3 +355,27 @@ func (s *BufferService) PromotionPosts(ctx context.Context, postID string) ([]Pr
 func (s *BufferService) CreateIdea(ctx context.Context, n buffer.NewIdea) (buffer.Idea, error) {
 	return s.client.CreateIdea(ctx, n)
 }
+
+// PromotedArticle is the local article a Buffer post promotes.
+type PromotedArticle struct {
+	PostID string `json:"postId"`
+	Title  string `json:"title"`
+}
+
+// PromotionIndex maps Buffer post IDs to the articles Relay promoted with
+// them, from the local post files. It never asks Buffer.
+func (s *BufferService) PromotionIndex() (map[string]PromotedArticle, error) {
+	local, err := s.posts.store.List()
+	if err != nil {
+		return nil, err
+	}
+	out := map[string]PromotedArticle{}
+	for _, p := range local {
+		for _, pr := range p.Promotions {
+			if pr.BufferID != "" {
+				out[pr.BufferID] = PromotedArticle{PostID: p.ID, Title: p.Title}
+			}
+		}
+	}
+	return out, nil
+}

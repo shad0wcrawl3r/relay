@@ -20,6 +20,9 @@ that heading to the new version.
 - AI: Ollama and LM Studio models can load into memory when you open the ship log or point at an AI button (Settings → AI → Preload).
 - Toasts pause while the pointer is over them, and errors stay until you close them.
 - The Dev.to editor is now called Posts in the sidebar.
+- Buffer posts read as a schedule, grouped by day with a time column. Edit a post's text in place, reschedule it from a menu (next slot, in an hour, tomorrow, an exact time) or by dragging it onto another day, all with Undo.
+- Buffer posts: copy the text, show all of a long post, search what's loaded, and see which article a promotion is for. Failed posts have Retry (or Post again), and the Failed tab shows a count.
+- The Buffer tab and channel filter are remembered.
 - The sidebar keeps its spacing when it's collapsed to icons; the Relay mark expands it.
 
 ## 0.0.7 — 2026-11-10

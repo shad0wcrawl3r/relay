@@ -392,6 +392,14 @@ export interface PostSummary {
 }
 
 /**
+ * PromotedArticle is the local article a Buffer post promotes.
+ */
+export interface PromotedArticle {
+    "postId": string;
+    "title": string;
+}
+
+/**
  * Promotion asks Buffer to post about a published article.
  */
 export interface Promotion {
