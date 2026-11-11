@@ -91,6 +91,15 @@ export function SetProjectOrder(identifiers: string[] | null): $CancellablePromi
 }
 
 /**
+ * SetTask ticks or unticks the index-th checklist item in an item's
+ * description. Go re-reads the description from Plane and changes only that
+ * item, so the UI never sends description HTML back.
+ */
+export function SetTask(projectID: string, itemID: string, index: number, checked: boolean): $CancellablePromise<void> {
+    return $Call.ByID(932736408, projectID, itemID, index, checked);
+}
+
+/**
  * Snapshot returns the last synced state without a network round trip.
  */
 export function Snapshot(): $CancellablePromise<plane$0.Snapshot> {
