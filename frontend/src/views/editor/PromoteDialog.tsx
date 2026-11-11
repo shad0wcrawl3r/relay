@@ -3,6 +3,7 @@ import { CancelError, type CancellablePromise } from "@wailsio/runtime";
 import { Link2, Loader2, Sparkles } from "lucide-react";
 import { AIService, BufferService, type AIStatus, type BufferChannel, type BufferTiming, type Post } from "@/lib/api";
 import { cn, errorMessage } from "@/lib/utils";
+import { isoDate } from "@/lib/time";
 import { useToast } from "@/components/Toaster";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -57,12 +58,15 @@ export function PromoteDialog({
   post,
   url,
   onPromoted,
+  onShowTimeline,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   post: Post;
   url: string;
   onPromoted: (post: Post) => void;
+  /** Opens the Timeline on a day (YYYY-MM-DD), offered once the post is in Buffer. */
+  onShowTimeline?: (day: string) => void;
 }) {
   const toast = useToast();
   const [loading, setLoading] = useState(true);
@@ -192,7 +196,14 @@ export function PromoteDialog({
       onOpenChange(false);
       const done = TIMINGS.find((t) => t.value === timing)?.done ?? "Sent to Buffer";
       const scheduled = withFollowUps ? FOLLOW_UP_DAYS.length - failed.length : 0;
-      toast({ tone: "success", title: done, body: scheduled ? `${channel.name}, plus ${scheduled} follow-up${scheduled === 1 ? "" : "s"}` : channel.name });
+      const firstDay = isoDate(timing === "schedule" ? new Date(dueAt) : new Date());
+      toast({
+        tone: "success",
+        title: done,
+        body: scheduled ? `${channel.name}, plus ${scheduled} follow-up${scheduled === 1 ? "" : "s"}` : channel.name,
+        keep: true,
+        actions: onShowTimeline ? [{ label: "See on Timeline", primary: true, onClick: () => onShowTimeline(firstDay) }] : undefined,
+      });
       if (failed.length) toast({ tone: "error", title: "A follow-up didn't go to Buffer", body: failed.join("\n") });
     } catch (err) {
       setError(errorMessage(err));

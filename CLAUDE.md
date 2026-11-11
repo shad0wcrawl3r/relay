@@ -64,6 +64,9 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
   content from a lockable project or module only reaches a private provider: one the user marked (`[ai] PRIVATE`,
   tied to the endpoint), or Ollama / LM Studio at their default endpoints until turned off. A loopback address alone
   isn't trusted. Unlocking doesn't change that. Never log a refused prompt or the project it came from.
+- UI state that's remembered per machine (last view and post, board view/filters/columns, sidebar width) lives in localStorage via
+  `lib/prefs.ts`: IDs and choices only, and private projects' boards are remembered for the session only. The notification pane
+  (`Toaster.tsx` `useInbox`) is in memory; errors are kept unless `keep: false`, which item-specific errors use so a relocked project isn't named.
 - Planning in Buffer (`[planning] BUFFER`) is **experimental** in Relay because the upstream API is; keep it labelled so in the UI and docs. `internal/planning` maps Buffer content items (an Experimental Buffer API) to a
   board project (`buffer-plan`, source "buffer"); PlaneService routes its writes to `bufferplan.go`. Columns before
   posting are "Relay: …" tags; Scheduled/Published come from the item's posts and can't be dragged into. Card text stays in memory.

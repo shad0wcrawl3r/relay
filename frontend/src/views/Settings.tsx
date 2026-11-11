@@ -25,6 +25,7 @@ import { BufferPlanningRow } from "@/components/BufferPlanningRow";
 import { UpdateCheck, useAutoCheck } from "@/components/Updates";
 import { About } from "@/components/About";
 import type { Route } from "@/App";
+import { PageHeader } from "@/components/Page";
 
 export type SettingsTab = "plane" | "publishing" | "ai" | "terminal" | "privacy" | "storage" | "logs" | "about";
 
@@ -176,8 +177,10 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
       <div className="drag h-10" />
       <div className="mx-auto flex max-w-[720px] flex-col gap-8 px-8 pb-16">
         <div>
-          <h1 className="m-0 text-[22px] font-semibold tracking-[-.01em] text-strong">Settings</h1>
-          <p className="mt-1 text-[13px] text-dim">Settings are saved to {s.configPath}. API keys and secrets go to the system keychain, never that file, and aren't shown again.</p>
+          <PageHeader
+            title="Settings"
+            subtitle={`Settings are saved to ${s.configPath}. API keys and secrets go to the system keychain, never that file, and aren't shown again.`}
+          />
           <div className="mt-2 flex gap-4 text-xs">
             {[
               { label: "Source on GitHub", url: "https://github.com/shad0wcrawl3r/relay" },

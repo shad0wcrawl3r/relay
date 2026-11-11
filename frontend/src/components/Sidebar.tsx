@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, CalendarDays, Kanban, Lock, LockOpen, PenLine, RefreshCw, SlidersHorizontal, SquareTerminal } from "lucide-react";
+import { Bell, CalendarDays, Kanban, Lock, LockOpen, PanelLeftClose, PanelLeftOpen, PenLine, RefreshCw, SlidersHorizontal, SquareTerminal } from "lucide-react";
 import { BufferLogo } from "@/components/icons/BufferLogo";
 import { usePlane } from "@/lib/store";
 import { useIntegrations } from "@/lib/integrations";
@@ -9,6 +9,7 @@ import { syncedAgo } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { Dot, PrivateLock, ProjectGlyph } from "@/components/bits";
 import { Tooltip } from "@/components/ui/tooltip";
+import { NotificationsButton } from "@/components/Notifications";
 import type { Route } from "@/App";
 
 function useNow(ms = 5000) {
@@ -20,7 +21,7 @@ function useNow(ms = 5000) {
   return now;
 }
 
-export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => void; rail: boolean }) {
+export function Sidebar({ route, go, rail, onToggle }: { route: Route; go: (r: Route) => void; rail: boolean; onToggle: () => void }) {
   const { projects, snapshot, syncing, syncNow, readOnly, lock } = usePlane();
   // With the Buffer board listed beside Plane's, each board says where it lives.
   const mixed = projects.some((p) => p.source === "buffer") && projects.some((p) => p.source !== "buffer");
@@ -57,7 +58,7 @@ export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => v
     cn(
       "no-drag flex min-h-[34px] items-center gap-2.5 rounded-md px-2.5 text-muted-foreground hover:bg-[#141417] hover:text-strong",
       active && "bg-[#1a1a1e] text-strong",
-      rail && "size-11 justify-center px-0",
+      rail && "w-11 justify-center px-0",
       extra,
     );
 
@@ -111,8 +112,28 @@ export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => v
     >
       {/* Same left edge as the nav icons below (nav px-2.5 + item px-2.5). */}
       <div className={cn("flex h-6 items-center gap-2.5 text-sm font-semibold text-strong", rail ? "justify-center" : "px-2.5")}>
-        <img src="/relay-mark.svg" alt="" className="block size-6 shrink-0" draggable={false} />
+        {rail ? (
+          <Tooltip label="Expand sidebar  ⌘\" side="right">
+            <button aria-label="Expand sidebar" onClick={onToggle} className="no-drag group/mark relative grid size-6 place-items-center rounded-md">
+              <img src="/relay-mark.svg" alt="" className="block size-6 shrink-0 group-hover/mark:opacity-0 group-focus-visible/mark:opacity-0" draggable={false} />
+              <PanelLeftOpen className="absolute size-[15px] text-strong opacity-0 group-hover/mark:opacity-100 group-focus-visible/mark:opacity-100" strokeWidth={1.8} />
+            </button>
+          </Tooltip>
+        ) : (
+          <img src="/relay-mark.svg" alt="" className="block size-6 shrink-0" draggable={false} />
+        )}
         {!rail && <span>Relay</span>}
+        {!rail && (
+          <Tooltip label="Collapse sidebar  ⌘\">
+            <button
+              aria-label="Collapse sidebar"
+              onClick={onToggle}
+              className="no-drag ml-auto grid size-7 place-items-center rounded-md text-dim hover:bg-[#1c1c20] hover:text-strong focus-visible:outline focus-visible:outline-1 focus-visible:outline-border-strong"
+            >
+              <PanelLeftClose className="size-[15px]" strokeWidth={1.8} />
+            </button>
+          </Tooltip>
+        )}
       </div>
 
       <div className="flex flex-col gap-0.5">
@@ -138,7 +159,7 @@ export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => v
         <>
 
           <div className="flex flex-col gap-0.5">
-            {!rail && <div className="px-2.5 pb-1.5 text-[11px] font-medium uppercase tracking-[.06em] text-dim">{snapshot?.connected && !mixed ? "Plane projects" : "Projects"}</div>}
+            <SectionTitle rail={rail}>{snapshot?.connected && !mixed ? "Plane projects" : "Projects"}</SectionTitle>
             {projects.map((p) => (
               <Item
                 key={p.id}
@@ -160,15 +181,15 @@ export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => v
       )}
 
       <div className="flex flex-col gap-0.5">
-        {!rail && <div className="px-2.5 pb-1.5 text-[11px] font-medium uppercase tracking-[.06em] text-dim">Write</div>}
-        <Item active={route.name === "editor"} onClick={() => go({ name: "editor" })} icon={<PenLine className="size-[15px]" strokeWidth={1.8} />} label="Dev.to editor" />
+        <SectionTitle rail={rail}>Write</SectionTitle>
+        <Item active={route.name === "editor"} onClick={() => go({ name: "editor" })} icon={<PenLine className="size-[15px]" strokeWidth={1.8} />} label="Posts" title="Write and publish Dev.to articles  (E)" />
         {bufferOn && (
           <Item active={route.name === "buffer"} onClick={() => go({ name: "buffer" })} icon={<BufferLogo className="size-[14px]" />} label="Buffer" />
         )}
       </div>
 
       <div className="flex flex-col gap-0.5">
-        {!rail && <div className="px-2.5 pb-1.5 text-[11px] font-medium uppercase tracking-[.06em] text-dim">Run</div>}
+        <SectionTitle rail={rail}>Run</SectionTitle>
         <Item
           active={route.name === "terminal"}
           onClick={() => go({ name: "terminal" })}
@@ -183,7 +204,7 @@ export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => v
 
       {others.length > 0 && (
         <div className="flex flex-col gap-0.5">
-          {!rail && <div className="px-2.5 pb-1.5 text-[11px] font-medium uppercase tracking-[.06em] text-dim">Other integrations</div>}
+          <SectionTitle rail={rail}>Other integrations</SectionTitle>
           {others.map((o) => (
             <Item key={o.label} active={o.active} onClick={o.onClick} icon={o.icon} label={o.label} badge={<span className="ml-auto text-[11px] text-dim">Set up</span>} />
           ))}
@@ -197,7 +218,7 @@ export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => v
           </button>
         </Tooltip>
       ) : (
-        <div className="flex items-center gap-2 pl-2.5 text-xs text-dim" title={snapshot?.error || undefined}>
+        <div className="flex min-h-[34px] items-center gap-2 pl-2.5 text-xs text-dim" title={snapshot?.error || undefined}>
           <Dot color={syncColor} />
           <span className="truncate">{syncLabel}</span>
           <Tooltip label="Sync now  ⌘R">
@@ -212,6 +233,7 @@ export function Sidebar({ route, go, rail }: { route: Route; go: (r: Route) => v
           </Tooltip>
         </div>
       )}
+      <NotificationsButton rail={rail} itemClass={item(false)} />
       {anyUnlocked && (
         <Item active={false} onClick={() => lock()} icon={<Lock className="size-[15px] text-[#5eead4]" strokeWidth={1.8} />} label="Lock private items" />
       )}
@@ -239,5 +261,17 @@ function SourceGlyph({ project }: { project: Parameters<typeof ProjectGlyph>[0][
         {buffer ? <BufferLogo className="size-[8px]" /> : <Kanban className="size-[8px]" strokeWidth={2.4} />}
       </span>
     </span>
+  );
+}
+
+/** A section's title; in the rail, a short rule of the same height, so items
+ * sit at the same place whether the sidebar is expanded or not. */
+function SectionTitle({ rail, children }: { rail: boolean; children: React.ReactNode }) {
+  return rail ? (
+    <div aria-hidden className="flex h-6 items-center justify-center">
+      <span className="h-px w-5 bg-[#232328]" />
+    </div>
+  ) : (
+    <div className="flex h-6 items-center px-2.5 text-[11px] font-medium uppercase tracking-[.06em] text-dim">{children}</div>
   );
 }

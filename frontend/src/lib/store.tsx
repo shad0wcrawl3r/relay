@@ -20,7 +20,8 @@ interface PlaneStore {
   syncNow: () => Promise<void>;
   /** Signs out of Plane and clears every Plane view straight away. */
   disconnect: () => Promise<void>;
-  update: (item: Item, patch: Partial<ItemPatch>, okMessage?: string) => Promise<boolean>;
+  /** okMessage shows a toast with Undo (unless undoable is false). */
+  update: (item: Item, patch: Partial<ItemPatch>, okMessage?: string, undoable?: boolean) => Promise<boolean>;
   create: (projectId: string, name: string, stateId?: string) => Promise<Item | null>;
   comment: (item: Item, html: string) => Promise<boolean>;
 }
@@ -158,7 +159,7 @@ export function PlaneProvider({ children }: { children: ReactNode }) {
   }, [toast]);
 
   const update = useCallback(
-    async (item: Item, patch: Partial<ItemPatch>, okMessage?: string) => {
+    async (item: Item, patch: Partial<ItemPatch>, okMessage?: string, undoable = true) => {
       if (live.current) {
         refuse();
         return false;
@@ -168,17 +169,32 @@ export function PlaneProvider({ children }: { children: ReactNode }) {
       setSnapshot((s) => (s ? { ...s } : s));
       try {
         await PlaneService.Update(item.projectId, item.id, patch);
-        if (okMessage) toast({ tone: "success", title: okMessage });
+        if (okMessage && !undoable) toast({ tone: "success", title: okMessage });
+        else if (okMessage) {
+          // Undo writes back what the item had before, as one more update.
+          const before = Object.fromEntries(Object.keys(patch).map((k) => [k, item[k as keyof Item]])) as Partial<ItemPatch>;
+          const after = { ...item, ...patch } as Item;
+          toast({
+            tone: "success",
+            title: okMessage,
+            keep: false,
+            actions: [{ label: "Undo", onClick: () => updateRef.current(after, before, `${item.key} change undone`, false) }],
+          }, 6000);
+        }
         return true;
       } catch (err) {
         pending.current.delete(item.id);
         setSnapshot((s) => (s ? { ...s } : s));
-        toast({ tone: "error", title: `Couldn't update ${item.key}`, body: errorMessage(err) });
+        // Not kept in the notification pane: the item may be in a project
+        // that locks again, and the pane would still name it.
+        toast({ tone: "error", title: `Couldn't update ${item.key}`, body: errorMessage(err), keep: false });
         return false;
       }
     },
     [toast, refuse],
   );
+  const updateRef = useRef(update);
+  updateRef.current = update;
 
   const create = useCallback(
     async (projectId: string, name: string, stateId?: string) => {
@@ -220,7 +236,7 @@ export function PlaneProvider({ children }: { children: ReactNode }) {
         await PlaneService.Comment(item.projectId, item.id, html);
         return true;
       } catch (err) {
-        toast({ tone: "error", title: "Couldn't post comment", body: errorMessage(err) });
+        toast({ tone: "error", title: "Couldn't post comment", body: errorMessage(err), keep: false });
         return false;
       }
     },

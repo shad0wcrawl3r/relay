@@ -11,6 +11,15 @@ that heading to the new version.
 
 - What's new: after an update, Relay shows what changed the first time it opens.
 - Settings → About lists every release's changes.
+- Undo: moving an item on a board or from Attention, rescheduling and deleting a draft can be undone from the toast.
+- Notifications: errors, failed Buffer posts, updates and publish results stay in a pane at the foot of the sidebar.
+- Relay reopens the view and post you had open, and each board remembers its filters, view and collapsed columns.
+- ⌘\ shows or hides the sidebar; ⌘? lists every keyboard shortcut.
+- Attention: J and K move through items; Enter opens, D, S and A run Done, Send back and Approve.
+- Posts: a status strip shows where a post is (local, draft on Dev.to, published, promoted); after promoting, See on Timeline opens the day.
+- Toasts pause while the pointer is over them, and errors stay until you close them.
+- The Dev.to editor is now called Posts in the sidebar.
+- The sidebar keeps its spacing when it's collapsed to icons; the Relay mark expands it.
 
 ## 0.0.7 — 2026-11-10
 

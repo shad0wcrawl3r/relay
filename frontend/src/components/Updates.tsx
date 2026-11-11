@@ -59,6 +59,7 @@ export function UpdateNotifier() {
       toast(
         {
           tone: "info",
+          keep: true,
           title: `Relay ${info.latest} is available`,
           body: `You have ${info.current}.`,
           actions: info.canInstall

@@ -10,6 +10,7 @@ import { UnlockButton } from "@/components/LockScreen";
 import { usePlane } from "@/lib/store";
 import { collapsedByDefault, hasIdeas, isDoneGroup, isOverdue, PRIORITIES, priorityLabel, stateById, stateColor } from "@/lib/plane";
 import { cn, errorMessage } from "@/lib/utils";
+import { loadPref, savePref } from "@/lib/prefs";
 import { Dot, ExperimentalBadge, Kbd, PriorityIcon, PrivateLock, ProjectGlyph } from "@/components/bits";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,8 +26,47 @@ import type { OpenItem } from "@/App";
 
 // Board UI state lives in memory only: some projects (Teaching) must never
 // leave a trace on disk, and that includes their state ids.
-const collapsedMemory = new Map<string, Set<string>>();
-const viewMemory = new Map<string, "board" | "lanes">();
+// Each board's view, collapsed columns and filters are remembered per
+// machine (lib/prefs). Private projects are remembered for this session only.
+interface BoardPrefs {
+  view?: "board" | "lanes";
+  collapsed?: string[];
+  filters?: { modules: string[]; labels: string[]; priorities: string[]; cycles: string[]; agentOnly: boolean; overdueOnly: boolean };
+}
+const sessionPrefs = new Map<string, BoardPrefs>();
+const prefKey = (id: string) => `relay.board.${id}`;
+function boardPrefs(p: Project): BoardPrefs {
+  return sessionPrefs.get(p.id) ?? (p.private ? {} : loadPref<BoardPrefs>(prefKey(p.id), {}, (v): v is BoardPrefs => typeof v === "object" && v !== null));
+}
+function saveBoardPrefs(p: Project, patch: BoardPrefs) {
+  const next = { ...boardPrefs(p), ...patch };
+  sessionPrefs.set(p.id, next);
+  if (!p.private) savePref(prefKey(p.id), next);
+}
+const filtersFrom = (f?: BoardPrefs["filters"]): Filters =>
+  f
+    ? {
+        modules: new Set(f.modules ?? []),
+        labels: new Set(f.labels ?? []),
+        priorities: new Set(f.priorities ?? []),
+        cycles: new Set(f.cycles ?? []),
+        agentOnly: !!f.agentOnly,
+        overdueOnly: !!f.overdueOnly,
+        query: "",
+      }
+    : emptyFilters();
+const filtersPref = (f: Filters): BoardPrefs["filters"] => ({
+  modules: [...f.modules],
+  labels: [...f.labels],
+  priorities: [...f.priorities],
+  cycles: [...f.cycles],
+  agentOnly: f.agentOnly,
+  overdueOnly: f.overdueOnly,
+});
+const collapsedFor = (p: Project) => {
+  const saved = boardPrefs(p).collapsed;
+  return new Set(saved ?? p.states.filter(collapsedByDefault).map((s) => s.id));
+};
 
 interface Filters {
   modules: Set<string>;
@@ -120,29 +160,32 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board({ projec
   const { update, lock, readOnly } = usePlane();
   const toast = useToast();
   const { buffer } = useIntegrations();
-  const [view, setView] = useState<"board" | "lanes">(() => viewMemory.get(project.id) ?? "board");
-  const [collapsed, setCollapsed] = useState<Set<string>>(
-    () => collapsedMemory.get(project.id) ?? new Set(project.states.filter(collapsedByDefault).map((s) => s.id)),
-  );
-  const [filters, setFilters] = useState<Filters>(emptyFilters);
+  const [view, setView] = useState<"board" | "lanes">(() => boardPrefs(project).view ?? "board");
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => collapsedFor(project));
+  const [filters, setFilters] = useState<Filters>(() => filtersFrom(boardPrefs(project).filters));
+  useEffect(() => {
+    saveBoardPrefs(project, { filters: filtersPref(filters) });
+    // Saving follows filter changes only; project switches load instead.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
   const searchRef = useRef<HTMLInputElement>(null);
 
   useImperativeHandle(ref, () => ({ focusSearch: () => searchRef.current?.focus(), newItem: onNewItem }), [onNewItem]);
 
   useEffect(() => {
-    setView(viewMemory.get(project.id) ?? "board");
-    setCollapsed(collapsedMemory.get(project.id) ?? new Set(project.states.filter(collapsedByDefault).map((s) => s.id)));
-    setFilters(emptyFilters());
+    setView(boardPrefs(project).view ?? "board");
+    setCollapsed(collapsedFor(project));
+    setFilters(filtersFrom(boardPrefs(project).filters));
     // Only reset when switching projects, not on every sync.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.id]);
 
   const setCollapsedFor = (next: Set<string>) => {
-    collapsedMemory.set(project.id, next);
+    saveBoardPrefs(project, { collapsed: [...next] });
     setCollapsed(next);
   };
   const setViewFor = (v: "board" | "lanes") => {
-    viewMemory.set(project.id, v);
+    saveBoardPrefs(project, { view: v });
     setView(v);
   };
 
@@ -154,7 +197,7 @@ export const Board = forwardRef<BoardHandle, BoardProps>(function Board({ projec
 
   const moveTo = (state: State) => (id: string) => {
     const it = project.items.find((i) => i.id === id);
-    if (it && it.stateId !== state.id) update(it, { stateId: state.id });
+    if (it && it.stateId !== state.id) update(it, { stateId: state.id }, `${it.key} moved to ${state.name}`);
   };
 
   const ideaTo = (state: State) => async (idea: DroppedIdea) => {

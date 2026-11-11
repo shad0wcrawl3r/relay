@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePlane } from "@/lib/store";
 import { ATTENTION_GROUPS, attentionRows, boardsOn, findState, findStateByGroup, isOverdue, type AttentionRow } from "@/lib/plane";
 import { ago, daysLate, duration, isoDate, shortDate } from "@/lib/time";
@@ -8,6 +8,10 @@ import { Button } from "@/components/ui/button";
 import { RescheduleButton } from "@/components/Reschedule";
 import type { Project } from "@/lib/api";
 import type { OpenItem } from "@/App";
+import { EmptyState, Page } from "@/components/Page";
+
+const isTypingTarget = (el: EventTarget | null) =>
+  el instanceof HTMLElement && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName));
 
 export function shelveState(p: Project) {
   return findState(p, "Shelved") ?? findStateByGroup(p, "cancelled") ?? findState(p, "Backlog") ?? findStateByGroup(p, "backlog");
@@ -30,7 +34,7 @@ function subtitle(r: AttentionRow): { text: string; over?: boolean } {
   }
 }
 
-export function Attention({ openItem }: { openItem: (o: OpenItem) => void }) {
+export function Attention({ openItem, goTimeline }: { openItem: (o: OpenItem) => void; goTimeline: () => void }) {
   const { projects, update, snapshot } = usePlane();
   const [filter, setFilter] = useState<string>("all");
   const rows = useMemo(() => attentionRows(projects), [projects]);
@@ -73,22 +77,66 @@ export function Attention({ openItem }: { openItem: (o: OpenItem) => void }) {
     }
   };
 
+  // Keyboard: J/K move through the rows in the order shown, ↵ opens, and
+  // D / S / A run Done, Send back and Approve where the row offers them.
+  const ordered = useMemo(() => ATTENTION_GROUPS.flatMap((g) => shown.filter((r) => r.kind === g.kind)), [shown]);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const rowRefs = useRef(new Map<string, HTMLDivElement>());
+  const lastG = useRef(0);
+  const live = useRef({ ordered, cursor, actions });
+  live.current = { ordered, cursor, actions };
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey || isTypingTarget(e.target) || document.querySelector("[role=dialog]")) return;
+      const { ordered, cursor, actions } = live.current;
+      if (ordered.length === 0) return;
+      const i = ordered.findIndex((r) => r.item.id === cursor);
+      const k = e.key.toLowerCase();
+      // G then A is "go to Attention", not Approve.
+      if (k === "g") lastG.current = Date.now();
+      if (k === "a" && Date.now() - lastG.current < 1000) return;
+      const moveTo = (n: number) => {
+        const r = ordered[Math.max(0, Math.min(ordered.length - 1, n))];
+        setCursor(r.item.id);
+        rowRefs.current.get(r.item.id)?.scrollIntoView({ block: "nearest" });
+      };
+      if (k === "j" || e.key === "ArrowDown") {
+        e.preventDefault();
+        moveTo(i < 0 ? 0 : i + 1);
+        return;
+      }
+      if (k === "k" || e.key === "ArrowUp") {
+        e.preventDefault();
+        moveTo(i < 0 ? 0 : i - 1);
+        return;
+      }
+      if (i < 0) return;
+      const row = ordered[i];
+      const label = e.key === "Enter" ? (row.kind === "debate" ? "Reply" : "Open") : { d: "Done", s: "Send back", a: "Approve" }[k];
+      const act = label && actions(row).find((a) => a.label === label);
+      if (!act) return;
+      e.preventDefault();
+      // The row may leave the list; keep the cursor on the one after it.
+      const next = ordered[i + 1] ?? ordered[i - 1];
+      if (label !== "Open" && label !== "Reply") setCursor(next?.item.id ?? null);
+      act.run();
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, []);
+
   return (
-    <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">
-      <div className="drag h-10 shrink-0" />
-      <div className="mx-auto flex max-w-[980px] flex-col px-8 pb-10">
-        <div className="mb-6 flex flex-wrap items-end gap-4">
-          <div className="flex-[1_1_320px]">
-            <h1 className="m-0 text-[22px] font-semibold tracking-[-.01em] text-strong">Attention</h1>
-            <p className="mt-1 text-[13px] text-dim">
-              {!boardsOn(snapshot)
-                ? "Connect Plane, or turn on planning in Buffer, in Settings to see what's waiting on you."
-                : rows.length === 0
-                  ? "Nothing is waiting on you."
-                  : `${rows.length} item${rows.length === 1 ? "" : "s"} across ${projectCount} project${projectCount === 1 ? "" : "s"} ${rows.length === 1 ? "is" : "are"} waiting on you.`}
-            </p>
-          </div>
-          {projects.length > 0 && (
+    <Page
+      title="Attention"
+      subtitle={
+        !boardsOn(snapshot)
+          ? "Connect Plane, or turn on planning in Buffer, in Settings to see what's waiting on you."
+          : rows.length === 0
+            ? "Nothing is waiting on you."
+            : `${rows.length} item${rows.length === 1 ? "" : "s"} across ${projectCount} project${projectCount === 1 ? "" : "s"} ${rows.length === 1 ? "is" : "are"} waiting on you.`
+      }
+      actions={
+          projects.length > 0 && (
             <div className="inline-flex rounded-[7px] border border-border bg-[#0f0f11] p-0.5" role="group" aria-label="Project filter">
               {[{ id: "all", name: "All" }, ...projects].map((p) => {
                 const n = p.id === "all" ? rows.length : rows.filter((r) => r.project.id === p.id).length;
@@ -108,9 +156,12 @@ export function Attention({ openItem }: { openItem: (o: OpenItem) => void }) {
                 );
               })}
             </div>
-          )}
-        </div>
-
+          )
+      }
+    >
+        {boardsOn(snapshot) && rows.length === 0 && (
+          <EmptyState title="You're clear." body="Reviews, debates, blocked and overdue items show up here as they happen." action={{ label: "Open Timeline", onClick: goTimeline }} />
+        )}
         {ATTENTION_GROUPS.map((g) => {
           const groupRows = shown.filter((r) => r.kind === g.kind);
           if (groupRows.length === 0) return null;
@@ -126,7 +177,19 @@ export function Attention({ openItem }: { openItem: (o: OpenItem) => void }) {
                 {groupRows.map((r) => {
                   const sub = subtitle(r);
                   return (
-                    <div key={r.item.id} className="flex items-center gap-3 border-b border-column-border px-3.5 py-2.5 last:border-b-0 hover:bg-[#121215]">
+                    <div
+                      key={r.item.id}
+                      ref={(el) => {
+                        if (el) rowRefs.current.set(r.item.id, el);
+                        else rowRefs.current.delete(r.item.id);
+                      }}
+                      aria-selected={cursor === r.item.id}
+                      onPointerDown={() => setCursor(r.item.id)}
+                      className={cn(
+                        "flex items-center gap-3 border-b border-column-border px-3.5 py-2.5 last:border-b-0 hover:bg-[#121215]",
+                        cursor === r.item.id && "bg-[#141418] shadow-[inset_2px_0_0_#a1a1aa]",
+                      )}
+                    >
                       <ProjectGlyph project={r.project} />
                       <span className="w-[76px] shrink-0 font-mono text-[11px] text-dim">{r.item.key}</span>
                       <button className="flex min-w-0 flex-1 flex-col gap-0.5 text-left" onClick={() => openItem({ projectId: r.project.id, itemId: r.item.id })}>
@@ -169,7 +232,6 @@ export function Attention({ openItem }: { openItem: (o: OpenItem) => void }) {
             {projects.some((p) => p.private && p.locked) ? " — locked items aren't listed here." : "."}
           </div>
         )}
-      </div>
-    </main>
+    </Page>
   );
 }

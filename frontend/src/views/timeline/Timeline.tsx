@@ -20,6 +20,7 @@ import { cn, errorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { serviceName, type BufferFocus } from "@/views/buffer/Buffer";
 import type { OpenItem } from "@/App";
+import { PageHeader } from "@/components/Page";
 
 // Timeline: what Buffer will post, what's been published on Dev.to and
 // what's due in Plane, by day. Each source is optional: it shows whatever
@@ -99,7 +100,10 @@ export function Timeline({
   goBuffer,
   goPost,
   openItem,
+  startDay,
 }: {
+  /** The day to open on (YYYY-MM-DD); today when absent. */
+  startDay?: string;
   goBuffer: (focus?: BufferFocus) => void;
   goPost: (postId: string) => void;
   openItem: (o: OpenItem) => void;
@@ -107,7 +111,10 @@ export function Timeline({
   const { projects } = usePlane();
   const bufferOn = useIntegrations().buffer === true;
   const [view, setViewState] = useState<TimelineView>(savedView);
-  const [day, setDay] = useState(() => startOfToday());
+  const [day, setDay] = useState(() => {
+    const d = startDay ? new Date(`${startDay}T00:00:00`) : null;
+    return d && !isNaN(d.getTime()) ? d : startOfToday();
+  });
   const [orgs, setOrgs] = useState<BufferOrganization[]>([]);
   const [orgId, setOrgId] = useState("");
   const [channels, setChannels] = useState<BufferChannel[]>([]);
@@ -233,11 +240,11 @@ export function Timeline({
     <main className="min-h-0 min-w-0 flex-1 overflow-y-auto">
       <div className="drag h-10 shrink-0" />
       <div className="mx-auto flex max-w-[980px] flex-col gap-4 px-8 pb-10">
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="min-w-0 flex-1">
-            <h1 className="m-0 text-[22px] font-semibold tracking-[-.01em] text-strong">Timeline</h1>
-            <p className="mt-1 text-[13px] text-dim">What's going out on Buffer, what's published on Dev.to and what's due in Plane.</p>
-          </div>
+        <PageHeader
+          title="Timeline"
+          subtitle="What's going out on Buffer, what's published on Dev.to and what's due in Plane."
+          actions={
+            <>
           {orgs.length > 1 && (
             <select
               aria-label="Buffer organization"
@@ -268,7 +275,9 @@ export function Timeline({
           <Button variant="outline" size="icon" aria-label="Refresh" title="Read Buffer again" onClick={() => setFresh((n) => n + 1)} disabled={loading}>
             <RefreshCw className={cn("size-3.5", loading && "animate-spin")} />
           </Button>
-        </div>
+            </>
+          }
+        />
 
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" aria-label={view === "daily" ? "Previous day" : "Previous week"} onClick={() => setDay((d) => addDays(d, -stepBy))}>

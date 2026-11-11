@@ -127,7 +127,7 @@ export function Capture({ open, onOpenChange, defaultProjectId, go, openItem }: 
         keys: [String(i + 1)],
         run: () => (go({ name: "project", projectId: p.id }), close()),
       })),
-      { id: "editor", icon: "E", label: "Dev.to editor", keys: ["E"], run: () => (go({ name: "editor" }), close()) },
+      { id: "editor", icon: "E", label: "Posts", keys: ["E"], run: () => (go({ name: "editor" }), close()) },
       { id: "buffer", icon: "B", label: "Buffer", keys: ["B"], run: () => (go({ name: "buffer" }), close()) },
       { id: "timeline", icon: "L", label: "Timeline", keys: ["L"], run: () => (go({ name: "timeline" }), close()) },
       { id: "terminal", icon: "T", label: "Terminal", keys: ["T"], run: () => (go({ name: "terminal" }), close()) },

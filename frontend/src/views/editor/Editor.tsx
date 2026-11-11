@@ -24,19 +24,30 @@ import { ShipLogDialog } from "./ShipLogDialog";
 import { ComposeDialog } from "@/components/ComposeDialog";
 import type { BufferChannel } from "@/lib/api";
 import type { BufferFocus } from "@/views/buffer/Buffer";
+import { loadPref, savePref } from "@/lib/prefs";
+import { PostSteps, postStep } from "@/views/editor/PostSteps";
 
 const MAX_TAGS = 4;
 const normaliseTag = (t: string) => t.toLowerCase().replace(/[^a-z0-9]/g, "");
 
 type SaveState = { kind: "saved"; at: number } | { kind: "saving" } | { kind: "dirty" } | { kind: "error"; message: string };
 
+/** Posts deleted but still undoable, by ID. Module-level so a pending
+ * delete outlives the editor view. */
+const pendingDeletes = new Map<string, ReturnType<typeof setTimeout>>();
+const UNDO_DELETE_MS = 8000;
+const LAST_POST_KEY = "relay.editor.post";
+
 export function Editor({
   goSettings,
   goBuffer,
+  goTimeline,
   openId,
 }: {
   goSettings: () => void;
   goBuffer: (focus: BufferFocus) => void;
+  /** Opens the Timeline on a day (YYYY-MM-DD). */
+  goTimeline?: (day: string) => void;
   /** A post to open instead of the newest, e.g. one just started from a Buffer idea. */
   openId?: string;
 }) {
@@ -62,7 +73,6 @@ export function Editor({
   const [promoteOpen, setPromoteOpen] = useState(false);
   const [drift, setDrift] = useState<Drift | null>(null);
   const [disclosures, setDisclosures] = useState<Record<string, string>>({});
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const [shipLog, setShipLog] = useState(false);
   // A ship-log post headed for Buffer, open in the composer.
   const [social, setSocial] = useState<{ text: string; channels: BufferChannel[] } | null>(null);
@@ -109,6 +119,7 @@ export function Editor({
       try {
         const p = await PostService.Get(id);
         setPost(p);
+        savePref(LAST_POST_KEY, p.id);
         setSave({ kind: "saved", at: Date.now() });
         setMode("edit");
         refreshList();
@@ -123,7 +134,9 @@ export function Editor({
     PostService.List()
       .then((l) => {
         setList(l);
-        const first = openId ?? l.posts.find((p) => p.local)?.id;
+        // The post open last time, if it's still here; else the newest local one.
+        const last = loadPref<string>(LAST_POST_KEY, "");
+        const first = openId ?? (l.posts.some((p) => p.id === last && !pendingDeletes.has(p.id)) ? last : l.posts.find((p) => p.local)?.id);
         if (first) open(first);
       })
       .catch(() => {});
@@ -199,6 +212,7 @@ export function Editor({
         tone: "success",
         title: "Published on Dev.to",
         body: "Ready to promote.",
+        keep: true,
         actions: [
           { label: "Promote on LinkedIn", primary: true, onClick: () => setPromoteOpen(true) },
           { label: "Dismiss", onClick: () => {} },
@@ -291,24 +305,54 @@ export function Editor({
     }
   };
 
+  // Deleting waits a few seconds so it can be undone; the file goes once
+  // the toast does, even if the editor has been left by then.
+  const [, bump] = useState(0);
   const remove = async () => {
     if (!post) return;
+    const { id } = post;
+    const title = post.title.trim() || "Untitled post";
+    await flush();
     clearTimeout(timer.current);
-    try {
-      await PostService.Delete(post.id);
-      setPost(null);
-      const l = await PostService.List();
-      setList(l);
-      const next = l.posts.find((p) => p.local);
-      if (next) open(next.id);
-    } catch (err) {
-      fail("Couldn't delete post", err);
-    }
+    pendingDeletes.set(
+      id,
+      setTimeout(() => {
+        pendingDeletes.delete(id);
+        PostService.Delete(id)
+          .then(refreshList)
+          .catch((err) => fail("Couldn't delete post", err));
+      }, UNDO_DELETE_MS),
+    );
+    setPost(null);
+    bump((n) => n + 1);
+    const next = list?.posts.find((p) => p.local && p.id !== id && !pendingDeletes.has(p.id));
+    if (next) open(next.id);
+    toast(
+      {
+        tone: "success",
+        title: `Deleted “${title}”`,
+        body: post.devtoId > 0 ? "Only the local copy. The Dev.to article is not affected." : undefined,
+        actions: [
+          {
+            label: "Undo",
+            primary: true,
+            onClick: () => {
+              clearTimeout(pendingDeletes.get(id));
+              pendingDeletes.delete(id);
+              bump((n) => n + 1);
+              open(id);
+            },
+          },
+        ],
+      },
+      UNDO_DELETE_MS,
+    );
   };
+  const shownList = list && { ...list, posts: list.posts.filter((p) => !pendingDeletes.has(p.id)) };
 
   return (
     <>
-      <PostsSidebar list={list} activeId={post?.id} syncing={syncing} onOpen={open} onNew={newPost} onShipLog={() => setShipLog(true)} onSync={sync} onAddKey={goSettings} />
+      <PostsSidebar list={shownList} activeId={post?.id} syncing={syncing} onOpen={open} onNew={newPost} onShipLog={() => setShipLog(true)} onSync={sync} onAddKey={goSettings} />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="drag flex h-[84px] shrink-0 items-end gap-4 border-b border-border px-6 pb-[13px]">
           <div className="min-w-0 grow truncate pb-1.5 text-sm text-muted-foreground">
@@ -379,15 +423,8 @@ export function Editor({
             </main>
 
             <footer className="flex min-h-14 shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-t border-border px-6 py-2.5 text-[13px] text-muted-foreground">
-              {sent ? (
-                <span className="inline-flex items-center gap-2">
-                  <span className="size-2 rounded-full" style={{ background: published ? "#4ade80" : "#60a5fa" }} />
-                  {published ? "Published on Dev.to" : `Draft on Dev.to · sent ${ago(post.sentAt)}`}
-                </span>
-              ) : (
-                <SaveStatus save={save} />
-              )}
-              {sent && <SaveStatus save={save} compact />}
+              <PostSteps step={postStep(sent, published, post.promotions.length)} sentAt={post.sentAt} promotions={post.promotions.length} />
+              <SaveStatus save={save} compact={sent} />
               {!published && (
                 <span className="inline-flex items-center gap-1.5 text-[#fbbf24]">
                   <ImageIcon className="size-3.5" strokeWidth={1.9} />
@@ -422,15 +459,9 @@ export function Editor({
                 </>
               ) : (
                 <>
-                  <Button
-                    variant="ghost"
-                    size="md"
-                    className={cn(confirmDelete && "text-overdue")}
-                    onClick={() => (confirmDelete ? remove() : setConfirmDelete(true))}
-                    onBlur={() => setConfirmDelete(false)}
-                  >
+                  <Button variant="ghost" size="md" onClick={remove}>
                     <Trash2 className="size-3.5" />
-                    {confirmDelete ? "Click again to delete" : "Delete draft"}
+                    Delete draft
                   </Button>
                   <span className="text-dim">Creates an unpublished draft</span>
                   <Button size="md" disabled={sending} onClick={() => send()}>
@@ -467,6 +498,7 @@ export function Editor({
           onOpenChange={setPromoteOpen}
           post={post}
           url={url}
+          onShowTimeline={goTimeline}
           onPromoted={(updated) => setPost((cur) => (cur && cur.id === updated.id ? { ...cur, promotions: updated.promotions } : cur))}
         />
       )}
@@ -558,9 +590,8 @@ function TagInput({ tags, onChange }: { tags: string[]; onChange: (t: string[]) 
 }
 
 function MetaMenu({ post, onChange, onDelete }: { post: Post; onChange: (p: Partial<Post>) => void; onDelete: () => void }) {
-  const [confirm, setConfirm] = useState(false);
   return (
-    <Popover onOpenChange={() => setConfirm(false)}>
+    <Popover>
       <PopoverTrigger asChild>
         <MoreButton />
       </PopoverTrigger>
@@ -578,8 +609,8 @@ function MetaMenu({ post, onChange, onDelete }: { post: Post; onChange: (p: Part
           />
         </Field>
         <div className="-mx-4 my-1 h-px bg-hairline" />
-        <Button variant="destructive" size="md" onClick={() => (confirm ? onDelete() : setConfirm(true))}>
-          {confirm ? "Click again to delete the local file" : "Delete local copy"}
+        <Button variant="destructive" size="md" onClick={onDelete}>
+          Delete local copy
         </Button>
         {post.devtoId > 0 && <p className="m-0 text-[11px] leading-snug text-dim">The Dev.to article is not affected.</p>}
       </PopoverContent>
