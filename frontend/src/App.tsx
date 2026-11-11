@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Events } from "@wailsio/runtime";
+import { loadPref, savePref } from "@/lib/prefs";
 import { usePlane } from "@/lib/store";
 import { boardsOn, stateById } from "@/lib/plane";
 import { Sidebar } from "@/components/Sidebar";
@@ -18,8 +19,10 @@ import { QuickTerminal } from "@/views/terminal/QuickTerminal";
 import { UpdateNotifier } from "@/components/Updates";
 import { FailedPostNotifier } from "@/components/FailedPosts";
 import { WhatsNewDialog } from "@/components/Changelog";
+import { ShortcutSheet } from "@/components/ShortcutSheet";
+import { GO_KEYS } from "@/lib/shortcuts";
 
-export type Route = { name: "attention" } | { name: "project"; projectId: string } | { name: "editor"; postId?: string } | { name: "buffer"; focus?: BufferFocus } | { name: "timeline" } | { name: "terminal" } | { name: "settings"; tab?: SettingsTab };
+export type Route = { name: "attention" } | { name: "project"; projectId: string } | { name: "editor"; postId?: string } | { name: "buffer"; focus?: BufferFocus } | { name: "timeline"; day?: string } | { name: "terminal" } | { name: "settings"; tab?: SettingsTab };
 
 export interface OpenItem {
   projectId: string;
@@ -27,15 +30,47 @@ export interface OpenItem {
   focusComposer?: boolean;
 }
 
+// The view to reopen at launch. Only names and IDs; a locked project still
+// opens on its lock screen.
+const ROUTE_KEY = "relay.route";
+const ROUTE_NAMES = ["attention", "project", "editor", "buffer", "timeline", "terminal", "settings"];
+function savedRoute(): Route {
+  const r = loadPref<{ name?: string; projectId?: string; postId?: string; tab?: string }>(ROUTE_KEY, {});
+  if (!r.name || !ROUTE_NAMES.includes(r.name)) return { name: "attention" };
+  if (r.name === "project") return r.projectId ? { name: "project", projectId: r.projectId } : { name: "attention" };
+  if (r.name === "settings") return { name: "settings", tab: r.tab as SettingsTab | undefined };
+  return { name: r.name } as Route;
+}
+function saveRoute(r: Route) {
+  savePref(ROUTE_KEY, { name: r.name, projectId: r.name === "project" ? r.projectId : undefined, tab: r.name === "settings" ? r.tab : undefined });
+}
+
+// The sidebar's width, chosen with ⌘\: one choice for the editor and the
+// terminal (icons only by default), one for every other view.
+const SIDEBAR_KEY = "relay.sidebar";
+type SidebarPref = { focusRail: boolean; otherRail: boolean };
+const railView = (r: Route) => r.name === "editor" || r.name === "terminal";
+
 const isTyping = (el: EventTarget | null) =>
   el instanceof HTMLElement && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName));
 
 export default function App() {
   const { projects, project, syncNow, snapshot } = usePlane();
-  const [route, setRoute] = useState<Route>({ name: "attention" });
+  const [route, setRoute] = useState<Route>(savedRoute);
+  useEffect(() => saveRoute(route), [route]);
+  const [sidebar, setSidebar] = useState<SidebarPref>(() => loadPref(SIDEBAR_KEY, { focusRail: true, otherRail: false }));
+  const rail = railView(route) ? sidebar.focusRail : sidebar.otherRail;
+  const toggleSidebar = useCallback(() => {
+    setSidebar((s) => {
+      const next = railView(route) ? { ...s, focusRail: !s.focusRail } : { ...s, otherRail: !s.otherRail };
+      savePref(SIDEBAR_KEY, next);
+      return next;
+    });
+  }, [route]);
   const [drawer, setDrawer] = useState<OpenItem | null>(null);
   const [capture, setCapture] = useState(false);
   const [quick, setQuick] = useState(false);
+  const [shortcuts, setShortcuts] = useState(false);
   const board = useRef<BoardHandle>(null);
   const pendingG = useRef(0);
 
@@ -114,6 +149,16 @@ export default function App() {
         if (planeOn) syncNow();
         return;
       }
+      if (mod && (e.key === "?" || (e.shiftKey && e.code === "Slash"))) {
+        e.preventDefault();
+        setShortcuts((v) => !v);
+        return;
+      }
+      if (mod && e.key === "\\") {
+        e.preventDefault();
+        toggleSidebar();
+        return;
+      }
       if (mod && k === ",") {
         e.preventDefault();
         go({ name: "settings" });
@@ -137,14 +182,11 @@ export default function App() {
         go({ name: "project", projectId: projects[Number(k) - 1].id });
         return;
       }
-      if (k === "e") go({ name: "editor" });
-      if (k === "b") go({ name: "buffer" });
-      if (k === "l") go({ name: "timeline" });
-      if (k === "t") go({ name: "terminal" });
+      if (GO_KEYS[k]) go(GO_KEYS[k].route);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [route, projects, capture, go, syncNow, planeOn]);
+  }, [route, projects, capture, go, syncNow, planeOn, toggleSidebar]);
 
   // Prev/next in the drawer follows board order: states in sequence.
   const siblings = useMemo(() => {
@@ -159,11 +201,11 @@ export default function App() {
 
   return (
     <div className="flex h-full">
-      <Sidebar route={route} go={go} rail={route.name === "editor" || route.name === "terminal"} />
+      <Sidebar route={route} go={go} rail={rail} onToggle={toggleSidebar} />
       {(route.name === "attention" || (route.name === "project" && current)) && (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <CachedBanner />
-          {route.name === "attention" && <Attention openItem={setDrawer} />}
+          {route.name === "attention" && <Attention openItem={setDrawer} goTimeline={() => go({ name: "timeline" })} />}
           {route.name === "project" && current && current.locked && <LockScreen project={current} />}
           {route.name === "project" && current && !current.locked && (
             <Board ref={board} project={current} openItem={setDrawer} selectedId={drawer?.itemId} onNewItem={() => setCapture(true)} />
@@ -175,6 +217,7 @@ export default function App() {
           key={route.postId ?? ""}
           goSettings={() => go({ name: "settings", tab: "publishing" })}
           goBuffer={(focus) => go({ name: "buffer", focus })}
+          goTimeline={(day) => go({ name: "timeline", day })}
           openId={route.postId}
         />
       )}
@@ -182,7 +225,10 @@ export default function App() {
         <Buffer goSettings={() => go({ name: "settings", tab: "publishing" })} goPost={(postId) => go({ name: "editor", postId })} focus={route.focus} />
       )}
       {route.name === "timeline" && (
-        <Timeline goBuffer={(focus) => go({ name: "buffer", focus })} goPost={(postId) => go({ name: "editor", postId })} openItem={setDrawer} />
+        <Timeline
+          key={route.day ?? ""}
+          startDay={route.day}
+          goBuffer={(focus) => go({ name: "buffer", focus })} goPost={(postId) => go({ name: "editor", postId })} openItem={setDrawer} />
       )}
       {route.name === "terminal" && <Terminal />}
       {route.name === "settings" && <Settings route={route} />}
@@ -201,13 +247,14 @@ export default function App() {
         <QuickTerminal
           key={route.name === "editor" ? "posts" : "home"}
           kind={route.name === "editor" ? "posts" : "home"}
-          left={route.name === "editor" ? 56 : 220}
+          left={rail ? 56 : 220}
           onClose={() => setQuick(false)}
           onOpenInTerminal={() => go({ name: "terminal" })}
         />
       )}
       <UpdateNotifier />
       <FailedPostNotifier goBuffer={(focus) => go({ name: "buffer", focus })} />
+      <ShortcutSheet open={shortcuts} onOpenChange={setShortcuts} />
       <WhatsNewDialog onShowAll={() => go({ name: "settings", tab: "about" })} />
       <Capture
         open={capture}

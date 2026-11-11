@@ -24,6 +24,7 @@ export function FailedPostNotifier({ goBuffer }: { goBuffer: (focus: BufferFocus
         toast(
           {
             tone: "error",
+            keep: true,
             title: found.length === 1 ? `A Buffer post didn't go out` : `${found.length} Buffer posts didn't go out`,
             body: found.length === 1 ? `${where}: ${first.error || "Buffer gave no reason."}` : `The first, on ${where}: ${first.error || "no reason given."}`,
             actions: [{ label: "Show failed posts", primary: true, onClick: () => go.current({ postId: first.id, status: "error" }) }],

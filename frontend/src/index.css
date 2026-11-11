@@ -101,6 +101,17 @@
   * {
     @apply border-border;
   }
+  /* A visible focus ring for keyboard users on anything clickable that
+     doesn't draw its own. Pointer clicks don't show it (:focus-visible). */
+  button:focus-visible,
+  a:focus-visible,
+  [role="radio"]:focus-visible,
+  [role="tab"]:focus-visible,
+  [role="menuitem"]:focus-visible,
+  summary:focus-visible {
+    outline: 1px solid #71717a;
+    outline-offset: 1px;
+  }
   html,
   body,
   #root {
