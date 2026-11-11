@@ -17,7 +17,7 @@
         PackageDisplayName="Relay"
         PublisherName="CN=shadowcrawler"
         PublisherDisplayName="shadowcrawler"
-        Version="0.0.8.0"
+        Version="0.0.9.0"
         PackageDescription="Desktop workbench for Plane, Dev.to writing, Buffer and terminals">
         <Capabilities>
             <Capability Name="runFullTrust" />
