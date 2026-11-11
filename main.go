@@ -31,6 +31,7 @@ func init() {
 	application.RegisterEvent[plane.Snapshot]("plane:snapshot")
 	application.RegisterEvent[[]term.Info]("term:sessions")
 	application.RegisterEvent[Integrations]("integrations:changed")
+	application.RegisterEvent[AIPreload]("ai:preload")
 	application.RegisterEvent[string]("guide:show")
 	application.RegisterEvent[string]("buffer:signin")
 	application.RegisterEvent[UpdateInfo]("update:available")

@@ -265,7 +265,11 @@ export const AIService = {
   SummarizeText: (title: string, text: string) => AIBindings.SummarizeText(title, text),
   /** Rewrites notes as a social post under limit characters. */
   DraftPost: (notes: string, limit: number) => AIBindings.DraftPost(notes, limit),
+  /** Starts loading the selected local model; a no-op unless it's a local Ollama or LM Studio and the setting is on. */
+  Preload: (): Promise<void> => AIBindings.Preload(),
+  SetPreload: async (on: boolean) => aiStatus(await AIBindings.SetPreload(on)),
 };
+export type AIPreload = Clean<M.AIPreload>;
 
 export type ShipProject = Clean<M.ShipProject>;
 export type ShipItem = Clean<M.ShipItem>;

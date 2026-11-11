@@ -17,6 +17,7 @@ that heading to the new version.
 - ⌘\ shows or hides the sidebar; ⌘? lists every keyboard shortcut.
 - Attention: J and K move through items; Enter opens, D, S and A run Done, Send back and Approve.
 - Posts: a status strip shows where a post is (local, draft on Dev.to, published, promoted); after promoting, See on Timeline opens the day.
+- AI: Ollama and LM Studio models can load into memory when you open the ship log or point at an AI button (Settings → AI → Preload).
 - Toasts pause while the pointer is over them, and errors stay until you close them.
 - The Dev.to editor is now called Posts in the sidebar.
 - The sidebar keeps its spacing when it's collapsed to icons; the Relay mark expands it.

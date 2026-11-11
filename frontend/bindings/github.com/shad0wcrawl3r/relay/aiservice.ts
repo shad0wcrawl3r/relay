@@ -36,6 +36,16 @@ export function Models(provider: string): $CancellablePromise<string[] | null> {
 }
 
 /**
+ * Preload starts loading the selected local model into memory, for a dialog
+ * that's about to ask it. It returns at once; progress comes as "ai:preload"
+ * events. It does nothing when the setting is off, the selection isn't a
+ * local Ollama or LM Studio, or the model was loaded a few minutes ago.
+ */
+export function Preload(): $CancellablePromise<void> {
+    return $Call.ByID(2066258844);
+}
+
+/**
  * Select chooses the provider and model used for summaries.
  */
 export function Select(provider: string, model: string): $CancellablePromise<$models.AIStatus> {
@@ -51,6 +61,13 @@ export function SetEndpoint(provider: string, endpoint: string): $CancellablePro
 
 export function SetKey(provider: string, key: string): $CancellablePromise<$models.AIStatus> {
     return $Call.ByID(3370039508, provider, key);
+}
+
+/**
+ * SetPreload turns preloading local models on or off.
+ */
+export function SetPreload(on: boolean): $CancellablePromise<$models.AIStatus> {
+    return $Call.ByID(1655115886, on);
 }
 
 /**

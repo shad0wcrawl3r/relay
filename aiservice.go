@@ -10,6 +10,7 @@ import (
 	"github.com/shad0wcrawl3r/relay/internal/ai"
 	"github.com/shad0wcrawl3r/relay/internal/config"
 	"github.com/shad0wcrawl3r/relay/internal/logs"
+	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
 // AIService connects a model provider. Keys go to the keychain and never come
@@ -46,6 +47,10 @@ type AIStatus struct {
 	Local bool   `json:"local"`
 	// Private: the selected provider may read private projects.
 	Private bool `json:"private"`
+	// Preloadable: the selection is Ollama or LM Studio on this machine.
+	Preloadable bool `json:"preloadable"`
+	// Preload: the setting to warm a local model before it's asked.
+	Preload bool `json:"preload"`
 }
 
 func (s *AIService) Status() AIStatus {
@@ -63,7 +68,9 @@ func (s *AIService) Status() AIStatus {
 	if p, ok := ai.Find(c.AI.Provider); ok && c.AI.Model != "" && (!p.NeedsKey || ai.HasKey(p.ID)) {
 		st.Ready, st.Local, st.Label = true, s.client.Local(p.ID), p.Name+" · "+c.AI.Model
 		st.Private = s.client.Private(p.ID)
+		st.Preloadable = s.client.Preloadable(p.ID)
 	}
+	st.Preload = c.AI.Preload
 	return st
 }
 
@@ -237,4 +244,47 @@ func (s *AIService) SummarizePost(ctx context.Context, id string) (string, error
 		Title: p.Title, Series: p.Series, Tags: p.Tags, Description: p.Description, Body: s.posts.articleBody(p),
 	})
 	return s.client.Complete(ctx, ai.Local(), st.Provider, st.Model, system, user)
+}
+
+// SetPreload turns preloading local models on or off.
+func (s *AIService) SetPreload(on bool) (AIStatus, error) {
+	if err := config.Update(func(c *config.Config) { c.AI.Preload = on }); err != nil {
+		return AIStatus{}, err
+	}
+	return s.Status(), nil
+}
+
+// AIPreload is sent as "ai:preload" while a model loads.
+type AIPreload struct {
+	// State is "loading", "ready" or "failed".
+	State string `json:"state"`
+	Label string `json:"label"`
+}
+
+// Preload starts loading the selected local model into memory, for a dialog
+// that's about to ask it. It returns at once; progress comes as "ai:preload"
+// events. It does nothing when the setting is off, the selection isn't a
+// local Ollama or LM Studio, or the model was loaded a few minutes ago.
+func (s *AIService) Preload() {
+	c := config.GetConfig()
+	if !c.AI.Preload || c.AI.Model == "" || !s.client.Preloadable(c.AI.Provider) {
+		return
+	}
+	p, _ := ai.Find(c.AI.Provider)
+	label := p.Name + " · " + c.AI.Model
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+		defer cancel()
+		emit := func(state string) {
+			if app := application.Get(); app != nil {
+				app.Event.Emit("ai:preload", AIPreload{State: state, Label: label})
+			}
+		}
+		emit("loading")
+		if err := s.client.Preload(ctx, c.AI.Provider, c.AI.Model); err != nil {
+			emit("failed")
+			return
+		}
+		emit("ready")
+	}()
 }

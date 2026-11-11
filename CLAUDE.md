@@ -64,6 +64,8 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
   content from a lockable project or module only reaches a private provider: one the user marked (`[ai] PRIVATE`,
   tied to the endpoint), or Ollama / LM Studio at their default endpoints until turned off. A loopback address alone
   isn't trusted. Unlocking doesn't change that. Never log a refused prompt or the project it came from.
+  Preload (`internal/ai/preload.go`, `[ai] PRELOAD`, on by default) warms a local Ollama / LM Studio model when the user is about to
+  ask it (ship log opened, pointer or focus on an AI button: `preloadModel` / `preloadOnIntent`), never in the background. It sends no user content.
 - UI state that's remembered per machine (last view and post, board view/filters/columns, sidebar width) lives in localStorage via
   `lib/prefs.ts`: IDs and choices only, and private projects' boards are remembered for the session only. The notification pane
   (`Toaster.tsx` `useInbox`) is in memory; errors are kept unless `keep: false`, which item-specific errors use so a relocked project isn't named.

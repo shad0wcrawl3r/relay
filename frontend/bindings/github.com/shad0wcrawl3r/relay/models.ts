@@ -11,6 +11,17 @@ import * as posts$0 from "./internal/posts/models.js";
 // @ts-ignore: Unused imports
 import * as term$0 from "./internal/term/models.js";
 
+/**
+ * AIPreload is sent as "ai:preload" while a model loads.
+ */
+export interface AIPreload {
+    /**
+     * State is "loading", "ready" or "failed".
+     */
+    "state": string;
+    "label": string;
+}
+
 export interface AIProvider {
     "id": string;
     "name": string;
@@ -61,6 +72,16 @@ export interface AIStatus {
      * Private: the selected provider may read private projects.
      */
     "private": boolean;
+
+    /**
+     * Preloadable: the selection is Ollama or LM Studio on this machine.
+     */
+    "preloadable": boolean;
+
+    /**
+     * Preload: the setting to warm a local model before it's asked.
+     */
+    "preload": boolean;
 }
 
 /**
