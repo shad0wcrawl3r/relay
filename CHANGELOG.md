@@ -9,6 +9,7 @@ that heading to the new version.
 
 ## Unreleased
 
+- Settings → Security & privacy shows where each kind of data goes, with links to how Relay is secured and how to report a vulnerability.
 - Posts: AI use is now set with Dev.to's own AI marker instead of a line at the end of the article. Articles sent before keep their level, and the line comes off the next time you send them.
 - Settings: sections are listed down the left, with dots showing whether Plane, Dev.to and Buffer are connected. The sidebar shrinks to icons while Settings is open.
 

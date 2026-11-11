@@ -3,6 +3,7 @@ import { Browser, CancelError, Clipboard, type CancellablePromise } from "@wails
 import { Bug, Check, Compass, Copy, ExternalLink, Loader2 } from "lucide-react";
 import { BufferService, GuideService, moduleKey, PlaneService, projectKey, SettingsService, TerminalService, type BufferStatus, type Settings as SettingsT, type SettingsInput } from "@/lib/api";
 import { REPO, reportBug } from "@/lib/bugReport";
+import { DataFlows } from "@/views/settings/DataFlows";
 import { useTerminal } from "@/lib/terminal";
 import { showKey } from "@/lib/keys";
 import { Switch } from "@/components/ui/switch";
@@ -35,7 +36,7 @@ const SECTIONS: { id: SettingsTab; label: string }[] = [
   { id: "publishing", label: "Publishing" },
   { id: "ai", label: "AI" },
   { id: "terminal", label: "Terminal" },
-  { id: "privacy", label: "Privacy" },
+  { id: "privacy", label: "Security & privacy" },
   { id: "storage", label: "Storage" },
   { id: "logs", label: "Logs" },
   { id: "about", label: "About" },
@@ -437,8 +438,9 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
               </TabsContent>
 
               <TabsContent value="privacy">
+            <DataFlows />
             <Section
-              title="Privacy"
+              title="Private projects"
               description="Everything Relay stores on disk is encrypted with a key kept in your system keychain. Locked projects and modules stay hidden until you unlock them."
             >
               <Row

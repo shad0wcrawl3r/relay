@@ -1,0 +1,30 @@
+# Dependabot: security updates come from the repo's Dependabot settings; these
+# are routine version updates, weekly and grouped so they stay reviewable.
+# Releases still only come from CI (CLAUDE.md), so a merged update ships in
+# the next release, never on its own.
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      go:
+        patterns: ["*"]
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      npm:
+        patterns: ["*"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      actions:
+        patterns: ["*"]
