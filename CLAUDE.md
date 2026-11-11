@@ -48,7 +48,10 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
   unreachable, never when it refuses. Settings → Storage shows the path while it's in use.
 - Locked projects/modules (`[privacy] LOCKED`, empty by default; picked in Settings → Privacy) never reach the UI until unlocked via
   `internal/unlock` (Touch ID / login password); unlocks expire. Never log their data.
-- Dev.to: send as `published: false`; publishing is a separate, confirmed user action, refused while image placeholders remain. No image upload in v1 (insert `<INSERT IMAGE HERE: …>` placeholders).
+- Dev.to: send as `published: false`; publishing is a separate, confirmed user action, refused while image placeholders remain.
+  Unpublishing is too (`PUT /articles/{id}` with only `published: false`; Forem's `/unpublish` is admin-only). The API can't delete
+  articles: Relay unpublishes, can remove the article's pending Buffer promotions, then opens Dev.to's `/delete_confirm` page.
+  A sent post missing from a later sync is marked `Gone`; `Unlink` makes it local again. `devto_lifecycle_test.go` covers this against a fake Forem. No image upload in v1 (insert `<INSERT IMAGE HERE: …>` placeholders).
 - Buffer: promotions need a live Dev.to article; Go adds its public link, so one can never go out without it. Posts written in the Buffer view (`BufferService.Compose`) aren't promotions: no article, no link. Articles reach a model provider only when the user asks.
   The Buffer tab's data is cached in `buffer-cache.json` (vault-encrypted, `buffercache.go`), shown first and refreshed; it's dropped on sign-out.
   `bufferwatch.go` checks for failed posts at launch and every 15 minutes and emits `buffer:failed` for ones not yet reported

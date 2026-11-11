@@ -17,7 +17,8 @@ import (
 	"github.com/shad0wcrawl3r/relay/internal/logs"
 )
 
-const baseURL = "https://dev.to/api"
+// baseURL is Dev.to's API; tests point it at a local server.
+var baseURL = "https://dev.to/api"
 
 var httpClient = &http.Client{Timeout: 30 * time.Second, Transport: logs.Transport("devto", nil)}
 
@@ -181,4 +182,21 @@ func Update(ctx context.Context, id int, p Payload) (Article, error) {
 	var a Article
 	err := do(ctx, http.MethodPut, "/articles/"+strconv.Itoa(id), map[string]any{"article": p}, &a)
 	return a, err
+}
+
+// Unpublish turns a published article back into a draft. It's the article
+// update with published false: Forem's /unpublish endpoint is for admins and
+// moderators only. Comments and the URL stay; it leaves feeds and search.
+func Unpublish(ctx context.Context, id int) (Article, error) {
+	var a Article
+	err := do(ctx, http.MethodPut, "/articles/"+strconv.Itoa(id), map[string]any{"article": map[string]bool{"published": false}}, &a)
+	return a, err
+}
+
+// SetBaseURL points the client at another server, for tests. It returns the
+// previous URL.
+func SetBaseURL(u string) string {
+	old := baseURL
+	baseURL = u
+	return old
 }

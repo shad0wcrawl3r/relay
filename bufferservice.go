@@ -379,3 +379,42 @@ func (s *BufferService) PromotionIndex() (map[string]PromotedArticle, error) {
 	}
 	return out, nil
 }
+
+// RemoveScheduledPromotions deletes an article's promotions that haven't
+// gone out yet (scheduled, awaiting approval or drafts), so none goes out
+// with a link to an article that's being unpublished or deleted. Sent ones
+// stay. It returns how many it removed.
+func (s *BufferService) RemoveScheduledPromotions(ctx context.Context, postID string) (int, error) {
+	rows, err := s.PromotionPosts(ctx, postID)
+	if err != nil {
+		return 0, err
+	}
+	ids, err := pendingPromotions(rows)
+	if err != nil {
+		return 0, err
+	}
+	removed := 0
+	for _, id := range ids {
+		if err := s.DeletePost(ctx, id); err != nil {
+			return removed, err
+		}
+		removed++
+	}
+	return removed, nil
+}
+
+// pendingPromotions picks the Buffer posts that haven't gone out yet. If
+// Buffer couldn't be asked about any of them, nothing is picked: a partial
+// clean-up could leave one queued with a dead link while saying it's done.
+func pendingPromotions(rows []PromotionPost) ([]string, error) {
+	var ids []string
+	for _, r := range rows {
+		if r.LookupError != "" {
+			return nil, errors.New("couldn't check the promotions in Buffer: " + r.LookupError)
+		}
+		if r.Found && (r.Status == "scheduled" || r.Status == "needs_approval" || r.Status == "draft") {
+			ids = append(ids, r.BufferID)
+		}
+	}
+	return ids, nil
+}

@@ -23,6 +23,8 @@ that heading to the new version.
 - Buffer posts read as a schedule, grouped by day with a time column. Edit a post's text in place, reschedule it from a menu (next slot, in an hour, tomorrow, an exact time) or by dragging it onto another day, all with Undo.
 - Buffer posts: copy the text, show all of a long post, search what's loaded, and see which article a promotion is for. Failed posts have Retry (or Post again), and the Failed tab shows a count.
 - The Buffer tab and channel filter are remembered.
+- Posts: unpublish an article on Dev.to, or delete it (Relay unpublishes it, then opens Dev.to's delete page, since Dev.to's API can't delete). Either can also remove the article's promotions that haven't gone out yet.
+- Posts: an article deleted on Dev.to is noticed, and can be kept as a local draft.
 - The sidebar keeps its spacing when it's collapsed to icons; the Relay mark expands it.
 
 ## 0.0.7 — 2026-11-10

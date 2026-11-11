@@ -389,6 +389,12 @@ export interface PostSummary {
      * RemoteChanged: edited on Dev.to since Relay last sent or pulled it.
      */
     "remoteChanged": boolean;
+
+    /**
+     * Gone: sent to Dev.to, but the last good sync didn't list it, so it was
+     * most likely deleted there.
+     */
+    "gone": boolean;
 }
 
 /**

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"net/url"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -45,6 +46,9 @@ type PostSummary struct {
 	SentAt      time.Time `json:"sentAt"`
 	// RemoteChanged: edited on Dev.to since Relay last sent or pulled it.
 	RemoteChanged bool `json:"remoteChanged"`
+	// Gone: sent to Dev.to, but the last good sync didn't list it, so it was
+	// most likely deleted there.
+	Gone bool `json:"gone"`
 }
 
 type PostList struct {
@@ -91,6 +95,10 @@ func (s *PostService) List() (PostList, error) {
 			if a.URL != "" {
 				row.URL = a.URL
 			}
+		} else if p.DevtoID != 0 && !s.syncedAt.IsZero() && s.syncErr == "" && s.syncedAt.Sub(p.SentAt) > 2*time.Minute {
+			// A draft created moments ago can be missing from Dev.to's list for
+			// a short while; only a sync well after the send counts.
+			row.Gone = true
 		}
 		out.Posts = append(out.Posts, row)
 	}
@@ -425,4 +433,72 @@ func firstNonEmpty(v ...string) string {
 		}
 	}
 	return ""
+}
+
+// Unpublish turns a published article back into a Dev.to draft. Like
+// publishing, it only runs on the user's explicit, confirmed request.
+func (s *PostService) Unpublish(ctx context.Context, id string) (posts.Post, error) {
+	p, err := s.store.Get(id)
+	if err != nil {
+		return posts.Post{}, err
+	}
+	if p.DevtoID == 0 {
+		return posts.Post{}, errors.New("this post isn't on Dev.to")
+	}
+	a, err := devto.Unpublish(ctx, p.DevtoID)
+	if err != nil {
+		devtoLog.Warn("unpublish failed", "id", id, "error", err)
+		return posts.Post{}, err
+	}
+	devtoLog.Notice("unpublished", "id", id, "devto_id", a.ID)
+	if a.URL != "" {
+		p.DevtoURL = a.URL
+	}
+	s.mu.Lock()
+	if a.ID != 0 {
+		s.remote[a.ID] = a
+	}
+	s.mu.Unlock()
+	return s.store.Save(p)
+}
+
+// DeleteURL is the page on Dev.to that deletes the article. Forem's API has
+// no way to delete one, so the last step happens there, signed in as the
+// author.
+func (s *PostService) DeleteURL(id string) (string, error) {
+	p, err := s.store.Get(id)
+	if err != nil {
+		return "", err
+	}
+	if p.DevtoID == 0 {
+		return "", errors.New("this post isn't on Dev.to")
+	}
+	s.mu.Lock()
+	a, ok := s.remote[p.DevtoID]
+	s.mu.Unlock()
+	link := p.DevtoURL
+	if ok && a.URL != "" {
+		link = a.URL
+	}
+	u, err := url.Parse(link)
+	if err != nil || u.Scheme != "https" || (u.Host != "dev.to" && !strings.HasSuffix(u.Host, ".dev.to")) || strings.Count(strings.Trim(u.Path, "/"), "/") != 1 {
+		return "https://dev.to/dashboard", nil
+	}
+	u.RawQuery, u.Fragment = "", ""
+	u.Path = strings.TrimSuffix(u.Path, "/") + "/delete_confirm"
+	return u.String(), nil
+}
+
+// Unlink makes a post local again: it forgets the Dev.to article (after it
+// was deleted there, or to start over). The local text stays. Its promotion
+// records go too: they link to the old article, so the post would otherwise
+// still read as promoted, and a later send makes a new article.
+func (s *PostService) Unlink(id string) (posts.Post, error) {
+	p, err := s.store.Get(id)
+	if err != nil {
+		return posts.Post{}, err
+	}
+	devtoLog.Notice("unlinked from Dev.to", "id", id, "devto_id", p.DevtoID)
+	p.DevtoID, p.DevtoURL, p.DevtoHash, p.SentAt, p.Promotions = 0, "", "", time.Time{}, nil
+	return s.store.Save(p)
 }

@@ -122,6 +122,12 @@ export const PostService = {
   Drift: async (id: string): Promise<Drift | null> => (await PostBindings.Drift(id)) ?? null,
   PullDevto: async (id: string) => post(await PostBindings.PullDevto(id)),
   Publish: async (id: string) => post(await PostBindings.Publish(id)),
+  /** Turns a published article back into a Dev.to draft. */
+  Unpublish: async (id: string) => post(await PostBindings.Unpublish(id)),
+  /** Dev.to's delete page for the article; its API can't delete. */
+  DeleteURL: (id: string): Promise<string> => PostBindings.DeleteURL(id),
+  /** Forgets the Dev.to article; the post becomes local again. */
+  Unlink: async (id: string) => post(await PostBindings.Unlink(id)),
   Series: async (): Promise<string[]> => arr(await PostBindings.Series()),
   /** The line each AI-use level adds at the end of the article on Dev.to. */
   Disclosures: async (): Promise<Record<string, string>> => {
@@ -237,6 +243,8 @@ export const BufferService = {
   },
   /** The last check's failed posts, without asking Buffer. */
   LastFailed: async (): Promise<FailedPost[]> => arr(await BufferBindings.LastFailed()),
+  /** Deletes an article's promotions that haven't gone out yet; returns how many. */
+  RemoveScheduledPromotions: (postId: string): Promise<number> => BufferBindings.RemoveScheduledPromotions(postId),
   /** Buffer post ID → the local article it promotes. Read from Relay's files; never asks Buffer. */
   PromotionIndex: async (): Promise<Record<string, PromotedArticle>> => {
     const idx = await BufferBindings.PromotionIndex();

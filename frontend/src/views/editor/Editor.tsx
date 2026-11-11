@@ -26,6 +26,7 @@ import type { BufferChannel } from "@/lib/api";
 import type { BufferFocus } from "@/views/buffer/Buffer";
 import { loadPref, savePref } from "@/lib/prefs";
 import { PostSteps, postStep } from "@/views/editor/PostSteps";
+import { GoneBanner, ManagePost } from "@/views/editor/ManagePost";
 
 const MAX_TAGS = 4;
 const normaliseTag = (t: string) => t.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -185,6 +186,8 @@ export function Editor({
   const summary = list?.posts.find((p) => p.id === post?.id);
   const published = !!summary?.published;
   const sent = !!post?.devtoId;
+  // The article was deleted on Dev.to: only the banner's choices apply.
+  const gone = !!summary?.gone;
   const images = post ? countPlaceholders(post.body) : 0;
   const url = summary?.url || post?.devtoUrl;
 
@@ -348,6 +351,11 @@ export function Editor({
       UNDO_DELETE_MS,
     );
   };
+  // After Relay changed the post on Dev.to (unpublish, unlink).
+  const changed = (p: Post) => {
+    setPost((cur) => (cur && cur.id === p.id ? { ...cur, devtoId: p.devtoId, devtoUrl: p.devtoUrl, devtoHash: p.devtoHash, sentAt: p.sentAt, promotions: p.promotions } : cur));
+    refreshList();
+  };
   const shownList = list && { ...list, posts: list.posts.filter((p) => !pendingDeletes.has(p.id)) };
 
   return (
@@ -358,6 +366,17 @@ export function Editor({
           <div className="min-w-0 grow truncate pb-1.5 text-sm text-muted-foreground">
             Posts <span className="mx-1.5 text-[#52525b]">/</span> <span className="font-medium text-strong">{post?.title || (post ? "Untitled post" : "")}</span>
           </div>
+          {post && sent && !gone && (
+            <div className="no-drag flex items-center gap-2">
+              {url && (
+                <Button variant="outline" size="md" className="font-medium text-strong" onClick={() => Browser.OpenURL(url)}>
+                  <ExternalLink className="size-3.5" />
+                  Open on Dev.to
+                </Button>
+              )}
+              <ManagePost post={post} published={published} onChanged={changed} onDeleteLocal={remove} />
+            </div>
+          )}
           {post && (
             <div className="no-drag inline-flex gap-0.5 rounded-lg bg-[#27272a] p-[3px]">
               {(["edit", "preview"] as const).map((m) => (
@@ -385,6 +404,7 @@ export function Editor({
           </div>
         ) : (
           <>
+            {summary?.gone && <GoneBanner post={post} onChanged={changed} onDeleteLocal={remove} />}
             {summary?.remoteChanged && (
               <div className="flex shrink-0 items-center gap-3 border-b border-[rgba(245,158,11,.25)] bg-[rgba(245,158,11,.06)] px-6 py-2 text-[13px] text-[#fbbf24]">
                 <GitCompare className="size-3.5 shrink-0" />
@@ -423,7 +443,7 @@ export function Editor({
             </main>
 
             <footer className="flex min-h-14 shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-t border-border px-6 py-2.5 text-[13px] text-muted-foreground">
-              <PostSteps step={postStep(sent, published, post.promotions.length)} sentAt={post.sentAt} promotions={post.promotions.length} />
+              <PostSteps step={postStep(sent, published, post.promotions.length)} sentAt={post.sentAt} promotions={post.promotions.length} gone={gone} />
               <SaveStatus save={save} compact={sent} />
               {!published && (
                 <span className="inline-flex items-center gap-1.5 text-[#fbbf24]">
@@ -431,16 +451,10 @@ export function Editor({
                   {images > 0 ? `${images} image${images === 1 ? "" : "s"} + cover to add on Dev.to` : "Cover to add on Dev.to"}
                 </span>
               )}
-              {post.promotions.length > 0 && <Promotions post={post} goBuffer={goBuffer} />}
+              {post.promotions.length > 0 && !gone && <Promotions post={post} goBuffer={goBuffer} />}
               <span className="grow" />
-              {sent ? (
+              {gone ? null : sent ? (
                 <>
-                  {url && (
-                    <Button variant="outline" size="md" className="font-medium text-strong" onClick={() => Browser.OpenURL(url)}>
-                      <ExternalLink className="size-3.5" />
-                      Open on Dev.to
-                    </Button>
-                  )}
                   <Button variant="outline" size="md" className="font-medium text-strong" disabled={sending} onClick={() => send()}>
                     {sending ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
                     {published ? "Update article" : "Update draft"}

@@ -193,6 +193,16 @@ export function PromotionPosts(postID: string): $CancellablePromise<$models.Prom
 }
 
 /**
+ * RemoveScheduledPromotions deletes an article's promotions that haven't
+ * gone out yet (scheduled, awaiting approval or drafts), so none goes out
+ * with a link to an article that's being unpublished or deleted. Sent ones
+ * stay. It returns how many it removed.
+ */
+export function RemoveScheduledPromotions(postID: string): $CancellablePromise<number> {
+    return $Call.ByID(3790683276, postID);
+}
+
+/**
  * Status looks up the account when signed in. A failed lookup still reports
  * connected: being offline isn't the same as being signed out.
  */
