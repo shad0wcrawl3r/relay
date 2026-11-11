@@ -36,6 +36,8 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
 - `CHANGELOG.md` is built into the app (`changelog.go`): plain `- ` lines under version headings, user-facing, no markup.
   Release builds show the entries since `[updates] SEEN` once after an update (never on a fresh install) and list all of them
   in Settings → About. Add user-visible changes under Unreleased as you make them. `RELAY_WHATS_NEW=1 wails3 dev` previews the dialog.
+- Bugs are tracked in GitHub Issues (`.github/ISSUE_TEMPLATE/bug_report.yml`). Report a bug (`lib/bugReport.ts`) prefills only the version,
+  platform and build info; never add logs, settings or user content to the URL.
 - No risky changes or releases during judging (Nov 16–20, 2026) unless the user asks.
 
 ## Rules

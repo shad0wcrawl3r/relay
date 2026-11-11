@@ -9,6 +9,7 @@ that heading to the new version.
 
 ## Unreleased
 
+- Settings → About → Report a bug opens a GitHub issue with your version and platform filled in, and nothing else.
 - What's new: after an update, Relay shows what changed the first time it opens.
 - Settings → About lists every release's changes.
 - Undo: moving an item on a board or from Attention, rescheduling and deleting a draft can be undone from the toast.

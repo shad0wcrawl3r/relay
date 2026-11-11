@@ -1,0 +1,64 @@
+name: Bug report
+description: Something in Relay isn't working.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. **Settings → About → Report a bug** in Relay fills in the version and platform for you.
+
+        Please don't paste API keys, tokens, article text, prompts, terminal output or the names of private projects. Relay never includes them in a report; check anything you copy in yourself.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did and what went wrong. Include the exact error message if there was one.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open …
+        2. Click …
+        3. See …
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Boards (Plane)
+        - Attention / Timeline
+        - Posts (Dev.to editor and publishing)
+        - Buffer
+        - Terminal
+        - AI
+        - Settings, sign-in or keychain
+        - Install or update
+        - Something else
+  - type: input
+    id: version
+    attributes:
+      label: Relay version
+      description: Settings → About.
+      placeholder: "0.0.7"
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      placeholder: "darwin/arm64, macOS 15"
+    validations:
+      required: true
+  - type: textarea
+    id: build
+    attributes:
+      label: Build info
+      description: From Settings → About → Copy build info.
+      render: text

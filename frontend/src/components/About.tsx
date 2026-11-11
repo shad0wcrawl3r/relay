@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Clipboard } from "@wailsio/runtime";
-import { Check, Copy } from "lucide-react";
+import { Bug, Check, Copy } from "lucide-react";
 import { UpdateService, type BuildInfo } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { ChangelogList } from "@/components/Changelog";
+import { buildRows, reportBug } from "@/lib/bugReport";
 
 const date = (iso: string) => {
   const d = new Date(iso);
@@ -20,15 +21,7 @@ export function About() {
   }, []);
   if (!b) return null;
 
-  const rows: [string, string][] = [
-    ["Version", b.dev ? `${b.display} (dev build of ${b.version})` : b.version],
-    ["Build", b.dev ? "Development" : "Release"],
-    ["Commit", b.commit ? `${b.commit}${b.dirty ? " with uncommitted changes" : ""}` : "Unknown"],
-    ["Commit date", b.commitDate ? date(b.commitDate) : "Unknown"],
-    ["Platform", b.platform],
-    ["Go", b.go],
-    ["Wails", b.wails || "Unknown"],
-  ];
+  const rows = buildRows(b, date);
 
   const copy = async () => {
     await Clipboard.SetText(["Relay", ...rows.map(([k, v]) => `${k}: ${v}`)].join("\n"));
@@ -50,12 +43,19 @@ export function About() {
           </div>
         ))}
       </dl>
-      <div>
+      <div className="flex flex-wrap items-center gap-2">
         <Button variant="outline" size="md" onClick={copy}>
           {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
           {copied ? "Copied" : "Copy build info"}
         </Button>
+        <Button variant="outline" size="md" onClick={() => reportBug(b)}>
+          <Bug className="size-3.5" />
+          Report a bug
+        </Button>
       </div>
+      <p className="-mt-2 m-0 text-xs text-dim">
+        Opens a GitHub issue with the version, platform and build info above filled in. Nothing else from Relay is sent; describe the problem in your own words.
+      </p>
       <div className="mt-2 flex flex-col gap-2">
         <h3 className="m-0 text-[14px] font-semibold text-strong">Changelog</h3>
         <ChangelogList current={b.dev ? "Unreleased" : b.version} />
