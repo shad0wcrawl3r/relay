@@ -14,7 +14,7 @@
     !define INFO_PRODUCTNAME "Relay"
 !endif
 !ifndef INFO_PRODUCTVERSION
-    !define INFO_PRODUCTVERSION "0.0.9"
+    !define INFO_PRODUCTVERSION "0.1.0"
 !endif
 !ifndef INFO_COPYRIGHT
     !define INFO_COPYRIGHT "© 2026, Ashwin Belbase"

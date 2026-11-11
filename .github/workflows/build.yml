@@ -139,7 +139,13 @@ jobs:
 
           **Check a download:** compare it with `SHA256SUMS`: `shasum -a 256 <file>` on macOS, `sha256sum <file>` on Linux, `Get-FileHash <file>` in PowerShell.
           NOTES
-          gh release create "$TAG" dist/* -R "$GITHUB_REPOSITORY" --prerelease --verify-tag --generate-notes --notes-file notes.md --title "Relay $TAG"
+          # 0.0.x releases were previews; from 0.1.0 on a release is stable
+          # and becomes GitHub's latest.
+          case "$TAG" in
+            v0.0.*) kind=--prerelease ;;
+            *) kind=--latest ;;
+          esac
+          gh release create "$TAG" dist/* -R "$GITHUB_REPOSITORY" "$kind" --verify-tag --generate-notes --notes-file notes.md --title "Relay $TAG"
 
       # A release made with the workflow token doesn't start other workflows,
       # so the status page is rebuilt by hand.

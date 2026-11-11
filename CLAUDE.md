@@ -29,7 +29,7 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
   Rename `## Unreleased` in `CHANGELOG.md` to `## X.Y.Z — YYYY-MM-DD` (and start a new empty Unreleased); `TestChangelogHasThisVersion` fails without it.
   Commit and title the PR exactly `Release X.Y.Z`, with nothing after the version, since a squash merge uses the PR title.
 - When it merges, `.github/workflows/tag-release.yml` checks `build/config.yml` matches, tags the commit `vX.Y.Z` and
-  starts `build.yml` on the tag, which publishes a pre-release with `SHA256SUMS` and rebuilds the site. A mismatched
+  starts `build.yml` on the tag, which publishes the release with `SHA256SUMS` (stable and marked latest from 0.1.0; 0.0.x were pre-releases) and rebuilds the site. A mismatched
   version fails the run without tagging. Installed copies are offered the update at their next launch.
 - Builds stamp the commit and its date via `-ldflags -X main.buildCommit/buildCommitDate` (platform Taskfiles,
   `buildinfo.go`). Dev builds show the commit instead of the version (Dev mode tag, Settings, tray, Settings → About).
