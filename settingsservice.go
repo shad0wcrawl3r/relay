@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"strings"
 	"time"
@@ -58,13 +59,15 @@ type Settings struct {
 	PlaneConnected    bool   `json:"planeConnected"`
 	ConnectedSlug     string `json:"connectedSlug"`
 	DevtoKeySet       bool   `json:"devtoKeySet"`
-	SyncInterval      int    `json:"syncInterval"`
-	AgentName         string `json:"agentName"`
-	AgentLabel        string `json:"agentLabel"`
-	ConfigPath        string `json:"configPath"`
-	PostsDir          string `json:"postsDir"`
-	RedirectURI       string `json:"redirectUri"`
-	TerminalTmuxKeys  bool   `json:"terminalTmuxKeys"`
+	// BufferInsightsKeySet: an optional personal key for Buffer post metrics.
+	BufferInsightsKeySet bool   `json:"bufferInsightsKeySet"`
+	SyncInterval         int    `json:"syncInterval"`
+	AgentName            string `json:"agentName"`
+	AgentLabel           string `json:"agentLabel"`
+	ConfigPath           string `json:"configPath"`
+	PostsDir             string `json:"postsDir"`
+	RedirectURI          string `json:"redirectUri"`
+	TerminalTmuxKeys     bool   `json:"terminalTmuxKeys"`
 	// TerminalShell is the shell for new sessions; empty uses the default.
 	TerminalShell   string `json:"terminalShell"`
 	AutoLockMinutes int    `json:"autoLockMinutes"`
@@ -98,7 +101,7 @@ func (s *SettingsService) Get() Settings {
 		PlaneSecretSet: c.Plane.ClientSecret != "", PlaneWorkspace: c.Plane.Workspace,
 		PlaneRedirectPort: c.Plane.RedirectPort, PlaneScope: c.Plane.Scope,
 		PlaneConnected: s.plane.client.Connected(),
-		ConnectedSlug:  s.plane.client.Workspace(), DevtoKeySet: c.DevTo.APIKey != "",
+		ConnectedSlug:  s.plane.client.Workspace(), DevtoKeySet: c.DevTo.APIKey != "", BufferInsightsKeySet: c.Buffer.InsightsKey != "",
 		SyncInterval: c.Sync.IntervalSeconds, AgentName: c.Agent.Name, AgentLabel: c.Agent.Label,
 		ConfigPath: config.Path(), PostsDir: s.posts.store.Dir,
 		RedirectURI:      "http://127.0.0.1:" + strconv.Itoa(c.Plane.RedirectPort) + "/oauth/callback",
@@ -174,6 +177,29 @@ func usableShell(path string) string {
 		return path
 	}
 	return ""
+}
+
+// SetBufferInsightsKey checks a Buffer personal API key and keeps it in the
+// keychain. Relay uses it only to read post metrics.
+func (s *SettingsService) SetBufferInsightsKey(ctx context.Context, key string) (Settings, error) {
+	key = strings.TrimSpace(key)
+	if key == "" {
+		return Settings{}, errors.New("paste a Buffer API key")
+	}
+	if err := s.buffer.client.CheckKey(ctx, key); err != nil {
+		return Settings{}, err
+	}
+	err := config.Update(func(c *config.Config) { c.Buffer.InsightsKey = key })
+	s.buffer.dropInsights()
+	logs.For("app").Info("buffer insights key saved")
+	return s.Get(), err
+}
+
+// ClearBufferInsightsKey removes the Buffer insights key.
+func (s *SettingsService) ClearBufferInsightsKey() (Settings, error) {
+	err := config.Update(func(c *config.Config) { c.Buffer.InsightsKey = "" })
+	s.buffer.dropInsights()
+	return s.Get(), err
 }
 
 // ClearDevtoKey removes the stored Dev.to key.

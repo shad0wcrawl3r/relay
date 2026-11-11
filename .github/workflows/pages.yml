@@ -75,6 +75,8 @@ jobs:
       - uses: actions/upload-pages-artifact@v5
         with:
           path: site/public
+          # Keeps .well-known/security.txt.
+          include-hidden-files: true
 
       - id: deployment
         uses: actions/deploy-pages@v5

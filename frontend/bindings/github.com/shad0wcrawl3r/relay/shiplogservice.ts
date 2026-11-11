@@ -65,6 +65,15 @@ export function Projects(): $CancellablePromise<$models.ShipProject[] | null> {
 }
 
 /**
+ * ReadyToWrite lists items finished in the last week that no post is linked
+ * to yet, for Attention's "Ready to write about". Like the ship log, it
+ * leaves lockable projects and modules out, unlocked or not.
+ */
+export function ReadyToWrite(): $CancellablePromise<$models.ShipItem[] | null> {
+    return $Call.ByID(1065222668);
+}
+
+/**
  * RecentRepo is the folder the last ship log read commits from.
  */
 export function RecentRepo(): $CancellablePromise<string> {

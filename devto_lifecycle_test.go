@@ -91,6 +91,9 @@ func apply(a *devto.Article, in map[string]any) {
 	if v, ok := in["body_markdown"].(string); ok {
 		a.BodyMarkdown = v
 	}
+	if v, ok := in["ai_disclosure_level"].(string); ok {
+		a.AIDisclosureLevel = v
+	}
 	if v, ok := in["published"].(bool); ok {
 		a.Published = v
 		if v {
@@ -114,14 +117,15 @@ func TestDevtoLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Send: an unpublished draft carrying the AI disclosure.
+	// Send: an unpublished draft with Dev.to's AI marker set, and no line
+	// added to the body.
 	sent, err := s.Send(ctx, p.ID, false)
 	if err != nil || sent.Drift != nil {
 		t.Fatalf("send: %v %+v", err, sent.Drift)
 	}
 	id := sent.Post.DevtoID
-	if a := f.get(id); a.Published || !strings.Contains(a.BodyMarkdown, disclosures[AIAssisted]) {
-		t.Fatalf("draft on Dev.to: published=%v body=%q", a.Published, a.BodyMarkdown)
+	if a := f.get(id); a.Published || a.AIDisclosureLevel != "some_ai" || a.BodyMarkdown != "Hello.\n" {
+		t.Fatalf("draft on Dev.to: published=%v level=%q body=%q", a.Published, a.AIDisclosureLevel, a.BodyMarkdown)
 	}
 
 	// Publish, then unpublish.
@@ -232,5 +236,41 @@ func TestPendingPromotions(t *testing.T) {
 	rows = append(rows, PromotionPost{Promotion: posts.Promotion{BufferID: "e"}, LookupError: "rate limited"})
 	if ids, err := pendingPromotions(rows); err == nil || len(ids) != 0 {
 		t.Errorf("with a failed lookup: ids %v, err %v; want none and an error", ids, err)
+	}
+}
+
+// An article sent before Forem had the field carries Relay's old line. A
+// pull takes it off and keeps the level; the next send sets the marker and
+// leaves the line out.
+func TestLegacyDisclosureMigrates(t *testing.T) {
+	f := newFakeForem(t)
+	ctx := context.Background()
+	s := testService(t)
+	p, err := s.store.Save(posts.Post{Meta: posts.Meta{Title: "Old"}, Body: "Body.\n"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sent, err := s.Send(ctx, p.ID, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := sent.Post.DevtoID
+	f.mu.Lock()
+	f.articles[id].BodyMarkdown = "Body.\n\n" + legacyDisclosures[AIAssisted] + "\n"
+	f.articles[id].AIDisclosureLevel = "not_disclosed"
+	f.mu.Unlock()
+
+	pulled, err := s.PullDevto(ctx, p.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if pulled.Body != "Body.\n" || pulled.AI != AIAssisted {
+		t.Fatalf("pulled body=%q ai=%q", pulled.Body, pulled.AI)
+	}
+	if _, err := s.Send(ctx, p.ID, false); err != nil {
+		t.Fatal(err)
+	}
+	if a := f.get(id); a.BodyMarkdown != "Body.\n" || a.AIDisclosureLevel != "some_ai" {
+		t.Fatalf("after re-send: body=%q level=%q", a.BodyMarkdown, a.AIDisclosureLevel)
 	}
 }

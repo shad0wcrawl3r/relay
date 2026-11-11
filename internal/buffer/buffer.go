@@ -273,6 +273,22 @@ func (c *Client) queryVars(ctx context.Context, query string, vars map[string]an
 	if err != nil {
 		return err
 	}
+	return c.send(ctx, t.AccessToken, false, query, vars, out)
+}
+
+// ErrBadKey is a personal API key Buffer refused.
+var ErrBadKey = errors.New("Buffer refused the API key")
+
+// queryWithKey runs a query with a personal API key instead of the OAuth
+// token. A 401 means the key is wrong, never that the user signed out.
+func (c *Client) queryWithKey(ctx context.Context, key, query string, vars map[string]any, out any) error {
+	if until, limited := c.RateLimit(); limited {
+		return &RateLimited{Until: until}
+	}
+	return c.send(ctx, key, true, query, vars, out)
+}
+
+func (c *Client) send(ctx context.Context, bearer string, personal bool, query string, vars map[string]any, out any) error {
 	reqBody := map[string]any{"query": query}
 	if vars != nil {
 		reqBody["variables"] = vars
@@ -286,7 +302,7 @@ func (c *Client) queryVars(ctx context.Context, query string, vars map[string]an
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+t.AccessToken)
+	req.Header.Set("Authorization", "Bearer "+bearer)
 	resp, err := c.http.Do(req)
 	if err != nil {
 		return fmt.Errorf("could not reach Buffer: %w", err)
@@ -294,6 +310,9 @@ func (c *Client) queryVars(ctx context.Context, query string, vars map[string]an
 	defer resp.Body.Close()
 	switch resp.StatusCode {
 	case http.StatusUnauthorized:
+		if personal {
+			return ErrBadKey
+		}
 		// Buffer answers 401 once the user revokes access.
 		log.Warn("access revoked, signing out")
 		_ = c.Disconnect()

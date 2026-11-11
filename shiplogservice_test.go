@@ -9,6 +9,7 @@ import (
 
 	"github.com/shad0wcrawl3r/relay/internal/config"
 	"github.com/shad0wcrawl3r/relay/internal/plane"
+	"github.com/shad0wcrawl3r/relay/internal/posts"
 )
 
 func TestFinishedItems(t *testing.T) {
@@ -78,5 +79,26 @@ func TestGitCommits(t *testing.T) {
 	}
 	if _, err := gitCommits(context.Background(), t.TempDir(), time.Now().Add(-time.Hour), time.Now()); err == nil || !strings.Contains(err.Error(), "git repository") {
 		t.Errorf("non-repo err = %v", err)
+	}
+}
+
+func TestReadyToWriteSkipsLinkedAndLocked(t *testing.T) {
+	config.Override(func(c *config.Config) { c.Privacy.Locked = []string{"project:SECRET"} })
+	t.Cleanup(func() { config.Override(func(c *config.Config) { c.Privacy.Locked = nil }) })
+	states := []plane.State{{ID: "done", Group: "completed"}}
+	snap := plane.Snapshot{Projects: []plane.Project{
+		{ID: "p1", Identifier: "RELAY", States: states, Items: []plane.Item{
+			{ID: "a", Key: "RELAY-1", StateID: "done", CompletedAt: "2026-11-08T10:00:00Z"},
+			{ID: "b", Key: "RELAY-2", StateID: "done", CompletedAt: "2026-11-09T10:00:00Z"},
+			{ID: "c", Key: "RELAY-3", StateID: "done", CompletedAt: "2026-10-01T10:00:00Z"},
+		}},
+		{ID: "p2", Identifier: "SECRET", States: states, Items: []plane.Item{
+			{ID: "x", Key: "SECRET-1", StateID: "done", CompletedAt: "2026-11-09T10:00:00Z"},
+		}},
+	}}
+	written := []posts.Post{{Meta: posts.Meta{PlaneItems: []posts.PlaneLink{{ProjectID: "p1", ItemID: "a"}}}}}
+	got := readyToWrite(snap, written, time.Date(2026, 11, 10, 0, 0, 0, 0, time.UTC))
+	if len(got) != 1 || got[0].Key != "RELAY-2" {
+		t.Fatalf("ready = %+v, want only RELAY-2", got)
 	}
 }

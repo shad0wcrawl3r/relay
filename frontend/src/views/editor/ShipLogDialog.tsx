@@ -31,10 +31,13 @@ const shortDay = (iso: string) => new Date(iso).toLocaleDateString(undefined, { 
  * a new post.
  */
 export function ShipLogDialog({
+  only,
   onClose,
   onDrafted,
   onSocial,
 }: {
+  /** Item IDs to keep at first (Attention's "Ready to write about"); others start unticked. */
+  only?: string[];
   onClose: () => void;
   onDrafted: (p: Post) => void;
   /** A short post for Buffer, to finish in the composer. */
@@ -89,7 +92,7 @@ export function ShipLogDialog({
         .then((m) => {
           if (stale) return;
           setMaterial(m);
-          setDropItems(new Set());
+          setDropItems(new Set(only?.length ? (m.items ?? []).filter((i) => !only.includes(i.id)).map((i) => i.id) : []));
           setDropCommits(new Set());
         })
         .catch((err) => !stale && setError(errorMessage(err)))

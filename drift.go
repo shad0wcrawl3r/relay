@@ -68,9 +68,11 @@ func (s *PostService) drift(ctx context.Context, p posts.Post) (*Drift, error) {
 		// Gone from Dev.to: the update will say so.
 		return nil, nil
 	}
-	// Compare what Relay would send, disclosure line included.
-	local := withDisclosure(p.Body, p.AI)
-	same := fingerprint(a.Title, a.BodyMarkdown) == fingerprint(p.Title, local)
+	// Compare what Relay would send with Dev.to's copy, minus any disclosure
+	// line Relay added in the past.
+	local := p.Body
+	remote, _ := splitDisclosure(a.BodyMarkdown)
+	same := fingerprint(a.Title, remote) == fingerprint(p.Title, local)
 	changed, known := remoteChanged(p, a)
 	if same || (known && !changed) {
 		return nil, nil
@@ -108,15 +110,12 @@ func (s *PostService) PullDevto(ctx context.Context, id string) (posts.Post, err
 		return posts.Post{}, errors.New("couldn't load Dev.to's copy; sync and try again")
 	}
 	p.Title = a.Title
-	// Relay's disclosure line comes back with the body; keep it as the setting.
-	if body, level := splitDisclosure(a.BodyMarkdown); level != "" {
-		p.Body, p.AI = body, level
-	} else {
-		p.Body = a.BodyMarkdown
-		if p.AI != "" && p.AI != AINone {
-			// Removed on Dev.to: don't add it back unasked.
-			p.AI = AINone
-		}
+	// Dev.to's AI marker (or an old disclosure line) becomes the setting;
+	// when Dev.to doesn't say, the post keeps its own.
+	body, level := remoteBody(a.BodyMarkdown, a.AIDisclosureLevel)
+	p.Body = body
+	if level != "" {
+		p.AI = level
 	}
 	p.DevtoHash = fingerprint(a.Title, a.BodyMarkdown)
 	devtoLog.Notice("pulled from Dev.to", "id", id, "devto_id", p.DevtoID)

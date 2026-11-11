@@ -30,6 +30,7 @@ type secret struct {
 
 var secrets = []secret{
 	{"devto-api-key", "devto.API_KEY", "RELAY_DEVTO_API_KEY", func(c *Config) *string { return &c.DevTo.APIKey }},
+	{"buffer-insights-key", "buffer.INSIGHTS_KEY", "RELAY_BUFFER_INSIGHTS_KEY", func(c *Config) *string { return &c.Buffer.InsightsKey }},
 	{"plane-client-secret", "plane.CLIENT_SECRET", "RELAY_PLANE_CLIENT_SECRET", func(c *Config) *string { return &c.Plane.ClientSecret }},
 }
 

@@ -44,13 +44,6 @@ export function DeleteURL(id: string): $CancellablePromise<string> {
 }
 
 /**
- * Disclosures returns the line each level adds, for the editor's preview.
- */
-export function Disclosures(): $CancellablePromise<{ [_ in string]?: string } | null> {
-    return $Call.ByID(540673883);
-}
-
-/**
  * Drift reports how Dev.to's copy differs from Relay's, or nil if it doesn't.
  */
 export function Drift(id: string): $CancellablePromise<$models.Drift | null> {

@@ -274,8 +274,14 @@ func (s *ShipLogService) Draft(ctx context.Context, d ShipLogDraft) (posts.Post,
 	if title == "" {
 		title = "What I shipped, " + shipRange(d.Query)
 	}
+	// The items become the post's links, so Attention stops offering them as
+	// ready to write about.
+	links := make([]posts.PlaneLink, 0, len(items))
+	for _, it := range items {
+		links = append(links, posts.PlaneLink{ProjectID: it.ProjectID, ItemID: it.ID})
+	}
 	p, err := s.posts.store.Save(posts.Post{
-		Meta: posts.Meta{Title: title, Tags: []string{"buildinpublic"}, AI: AIAssisted},
+		Meta: posts.Meta{Title: title, Tags: []string{"buildinpublic"}, AI: AIAssisted, PlaneItems: links},
 		Body: body,
 	})
 	if err != nil {
@@ -358,4 +364,34 @@ func (s *ShipLogService) SetRecentRepo(dir string) error {
 		dir = filepath.Clean(dir)
 	}
 	return config.Update(func(c *config.Config) { c.ShipLog.Repo = dir })
+}
+
+// ReadyToWrite lists items finished in the last week that no post is linked
+// to yet, for Attention's "Ready to write about". Like the ship log, it
+// leaves lockable projects and modules out, unlocked or not.
+func (s *ShipLogService) ReadyToWrite() ([]ShipItem, error) {
+	all, err := s.posts.store.List()
+	if err != nil {
+		return nil, err
+	}
+	return readyToWrite(s.plane.Snapshot(), all, time.Now()), nil
+}
+
+func readyToWrite(snap plane.Snapshot, all []posts.Post, now time.Time) []ShipItem {
+	items, _ := finishedItems(snap, ShipLogQuery{Since: now.AddDate(0, 0, -7), Until: now})
+	used := map[string]bool{}
+	for _, p := range all {
+		for _, l := range p.PlaneItems {
+			used[l.ItemID] = true
+		}
+	}
+	out := []ShipItem{}
+	for _, it := range items {
+		if !used[it.ID] {
+			out = append(out, it)
+		}
+	}
+	// Newest first: the freshest work is the easiest to write about.
+	slices.Reverse(out)
+	return out
 }

@@ -36,6 +36,10 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
 - `CHANGELOG.md` is built into the app (`changelog.go`): plain `- ` lines under version headings, user-facing, no markup.
   Release builds show the entries since `[updates] SEEN` once after an update (never on a fresh install) and list all of them
   in Settings → About. Add user-visible changes under Unreleased as you make them. `RELAY_WHATS_NEW=1 wails3 dev` previews the dialog.
+- Security: `SECURITY.md` (private vulnerability reporting, relay+security@shadowcrawler.dev), `site/public/.well-known/security.txt`
+  (renew `Expires` before 2027-11-11), `docs/threat-model.md`, and Settings → Security & privacy (`views/settings/DataFlows.tsx`).
+  When a change moves data somewhere new or changes a protection, update the threat model and DataFlows in the same PR.
+  `.github/workflows/security.yml` (govulncheck, gitleaks, CodeQL, dependency review) reports but isn't required to merge.
 - Bugs are tracked in GitHub Issues (`.github/ISSUE_TEMPLATE/bug_report.yml`). Report a bug (`lib/bugReport.ts`) prefills only the version,
   platform and build info; never add logs, settings or user content to the URL.
 - No risky changes or releases during judging (Nov 16–20, 2026) unless the user asks.
@@ -60,8 +64,12 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
   (IDs, channel and error only, never post text). Follow-up promotions are ordinary scheduled promotions, so Go adds the link to each.
   After a 429 the Buffer client refuses every call until Retry-After passes (`buffer.RateLimited`). The Timeline's post lists are
   cached in memory only (`buffercalendar.go`, 3 min) and dropped on any write through Relay; don't add per-click Buffer calls.
-- Dev.to AI disclosure: `posts.Meta.AI` (none/assisted/generated, empty = none). Go appends the matching line when sending (`disclosure.go`)
-  and strips it when pulling, so the local body never carries it.
+- Dev.to AI disclosure: `posts.Meta.AI` (none/assisted/generated, empty = none). Go sends it as Forem's `ai_disclosure_level`
+  (no_ai/some_ai/fully_autonomous, the "AI:" marker in Dev.to's editor) and reads it back on pull (`disclosure.go`); the body never carries it.
+  Relay used to append a line instead: `splitDisclosure` still strips those from Dev.to bodies, and the next send leaves it out.
+- Plane items ↔ posts (`posts.Meta.PlaneItems`, IDs only): linked in the editor (`PlaneItemsSelect`), recorded by a ship log draft,
+  shown with the post's status in the item drawer (`LinkedPosts`). Attention's "Ready to write about" (`ReadyToWrite`) lists items
+  finished in the last week that no post links to. Lockable projects are never offered, listed or shown there, unlocked or not.
 - Ship log (`shiplogservice.go`): completed items in a window (Plane `completed_at`) plus `git log` subjects from a repo the
   user picks. Lockable projects/modules are always left out (unlocked or not); only titles and subjects reach the model,
   through `ai.Plane(PrivacyKeys…)`. Go re-reads the kept items by ID rather than trusting text from the UI.
@@ -71,9 +79,17 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
   isn't trusted. Unlocking doesn't change that. Never log a refused prompt or the project it came from.
   Preload (`internal/ai/preload.go`, `[ai] PRELOAD`, on by default) warms a local Ollama / LM Studio model when the user is about to
   ask it (ship log opened, pointer or focus on an AI button: `preloadModel` / `preloadOnIntent`), never in the background. It sends no user content.
+- Insights (`insights.go`, `internal/buffer/metrics.go`, editor **Insights**): every integration that can report engagement feeds
+  `Insights`. Add it when you integrate a new service. Dev.to's views/reactions/comments come from the synced article list (no extra call).
+  Buffer's `post.metrics` (all channels, LinkedIn included) are cached an hour and fetched only when the user opens insights.
+  Buffer gives metrics only to a personal API key (`[buffer] INSIGHTS_KEY`, keychain only, optional): Relay tries OAuth first,
+  shows "needs-key" when refused, and a refused key never signs the OAuth session out.
 - UI state that's remembered per machine (last view and post, board view/filters/columns, sidebar width) lives in localStorage via
   `lib/prefs.ts`: IDs and choices only, and private projects' boards are remembered for the session only. The notification pane
   (`Toaster.tsx` `useInbox`) is in memory; errors are kept unless `keep: false`, which item-specific errors use so a relocked project isn't named.
+- A note for the Buffer team (`components/BufferTeamNote.tsx`: a dismissible card on the Buffer tab that opens a dialog) shows only when
+  the Buffer account's email is exactly `@buffer.com` (`bufferStaff`). Go sends the UI only `BufferOverview.Staff`, never the email; don't log it.
+  `RELAY_BUFFER_NOTE=1 wails3 dev` previews it.
 - Planning in Buffer (`[planning] BUFFER`) is **experimental** in Relay because the upstream API is; keep it labelled so in the UI and docs. `internal/planning` maps Buffer content items (an Experimental Buffer API) to a
   board project (`buffer-plan`, source "buffer"); PlaneService routes its writes to `bufferplan.go`. Columns before
   posting are "Relay: …" tags; Scheduled/Published come from the item's posts and can't be dragged into. Card text stays in memory.

@@ -11,6 +11,7 @@ export type {
     IdeaGroup,
     IdeaPage,
     Limits,
+    Metric,
     NewIdea,
     Organization,
     Post,

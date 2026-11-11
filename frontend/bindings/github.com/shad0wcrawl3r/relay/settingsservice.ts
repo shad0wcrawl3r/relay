@@ -48,6 +48,13 @@ export function ClearAllData(): $CancellablePromise<void> {
 }
 
 /**
+ * ClearBufferInsightsKey removes the Buffer insights key.
+ */
+export function ClearBufferInsightsKey(): $CancellablePromise<$models.Settings> {
+    return $Call.ByID(3631317889);
+}
+
+/**
  * ClearDevtoKey removes the stored Dev.to key.
  */
 export function ClearDevtoKey(): $CancellablePromise<$models.Settings> {
@@ -103,6 +110,14 @@ export function SaveDevtoKey(key: string): $CancellablePromise<$models.Settings>
  */
 export function SavePlaneApp(clientID: string, secret: string, workspace: string): $CancellablePromise<$models.Settings> {
     return $Call.ByID(2029454664, clientID, secret, workspace);
+}
+
+/**
+ * SetBufferInsightsKey checks a Buffer personal API key and keeps it in the
+ * keychain. Relay uses it only to read post metrics.
+ */
+export function SetBufferInsightsKey(key: string): $CancellablePromise<$models.Settings> {
+    return $Call.ByID(1657107818, key);
 }
 
 /**
