@@ -9,6 +9,8 @@ that heading to the new version.
 
 ## Unreleased
 
+## 0.0.8 — 2026-11-11
+
 - Settings → About → Report a bug opens a GitHub issue with your version and platform filled in, and nothing else.
 - What's new: after an update, Relay shows what changed the first time it opens.
 - Settings → About lists every release's changes.
