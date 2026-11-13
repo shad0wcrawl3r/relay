@@ -51,6 +51,7 @@ func keychainAccounts() []string {
 		"devto-api-key",           // internal/config/secrets.go
 		"plane-client-secret",     // internal/config/secrets.go
 		"buffer-client-secret",    // internal/config/secrets.go
+		"buffer-insights-key",     // internal/config/secrets.go
 	}
 	for _, p := range ai.Providers() {
 		names = append(names, "ai-"+p.ID) // internal/ai
