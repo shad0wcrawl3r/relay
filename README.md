@@ -91,6 +91,9 @@ frontend. Runs on macOS, Windows and Linux.
     adds ("Relay: …"); cards with posts follow them to Scheduled and Published
   - Buffer column on Plane boards: drag work items in to save them as Buffer
     ideas, or drag ideas out to make work items (never for private projects)
+  - Custom prompts: Settings → AI → Prompts rewrites the instructions for
+    each AI action (promoting an article, a post from notes, Ship's article
+    and Buffer post), with a reset to Relay's own
   - AI providers: Anthropic, OpenAI, OpenRouter, Ollama and LM Studio, with
     custom endpoints, model search and a test before saving. Ollama and LM
     Studio models can load into memory when you open Ship or point at

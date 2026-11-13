@@ -22,6 +22,28 @@ export interface AIPreload {
     "label": string;
 }
 
+/**
+ * AIPrompt is one editable system prompt, for Settings → AI → Prompts.
+ */
+export interface AIPrompt {
+    "id": string;
+    "name": string;
+    "use": string;
+
+    /**
+     * Text is what Relay sends: the custom prompt, or Default.
+     */
+    "text": string;
+    "default": string;
+    "custom": boolean;
+
+    /**
+     * Fixed is always added after Text, because Relay parses the reply.
+     */
+    "fixed": string;
+    "placeholders": string[] | null;
+}
+
 export interface AIProvider {
     "id": string;
     "name": string;

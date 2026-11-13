@@ -102,6 +102,11 @@ or text from the UI used to smuggle content into a prompt.
 - Ship re-reads the items it uses by ID in Go instead of trusting
   titles sent by the UI, and leaves lockable projects out entirely.
 - Warming a local model ("preload") sends no user content.
+- Custom prompts (Settings → AI → Prompts) replace only the system prompt.
+  Articles and notes are still fenced off in the user message, the privacy
+  gate is unchanged, and Go still adds promotion links. They're stored as
+  plain text in `config.toml` (`[ai] PROMPTS`), like other settings, and are
+  never logged.
 
 ### Publishing and promotion
 

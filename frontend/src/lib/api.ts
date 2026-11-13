@@ -285,7 +285,12 @@ export const AIService = {
   /** Starts loading the selected local model; a no-op unless it's a local Ollama or LM Studio and the setting is on. */
   Preload: (): Promise<void> => AIBindings.Preload(),
   SetPreload: async (on: boolean) => aiStatus(await AIBindings.SetPreload(on)),
+  /** The system prompts you can rewrite in Settings → AI. */
+  Prompts: async (): Promise<AIPrompt[]> => arr(await AIBindings.Prompts()) as AIPrompt[],
+  /** Saves a custom prompt; empty (or the default) restores Relay's own. */
+  SetPrompt: async (id: string, text: string): Promise<AIPrompt[]> => arr(await AIBindings.SetPrompt(id, text)) as AIPrompt[],
 };
+export type AIPrompt = Clean<M.AIPrompt>;
 export type AIPreload = Clean<M.AIPreload>;
 
 export type ShipProject = Clean<M.ShipProject>;

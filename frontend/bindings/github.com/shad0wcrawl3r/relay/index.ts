@@ -26,6 +26,7 @@ export {
 
 export type {
     AIPreload,
+    AIPrompt,
     AIProvider,
     AIStatus,
     BufferCached,

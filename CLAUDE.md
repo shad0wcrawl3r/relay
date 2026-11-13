@@ -83,6 +83,9 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
   content from a lockable project or module only reaches a private provider: one the user marked (`[ai] PRIVATE`,
   tied to the endpoint), or Ollama / LM Studio at their default endpoints until turned off. A loopback address alone
   isn't trusted. Unlocking doesn't change that. Never log a refused prompt or the project it came from.
+  System prompts are editable (`internal/ai/prompts.go`, `[ai] PROMPTS`, Settings → AI → Prompts): register any new prompt there and
+  read it with `ai.SystemPrompt(id)`. Only instructions are editable; fencing of user content, the privacy gate and parsed reply formats
+  (`Fixed`) stay in Go. Never log prompt text.
   Preload (`internal/ai/preload.go`, `[ai] PRELOAD`, on by default) warms a local Ollama / LM Studio model when the user is about to
   ask it (Ship opened, pointer or focus on an AI button: `preloadModel` / `preloadOnIntent`), never in the background. It sends no user content.
 - Insights (`insights.go`, `internal/buffer/metrics.go`, editor **Insights**): every integration that can report engagement feeds

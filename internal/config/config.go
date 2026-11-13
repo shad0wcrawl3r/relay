@@ -141,6 +141,7 @@ func write(next Config) error {
 	v.Set("ai.ENDPOINTS", next.AI.Endpoints)
 	v.Set("ai.PRIVATE", next.AI.Private)
 	v.Set("ai.PRELOAD", next.AI.Preload)
+	v.Set("ai.PROMPTS", next.AI.Prompts)
 	v.Set("logs.ENABLED", next.Logs.Enabled)
 	v.Set("logs.LEVELS", next.Logs.Levels)
 	v.Set("onboarding.DONE", next.Onboarding.Done)
@@ -213,6 +214,9 @@ type Config struct {
 		Private map[string]string `mapstructure:"PRIVATE"`
 		// Preload: warm a local model when a dialog that uses it opens.
 		Preload bool `mapstructure:"PRELOAD"`
+		// Prompts holds custom system prompts, keyed by prompt ID
+		// (internal/ai/prompts.go). Missing means Relay's own.
+		Prompts map[string]string `mapstructure:"PROMPTS"`
 	}
 	Logs struct {
 		Enabled bool `mapstructure:"ENABLED"`

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"maps"
 	"strings"
 	"time"
@@ -287,4 +288,63 @@ func (s *AIService) Preload() {
 		}
 		emit("ready")
 	}()
+}
+
+// AIPrompt is one editable system prompt, for Settings → AI → Prompts.
+type AIPrompt struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Use  string `json:"use"`
+	// Text is what Relay sends: the custom prompt, or Default.
+	Text    string `json:"text"`
+	Default string `json:"default"`
+	Custom  bool   `json:"custom"`
+	// Fixed is always added after Text, because Relay parses the reply.
+	Fixed        string   `json:"fixed"`
+	Placeholders []string `json:"placeholders"`
+}
+
+// Prompts lists the system prompts the user can rewrite.
+func (s *AIService) Prompts() []AIPrompt {
+	custom := config.GetConfig().AI.Prompts
+	out := []AIPrompt{}
+	for _, d := range ai.Prompts() {
+		_, isCustom := custom[d.ID]
+		out = append(out, AIPrompt{
+			ID: d.ID, Name: d.Name, Use: d.Use, Default: d.Default, Fixed: d.Fixed,
+			Text: ai.SystemPrompt(d.ID), Custom: isCustom && strings.TrimSpace(custom[d.ID]) != "",
+			Placeholders: append([]string{}, d.Placeholders...),
+		})
+	}
+	return out
+}
+
+// SetPrompt saves a custom system prompt; empty, or the default, restores
+// Relay's own. The text is never logged.
+func (s *AIService) SetPrompt(id, text string) ([]AIPrompt, error) {
+	d, ok := ai.PromptByID(id)
+	if !ok {
+		return nil, errors.New("unknown prompt")
+	}
+	text = strings.TrimSpace(strings.ReplaceAll(text, "\r\n", "\n"))
+	if n := len([]rune(text)); n > ai.MaxPromptChars {
+		return nil, fmt.Errorf("keep the prompt under %d characters (it's %d)", ai.MaxPromptChars, n)
+	}
+	err := config.Update(func(c *config.Config) {
+		next := maps.Clone(c.AI.Prompts)
+		if next == nil {
+			next = map[string]string{}
+		}
+		if text == "" || text == strings.TrimSpace(d.Default) {
+			delete(next, id)
+		} else {
+			next[id] = text
+		}
+		c.AI.Prompts = next
+	})
+	if err != nil {
+		return nil, err
+	}
+	logs.For("ai").Info("prompt saved", "prompt", id, "custom", text != "" && text != strings.TrimSpace(d.Default))
+	return s.Prompts(), nil
 }
