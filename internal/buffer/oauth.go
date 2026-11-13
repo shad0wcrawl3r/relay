@@ -87,11 +87,12 @@ func (c *Client) Connect(ctx context.Context, openURL func(string)) error {
 	go srv.Serve(ln)
 	defer srv.Close()
 
+	clientID, secret := c.app()
 	q := url.Values{
 		"client_id":             {clientID},
-		"redirect_uri":          {redirectURI},
+		"redirect_uri":          {RedirectURI},
 		"response_type":         {"code"},
-		"scope":                 {scope},
+		"scope":                 {Scope},
 		"state":                 {state},
 		"code_challenge":        {challengeFor(verifier)},
 		"code_challenge_method": {"S256"},
@@ -117,10 +118,10 @@ func (c *Client) Connect(ctx context.Context, openURL func(string)) error {
 		return res.err
 	}
 
-	tok, err := c.redeem(ctx, url.Values{
+	tok, err := c.redeem(ctx, clientID, secret, url.Values{
 		"grant_type":    {"authorization_code"},
 		"code":          {res.code},
-		"redirect_uri":  {redirectURI},
+		"redirect_uri":  {RedirectURI},
 		"code_verifier": {verifier},
 	})
 	if err != nil {
@@ -133,7 +134,7 @@ func (c *Client) Connect(ctx context.Context, openURL func(string)) error {
 		log.Error("could not save the token", "error", err)
 		return fmt.Errorf("could not save the Buffer token to the keychain: %w", err)
 	}
-	log.Notice("signed in")
+	log.Notice("signed in", "app", map[bool]string{true: "relay", false: "custom"}[clientID == DefaultClientID])
 	return nil
 }
 

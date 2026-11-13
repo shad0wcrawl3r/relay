@@ -107,6 +107,30 @@ export interface AIStatus {
 }
 
 /**
+ * BufferApp is the app Relay signs in to Buffer with.
+ */
+export interface BufferApp {
+    "custom": boolean;
+    "clientId": string;
+    "secretSet": boolean;
+
+    /**
+     * RedirectURI is what the user's app must list as its callback.
+     */
+    "redirectUri": string;
+
+    /**
+     * Scopes are what the app must allow.
+     */
+    "scopes": string[] | null;
+
+    /**
+     * SignedInWith is "relay", "custom" or "" (signed out).
+     */
+    "signedInWith": string;
+}
+
+/**
  * BufferCached is what the Buffer tab shows while fresh data loads: the
  * last overview, if Buffer is still signed in. No network calls.
  */

@@ -25,6 +25,13 @@ import * as posts$0 from "./internal/posts/models.js";
 // @ts-ignore: Unused imports
 import * as $models from "./models.js";
 
+/**
+ * App reports which Buffer app is in use.
+ */
+export function App(): $CancellablePromise<$models.BufferApp> {
+    return $Call.ByID(4228985030);
+}
+
 export function Cached(): $CancellablePromise<$models.BufferCached> {
     return $Call.ByID(2530073113);
 }
@@ -207,6 +214,16 @@ export function PromotionPosts(postID: string): $CancellablePromise<$models.Prom
  */
 export function RemoveScheduledPromotions(postID: string): $CancellablePromise<number> {
     return $Call.ByID(3790683276, postID);
+}
+
+/**
+ * SetApp switches to the user's own Buffer app; an empty clientID goes back
+ * to Relay's. A blank secret keeps the saved one for the same app. A sign-in
+ * made with another app is ended: its tokens only refresh with that app, and
+ * the point of switching is to stop using it. The user signs in again.
+ */
+export function SetApp(clientID: string, secret: string): $CancellablePromise<$models.BufferApp> {
+    return $Call.ByID(1543622480, clientID, secret);
 }
 
 /**

@@ -19,7 +19,7 @@ const READ_SCOPES = [
 ];
 const WRITE_SCOPES = ["projects.work_items", "projects.work_items.comments"];
 
-function CopyValue({ value, label }: { value: string; label: string }) {
+export function CopyValue({ value, label }: { value: string; label: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <span className="mt-1.5 flex items-center gap-1.5">

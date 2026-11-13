@@ -125,6 +125,7 @@ func write(next Config) error {
 	v.Set("plane.BASE_URL", next.Plane.BaseURL)
 	v.Set("plane.APP_URL", next.Plane.AppURL)
 	v.Set("plane.CLIENT_ID", next.Plane.ClientID)
+	v.Set("buffer.CLIENT_ID", next.Buffer.ClientID)
 	v.Set("plane.WORKSPACE", next.Plane.Workspace)
 	v.Set("plane.REDIRECT_PORT", next.Plane.RedirectPort)
 	v.Set("plane.SCOPE", next.Plane.Scope)
@@ -174,6 +175,10 @@ type Config struct {
 		// read post metrics, which Buffer doesn't give OAuth apps. Keychain
 		// only (secrets.go).
 		InsightsKey string `mapstructure:"INSIGHTS_KEY"`
+		// ClientID is the user's own Buffer OAuth app; empty means Relay's.
+		ClientID string `mapstructure:"CLIENT_ID"`
+		// ClientSecret is that app's optional secret. Keychain only.
+		ClientSecret string `mapstructure:"CLIENT_SECRET"`
 	}
 	Plane struct {
 		BaseURL string `mapstructure:"BASE_URL"`

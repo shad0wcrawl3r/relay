@@ -62,7 +62,9 @@ frontend. Runs on macOS, Windows and Linux.
   - Spots edits made on Dev.to: Update draft shows a diff (unified or side by
     side) and asks whether to keep Dev.to's version or replace it
 - **Promotion**
-  - Buffer sign-in with OAuth, with tokens kept in the OS keychain
+  - Buffer sign-in with OAuth, with tokens kept in the OS keychain. Relay's
+    Buffer app is used by default; Settings → Buffer → OAuth app switches to
+    your own (for example if Relay's is rate limited)
   - Turns a Dev.to post into social drafts per channel. AI summaries are optional
   - Review and edit each draft before it goes to Buffer
   - Every post carries the article's public link, with a preview of each post

@@ -29,6 +29,7 @@ export type {
     AIPrompt,
     AIProvider,
     AIStatus,
+    BufferApp,
     BufferCached,
     BufferOverview,
     BufferPlanning,

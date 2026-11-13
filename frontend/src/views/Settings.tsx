@@ -5,6 +5,7 @@ import { BufferService, GuideService, moduleKey, PlaneService, projectKey, Setti
 import { REPO, reportBug } from "@/lib/bugReport";
 import { DataFlows } from "@/views/settings/DataFlows";
 import { InsightsKey } from "@/views/settings/InsightsKey";
+import { BufferAppRow } from "@/views/settings/BufferApp";
 import { useTerminal } from "@/lib/terminal";
 import { showKey } from "@/lib/keys";
 import { Switch } from "@/components/ui/switch";
@@ -430,6 +431,7 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
                   <Button onClick={connectBuffer}>Connect Buffer</Button>
                 )}
               </div>
+              <BufferAppRow onSignedOut={() => setBuffer({ connected: false, account: "" })} />
               {buffer.connected && <BufferPlanningRow />}
               {buffer.connected && <InsightsKey set={s.bufferInsightsKeySet} onChange={(next) => setS((prev) => (prev ? { ...prev, bufferInsightsKeySet: next.bufferInsightsKeySet } : next))} />}
             </Section>

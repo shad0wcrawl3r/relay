@@ -93,7 +93,7 @@ func TestConnectUsesPKCEWithoutASecret(t *testing.T) {
 		if _, ok := f["client_secret"]; ok {
 			t.Error("a public client must not send a secret")
 		}
-		if f.Get("grant_type") != "authorization_code" || f.Get("code") != "the-code" || f.Get("client_id") != clientID || f.Get("redirect_uri") != redirectURI {
+		if f.Get("grant_type") != "authorization_code" || f.Get("code") != "the-code" || f.Get("client_id") != DefaultClientID || f.Get("redirect_uri") != RedirectURI {
 			t.Errorf("form = %v", f)
 		}
 		params = <-paramsCh
@@ -111,7 +111,7 @@ func TestConnectUsesPKCEWithoutASecret(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if params.Get("code_challenge_method") != "S256" || params.Get("redirect_uri") != redirectURI || !strings.Contains(params.Get("scope"), "offline_access") {
+	if params.Get("code_challenge_method") != "S256" || params.Get("redirect_uri") != RedirectURI || !strings.Contains(params.Get("scope"), "offline_access") {
 		t.Errorf("consent params = %v", params)
 	}
 	if got := stored(t); got.AccessToken != "access" || got.RefreshToken != "refresh" || got.Expiry.Before(time.Now()) {

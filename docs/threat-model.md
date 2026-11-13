@@ -71,6 +71,12 @@ loopback port. The flow (`internal/buffer/oauth.go`,
 - The listener binds 127.0.0.1 only, compares the state in constant time, and
   ignores any request with the wrong state while it keeps waiting for the real
   one. It times out and allows one sign-in at a time.
+- Users can sign in with their own Buffer app instead of Relay's (Settings →
+  Buffer → OAuth app). It registers the same redirect URI, so the same page
+  and PKCE protect it. Its client ID is in `config.toml`; its optional client
+  secret is in the keychain (`buffer-client-secret`) and is sent only to
+  Buffer's token endpoint. Each token records the app it was issued to and
+  refreshes only with that app; switching apps signs out.
 
 ### Private projects
 

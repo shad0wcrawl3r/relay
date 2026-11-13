@@ -38,15 +38,20 @@ func UseAccount(name string) { keyringUser = name }
 const (
 	keyringService = "relay"
 
-	// clientID identifies Relay's public OAuth client. It isn't a secret:
-	// desktop apps sign in with PKCE alone.
-	clientID = "rN1FEFOV2TyYR2anIMmuAnYwUGwxWLyVwDhfOL5XtU6"
+	// DefaultClientID identifies Relay's public OAuth client. It isn't a
+	// secret: desktop apps sign in with PKCE alone. Users can sign in with
+	// their own Buffer app instead (Settings → Buffer, Client.Credentials),
+	// for example when Relay's is rate limited.
+	DefaultClientID = "rN1FEFOV2TyYR2anIMmuAnYwUGwxWLyVwDhfOL5XtU6"
 
-	// redirectURI must match the App Client exactly and be https, so Buffer
-	// sends users to this page, which forwards to the loopback listener.
-	redirectURI = "https://relay.shadowcrawler.dev/oauth/callback"
+	// RedirectURI must match the App Client exactly and be https, so Buffer
+	// sends users to this page, which forwards to the loopback listener. A
+	// custom app registers the same one: the page forwards any client's
+	// sign-in, and the code is useless without this Relay's PKCE verifier.
+	RedirectURI = "https://relay.shadowcrawler.dev/oauth/callback"
 
-	scope = "posts:read posts:write ideas:read ideas:write account:read offline_access"
+	// Scope is what Relay asks Buffer for; a custom app must allow it.
+	Scope = "posts:read posts:write ideas:read ideas:write account:read offline_access"
 
 	// refreshSkew renews a token this long before Buffer would reject it.
 	refreshSkew = time.Minute
@@ -61,6 +66,9 @@ type Token struct {
 	AccessToken  string    `json:"access_token"`
 	RefreshToken string    `json:"refresh_token"`
 	Expiry       time.Time `json:"expiry"`
+	// ClientID is the app the token was issued to; a refresh must use the
+	// same one. Empty (sign-ins before custom apps) means DefaultClientID.
+	ClientID string `json:"client_id,omitempty"`
 }
 
 type tokenResponse struct {
@@ -134,6 +142,55 @@ type Client struct {
 	// OnSignOut runs when Buffer ends the sign-in (revoked access or a
 	// refused refresh), not when the user disconnects.
 	OnSignOut func()
+
+	// Credentials returns the user's own Buffer app, or "" for Relay's.
+	// The secret is optional: Buffer apps can sign in with PKCE alone.
+	Credentials func() (clientID, secret string)
+}
+
+// app is the Buffer app new sign-ins use.
+func (c *Client) app() (id, secret string) {
+	if c.Credentials != nil {
+		if id, secret = c.Credentials(); strings.TrimSpace(id) != "" {
+			return strings.TrimSpace(id), strings.TrimSpace(secret)
+		}
+	}
+	return DefaultClientID, ""
+}
+
+// appFor is the app a token belongs to, with its secret when it's the
+// user's current one.
+func (c *Client) appFor(t *Token) (id, secret string) {
+	id = t.ClientID
+	if id == "" {
+		id = DefaultClientID
+	}
+	if cur, s := c.app(); cur == id {
+		return id, s
+	}
+	return id, ""
+}
+
+// ClientID is the app the stored sign-in belongs to, "" when signed out.
+func (c *Client) ClientID() string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	t := c.load()
+	if t == nil {
+		return ""
+	}
+	if t.ClientID == "" {
+		return DefaultClientID
+	}
+	return t.ClientID
+}
+
+// ResetRateLimit forgets a 429's wait. Buffer limits each app on its own,
+// so a different app starts fresh.
+func (c *Client) ResetRateLimit() {
+	c.limitMu.Lock()
+	c.limitedUntil = time.Time{}
+	c.limitMu.Unlock()
 }
 
 func (c *Client) signedOut() {
@@ -230,7 +287,8 @@ func (c *Client) valid(ctx context.Context) (*Token, error) {
 		c.token = nil
 		return nil, ErrNotConnected
 	}
-	next, err := c.redeem(ctx, url.Values{
+	id, secret := c.appFor(t)
+	next, err := c.redeem(ctx, id, secret, url.Values{
 		"grant_type":    {"refresh_token"},
 		"refresh_token": {t.RefreshToken},
 	})
@@ -276,8 +334,11 @@ func (c *Client) replaced(bearer string) bool {
 // errReplaced is a 401 for a token another Relay has since replaced.
 var errReplaced = errors.New("buffer: token replaced by another instance")
 
-func (c *Client) redeem(ctx context.Context, form url.Values) (*Token, error) {
+func (c *Client) redeem(ctx context.Context, clientID, secret string, form url.Values) (*Token, error) {
 	form.Set("client_id", clientID)
+	if secret != "" {
+		form.Set("client_secret", secret)
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.tokenURL, strings.NewReader(form.Encode()))
 	if err != nil {
 		return nil, err
@@ -306,6 +367,7 @@ func (c *Client) redeem(ctx context.Context, form url.Values) (*Token, error) {
 		AccessToken:  tr.AccessToken,
 		RefreshToken: tr.RefreshToken,
 		Expiry:       time.Now().Add(time.Duration(tr.ExpiresIn) * time.Second),
+		ClientID:     clientID,
 	}, nil
 }
 
