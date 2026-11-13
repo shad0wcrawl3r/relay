@@ -9,6 +9,13 @@ that heading to the new version.
 
 ## Unreleased
 
+## 0.1.2 — 2026-11-13
+
+- Linux: Backspace works in text fields again. It used to delete only selected text.
+- Linux: the setup guide floats above Relay in tiling window managers such as Niri, instead of opening beside it.
+- Ship log is now called Ship.
+- Writing a Ship post from Buffer-board items is marked not implemented for now; Ship uses your Plane projects and commits.
+
 ## 0.1.1 — 2026-11-11
 
 - Buffer no longer signs you out after an update, or when two copies of Relay are open.
