@@ -29,7 +29,7 @@ export function PostSteps({ step, sentAt, promotions, gone }: { step: number; se
         const current = i === step;
         const detail = current && i === 1 && sentAt ? ` · sent ${ago(sentAt)}` : current && i === 3 ? ` · ${promotions}` : "";
         return (
-          <li key={label} className="flex items-center gap-1" aria-current={current ? "step" : undefined}>
+          <li key={label} className="flex items-center gap-1" aria-current={current ? "step" : undefined} title={!done && !current ? "Not yet" : undefined}>
             {i > 0 && <ChevronRight aria-hidden className="size-3 text-[#3f3f46]" />}
             <span
               className={cn(
@@ -38,6 +38,8 @@ export function PostSteps({ step, sentAt, promotions, gone }: { step: number; se
               )}
             >
               {done && <Check aria-hidden className="size-3 text-[#4ade80]" />}
+              {/* A step still ahead gets a hollow ring, so it doesn't read as a status. */}
+              {!done && !current && <span aria-hidden className="size-1.5 rounded-full border border-[#52525b]" />}
               {current && <span aria-hidden className="size-1.5 rounded-full" style={{ background: ["#a1a1aa", "#60a5fa", "#4ade80", "#c4b5fd"][i] }} />}
               {label}
               {detail}

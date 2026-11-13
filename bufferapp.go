@@ -10,7 +10,7 @@ import (
 )
 
 // Buffer OAuth app: Relay's own by default, or one the user created in
-// Buffer (Settings → Buffer → OAuth app), for example when Relay's is rate
+// Buffer (Settings → Publishing → Buffer → OAuth app), for example when Relay's is rate
 // limited. The client ID is in config.toml, the optional secret in the
 // keychain. A custom app registers the same hosted redirect URI.
 

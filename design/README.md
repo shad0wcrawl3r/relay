@@ -293,7 +293,7 @@ Kanban
   changes back (state moves via drag, comments, create, approve/shelve…).
 - Teaching is locked: stored only encrypted, hidden until unlocked with
   Touch ID or the login password, relocks after the auto-lock timeout.
-  Projects and modules can be locked in Settings → Privacy.
+  Projects and modules can be locked in Settings → Security & privacy.
 - Launch shows the last good sync from an encrypted display cache with a
   "Saved data · syncing…" banner; moving, editing, creating and commenting
   are blocked until the first live sync.

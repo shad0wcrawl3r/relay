@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { SecretInput } from "@/components/ui/secret-input";
 
 /**
- * Settings → Buffer → OAuth app: sign in with Relay's Buffer app (the
+ * Settings → Publishing → Buffer → OAuth app: sign in with Relay's Buffer app (the
  * default) or one you create, like the Plane app. Useful when Relay's app is
  * rate limited. Switching apps signs out, because a sign-in only refreshes
  * with the app it was made with.

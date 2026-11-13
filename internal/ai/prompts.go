@@ -49,7 +49,7 @@ var promptDefs = []PromptDef{
 	{
 		ID:      PromptPromotion,
 		Name:    "Promote an article",
-		Use:     "Promote → Draft with AI, and summarising pasted text in the Buffer composer.",
+		Use:     "Promote → Summarise with AI, and New idea → Draft from pasted text with AI.",
 		Default: linkedInSystem,
 	},
 	{

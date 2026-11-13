@@ -40,7 +40,7 @@ const (
 
 	// DefaultClientID identifies Relay's public OAuth client. It isn't a
 	// secret: desktop apps sign in with PKCE alone. Users can sign in with
-	// their own Buffer app instead (Settings → Buffer, Client.Credentials),
+	// their own Buffer app instead (Settings → Publishing → Buffer, Client.Credentials),
 	// for example when Relay's is rate limited.
 	DefaultClientID = "rN1FEFOV2TyYR2anIMmuAnYwUGwxWLyVwDhfOL5XtU6"
 
@@ -461,9 +461,36 @@ func (c *Client) send(ctx context.Context, bearer string, personal bool, query s
 	}
 	if len(body.Errors) > 0 {
 		log.Warn("query failed", "error", body.Errors[0].Message)
-		return fmt.Errorf("Buffer: %s", body.Errors[0].Message)
+		qe := &QueryError{Data: body.Data}
+		for _, e := range body.Errors {
+			qe.Messages = append(qe.Messages, e.Message)
+		}
+		return qe
 	}
 	return json.Unmarshal(body.Data, out)
+}
+
+// QueryError is a GraphQL reply with errors. Data holds whatever Buffer
+// still answered, for queries that can use part of it.
+type QueryError struct {
+	Messages []string
+	Data     json.RawMessage
+}
+
+func (e *QueryError) Error() string { return "Buffer: " + e.Messages[0] }
+
+// onlyNotFound reports whether every error is about something missing, and
+// Buffer still sent data for the rest.
+func (e *QueryError) onlyNotFound() bool {
+	if len(e.Data) == 0 || string(e.Data) == "null" {
+		return false
+	}
+	for _, m := range e.Messages {
+		if !strings.Contains(strings.ToLower(m), "not found") {
+			return false
+		}
+	}
+	return true
 }
 
 type Organization struct {

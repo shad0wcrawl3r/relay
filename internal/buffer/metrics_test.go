@@ -61,3 +61,21 @@ func TestBadInsightsKeyKeepsSignIn(t *testing.T) {
 		t.Fatal("a refused personal key signed Buffer out")
 	}
 }
+
+// A promotion deleted in Buffer errors only its own field; the others'
+// metrics still show.
+func TestPostMetricsKeepsOthersWhenOneIsGone(t *testing.T) {
+	c, _ := captureVars(t, `{"data":{"p0":{"id":"a","metrics":[],"metricsUpdatedAt":null},"p1":null},"errors":[{"message":"Post not found","path":["p1"]}]}`)
+	m, err := c.PostMetrics(context.Background(), "", []string{"a", "gone"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !m["a"].Found || m["gone"].Found {
+		t.Fatalf("m = %+v", m)
+	}
+	// Any other error still fails the query.
+	c, _ = captureVars(t, `{"data":{"p0":null},"errors":[{"message":"Internal error"}]}`)
+	if _, err := c.PostMetrics(context.Background(), "", []string{"a"}); err == nil {
+		t.Fatal("want an error")
+	}
+}

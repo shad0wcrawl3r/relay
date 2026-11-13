@@ -64,7 +64,7 @@ frontend. Runs on macOS, Windows and Linux.
     side) and asks whether to keep Dev.to's version or replace it
 - **Promotion**
   - Buffer sign-in with OAuth, with tokens kept in the OS keychain. Relay's
-    Buffer app is used by default; Settings → Buffer → OAuth app switches to
+    Buffer app is used by default; Settings → Publishing → Buffer → OAuth app switches to
     your own (for example if Relay's is rate limited)
   - Turns a Dev.to post into social drafts per channel. AI summaries are optional
   - Review and edit each draft before it goes to Buffer
@@ -152,7 +152,7 @@ frontend. Runs on macOS, Windows and Linux.
     and Windows it can download it, check it against the
     release's `SHA256SUMS` and install it when you say so; elsewhere it opens
     the download page. Nothing installs without you asking. Turn the check off
-    in Settings → Privacy
+    in Settings → Security & privacy
   - What's new: after an update, Relay shows what changed the first time it
     opens; Settings → About lists every release's changes
   - Settings → About → Report a bug opens a GitHub issue with only your

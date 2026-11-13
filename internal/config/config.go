@@ -40,7 +40,7 @@ func init() {
 	v.SetDefault("terminal.TMUX_KEYS", false)
 	// Lockable Plane projects ("project:<IDENTIFIER>") and modules
 	// ("module:<id>"): hidden until the device owner unlocks them.
-	// Nothing is locked until the user picks it in Settings → Privacy.
+	// Nothing is locked until the user picks it in Settings → Security & privacy.
 	v.SetDefault("privacy.LOCKED", []string{})
 	v.SetDefault("privacy.AUTO_LOCK_MINUTES", 15)
 	// Load a local model (Ollama, LM Studio) into memory when the user opens
