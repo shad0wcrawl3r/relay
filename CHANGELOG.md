@@ -9,6 +9,11 @@ that heading to the new version.
 
 ## Unreleased
 
+## 0.1.3 — 2026-11-13
+
+- Setup guide: the Buffer step offers your own Buffer app, as in Settings → Publishing → Buffer.
+- Buffer: changing the Buffer app ends a sign-in still waiting in the browser, so the next one uses the new app instead of the old one.
+
 ## 0.1.2 — 2026-11-13
 
 - Linux: Backspace works in text fields again. It used to delete only selected text.
@@ -16,7 +21,7 @@ that heading to the new version.
 - Settings → AI → Prompts: rewrite the instructions Relay gives the model for each AI action, and reset to Relay's own at any time.
 - Setup guide: once Plane is connected, it shows what the first sync is doing, what it fetched and any error, with a retry.
 - Setup guide: the terminal step offers Use Default when you haven't picked a shell.
-- Buffer: sign in with your own Buffer app instead of Relay's, from Settings → Publishing → Buffer → OAuth app, for example if Relay's is rate limited. The setup guide offers it too, and changing the app ends a sign-in still waiting in the browser with the old one.
+- Buffer: sign in with your own Buffer app instead of Relay's, from Settings → Publishing → Buffer → OAuth app, for example if Relay's is rate limited.
 - Insights: link a Buffer post you made outside Promote (in Buffer, the composer or Ship) to an article, so its numbers show with the article's.
 - Insights: a promotion deleted in Buffer no longer stops the other promotions' numbers from loading.
 - Editor: the post status moved above the article, with a green tick for each step reached and a grey dot for each one ahead.
