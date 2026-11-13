@@ -9,6 +9,11 @@ that heading to the new version.
 
 ## Unreleased
 
+## 0.1.3 — 2026-11-13
+
+- Setup guide: the Buffer step offers your own Buffer app, as in Settings → Publishing → Buffer.
+- Buffer: changing the Buffer app ends a sign-in still waiting in the browser, so the next one uses the new app instead of the old one.
+
 ## 0.1.2 — 2026-11-13
 
 - Linux: Backspace works in text fields again. It used to delete only selected text.

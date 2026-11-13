@@ -2,6 +2,7 @@ package buffer
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/url"
 	"testing"
@@ -72,4 +73,39 @@ func TestResetRateLimit(t *testing.T) {
 	if _, limited := c.RateLimit(); limited {
 		t.Error("still limited after reset")
 	}
+}
+
+// Changing the app while a sign-in waits in the browser ends that sign-in,
+// so it can't finish with the old app; the next one uses the new app.
+func TestCancelSignInWhenTheAppChanges(t *testing.T) {
+	c := newClient(t, func(w http.ResponseWriter, r *http.Request) {
+		tokenJSON(w, "access", "refresh", 3600)
+	}, nil)
+	app := DefaultClientID
+	c.Credentials = func() (string, string) { return app, "" }
+	err := c.Connect(context.Background(), func(consent string) {
+		u, _ := url.Parse(consent)
+		if u.Query().Get("client_id") != DefaultClientID {
+			t.Errorf("first consent client = %q", u.Query().Get("client_id"))
+		}
+		app = "mine"
+		go c.CancelSignIn()
+	})
+	if !errors.Is(err, ErrAppChanged) {
+		t.Fatalf("err = %v, want ErrAppChanged", err)
+	}
+	err = c.Connect(context.Background(), func(consent string) {
+		u, _ := url.Parse(consent)
+		if u.Query().Get("client_id") != "mine" {
+			t.Errorf("second consent client = %q", u.Query().Get("client_id"))
+		}
+		go redirect(t, consent, url.Values{"code": {"the-code"}})
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.ClientID() != "mine" {
+		t.Errorf("ClientID() = %q", c.ClientID())
+	}
+	c.CancelSignIn() // nothing waiting: a no-op
 }

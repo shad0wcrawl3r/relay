@@ -67,6 +67,10 @@ func (s *BufferService) SetApp(clientID, secret string) (BufferApp, error) {
 		logs.For("buffer").Error("could not save the Buffer app", "error", err)
 		return s.App(), err
 	}
+	if clientID != prev.ClientID {
+		// A sign-in already waiting in the browser uses the old app.
+		s.client.CancelSignIn()
+	}
 	want := clientID
 	if want == "" {
 		want = buffer.DefaultClientID

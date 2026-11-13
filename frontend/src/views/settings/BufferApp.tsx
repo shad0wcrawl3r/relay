@@ -15,7 +15,7 @@ import { SecretInput } from "@/components/ui/secret-input";
  * rate limited. Switching apps signs out, because a sign-in only refreshes
  * with the app it was made with.
  */
-export function BufferAppRow({ onSignedOut }: { onSignedOut: () => void }) {
+export function BufferAppRow({ onSignedOut, label = "OAuth app" }: { onSignedOut: () => void; label?: string }) {
   const toast = useToast();
   const [app, setApp] = useState<App | null>(null);
   const [open, setOpen] = useState(false);
@@ -65,7 +65,7 @@ export function BufferAppRow({ onSignedOut }: { onSignedOut: () => void }) {
     <div className="flex flex-col gap-2 rounded-[10px] border border-column-border bg-column px-4 py-3">
       <button aria-expanded={open} onClick={() => setOpen(!open)} className="flex items-center gap-2 text-left">
         <ChevronRight className={cn("size-3.5 shrink-0 text-dim transition-transform", open && "rotate-90")} />
-        <span className="text-[13px] text-strong">OAuth app</span>
+        <span className="text-[13px] text-strong">{label}</span>
         <span className="text-xs text-dim">{app.custom ? `Your own (${app.clientId})` : "Relay's"}</span>
       </button>
       {open && (
