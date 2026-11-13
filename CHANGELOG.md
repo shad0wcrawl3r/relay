@@ -19,7 +19,7 @@ that heading to the new version.
 - Buffer: sign in with your own Buffer app instead of Relay's, from Settings → Publishing → Buffer → OAuth app, for example if Relay's is rate limited.
 - Insights: link a Buffer post you made outside Promote (in Buffer, the composer or Ship) to an article, so its numbers show with the article's.
 - Insights: a promotion deleted in Buffer no longer stops the other promotions' numbers from loading.
-- Editor: steps a post hasn't reached yet (such as Promoted) are marked with an empty circle, so they don't read as done.
+- Editor: the post status is now a row of green ticks for the steps reached and grey dots for the ones ahead; hover one for its name.
 - Ship log is now called Ship.
 - Writing a Ship post from Buffer-board items is marked not implemented for now; Ship uses your Plane projects and commits.
 

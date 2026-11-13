@@ -1,9 +1,10 @@
-import { Check, ChevronRight } from "lucide-react";
+import { Check } from "lucide-react";
 import { ago } from "@/lib/time";
-import { cn } from "@/lib/utils";
 
 // Where a post is on its way out: written here, sent to Dev.to as a draft,
-// published, promoted. The footer's main button is always the next step.
+// published, promoted. A green tick per step reached, a grey dot per step
+// ahead; each one's name is in its tooltip. The footer's main button is
+// always the next step.
 
 const STEPS = ["Local", "Draft on Dev.to", "Published", "Promoted"] as const;
 
@@ -23,27 +24,14 @@ export function PostSteps({ step, sentAt, promotions, gone }: { step: number; se
       </span>
     );
   return (
-    <ol aria-label="Post status" className="m-0 flex list-none items-center gap-1 p-0 text-xs">
+    <ol aria-label="Post status" className="m-0 flex h-6 list-none items-center gap-1.5 p-0">
       {STEPS.map((label, i) => {
-        const done = i < step;
-        const current = i === step;
-        const detail = current && i === 1 && sentAt ? ` · sent ${ago(sentAt)}` : current && i === 3 ? ` · ${promotions}` : "";
+        const reached = i <= step;
+        const detail = i === 1 && sentAt ? ` · sent ${ago(sentAt)}` : i === 3 && promotions > 0 ? ` · ${promotions}` : "";
+        const title = reached ? `${label}${detail}` : `${label}: not yet`;
         return (
-          <li key={label} className="flex items-center gap-1" aria-current={current ? "step" : undefined} title={!done && !current ? "Not yet" : undefined}>
-            {i > 0 && <ChevronRight aria-hidden className="size-3 text-[#3f3f46]" />}
-            <span
-              className={cn(
-                "inline-flex h-6 items-center gap-1 rounded-full px-2",
-                current ? "bg-[#1f1f23] text-strong" : done ? "text-muted-foreground" : "text-[#52525b]",
-              )}
-            >
-              {done && <Check aria-hidden className="size-3 text-[#4ade80]" />}
-              {/* A step still ahead gets a hollow ring, so it doesn't read as a status. */}
-              {!done && !current && <span aria-hidden className="size-1.5 rounded-full border border-[#52525b]" />}
-              {current && <span aria-hidden className="size-1.5 rounded-full" style={{ background: ["#a1a1aa", "#60a5fa", "#4ade80", "#c4b5fd"][i] }} />}
-              {label}
-              {detail}
-            </span>
+          <li key={label} title={title} aria-label={title} aria-current={i === step ? "step" : undefined} className="flex size-3.5 items-center justify-center">
+            {reached ? <Check aria-hidden className="size-3.5 text-[#4ade80]" strokeWidth={2.5} /> : <span aria-hidden className="size-1.5 rounded-full bg-[#52525b]" />}
           </li>
         );
       })}
