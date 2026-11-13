@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Browser, Events } from "@wailsio/runtime";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Check, ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { UpdateService, type UpdateInfo, type UpdateProgress } from "@/lib/api";
+import { ago } from "@/lib/time";
 import { errorMessage } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/Toaster";
 
 // Release builds on Windows and macOS can update themselves: Go downloads
@@ -81,12 +83,17 @@ export function UpdateNotifier() {
   return null;
 }
 
-/** Settings header: the running version, a manual check and Update now. */
+/**
+ * Settings header: a card with the running version, where the last check
+ * left it, and one button for the next step (check, update or download).
+ */
 export function UpdateCheck() {
   const [current, setCurrent] = useState("");
+  const [dev, setDev] = useState(false);
   const [busy, setBusy] = useState(false);
   const [found, setFound] = useState<UpdateInfo | null>(null);
-  const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+  const [checkedAt, setCheckedAt] = useState("");
+  const [error, setError] = useState("");
   const { installing, install } = useInstall();
   const progress = useProgress(installing);
 
@@ -94,57 +101,78 @@ export function UpdateCheck() {
     UpdateService.Status()
       .then((s) => {
         setCurrent(s.display);
-        if (s.last?.available) setFound(s.last);
+        setDev(s.dev);
+        if (s.last) {
+          setCheckedAt(s.last.checkedAt);
+          if (s.last.available) setFound(s.last);
+        }
       })
       .catch(() => {});
   }, []);
 
   const check = async () => {
     setBusy(true);
-    setMessage(null);
-    setFound(null);
+    setError("");
     try {
       const info = await UpdateService.Check();
-      if (info.available) setFound(info);
-      else setMessage({ tone: "ok", text: "You're up to date." });
+      setFound(info.available ? info : null);
+      setCheckedAt(info.checkedAt || new Date().toISOString());
     } catch (err) {
-      setMessage({ tone: "error", text: errorMessage(err) });
+      setError(errorMessage(err));
     } finally {
       setBusy(false);
     }
   };
 
+  const status = installing ? (
+    <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+      <Loader2 className="size-3 animate-spin" />
+      Downloading {found?.latest}
+      {progress && ` · ${progress}`}. Relay restarts when it's ready.
+    </span>
+  ) : busy ? (
+    <span className="text-muted-foreground">Checking GitHub for a newer release…</span>
+  ) : error ? (
+    <span className="text-overdue">{error}</span>
+  ) : found ? (
+    <span className="text-[#fbbf24]">Relay {found.latest} is available.</span>
+  ) : checkedAt ? (
+    <span className="inline-flex items-center gap-1 text-muted-foreground">
+      <Check className="size-3 text-[#4ade80]" />
+      Up to date · checked {ago(checkedAt) || "just now"}
+    </span>
+  ) : (
+    <span className="text-dim">{dev ? "Development build: a newer release opens its download page." : "Not checked yet this session."}</span>
+  );
+
   return (
-    <span className="inline-flex items-center gap-2 text-dim">
-      {current && <span>Relay {current}</span>}
-      {!found && (
-        <button className="inline-flex items-center gap-1 text-[#93c5fd] hover:underline disabled:opacity-60" onClick={check} disabled={busy}>
+    <div className="flex items-center gap-4 rounded-[10px] border border-column-border bg-column px-4 py-3">
+      <div className="flex min-w-0 grow flex-col gap-0.5">
+        <span className="text-[13px] font-medium text-strong">{current ? `Relay ${current}` : "Relay"}</span>
+        <span className="text-xs">{status}</span>
+      </div>
+      {found && !installing ? (
+        <div className="flex shrink-0 items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => Browser.OpenURL(found.url)}>
+            What's new
+          </Button>
+          {found.canInstall ? (
+            <Button size="sm" onClick={() => install(found)}>
+              Update now
+            </Button>
+          ) : (
+            <Button size="sm" onClick={() => Browser.OpenURL(found.url)}>
+              <ExternalLink className="size-3" /> Download
+            </Button>
+          )}
+        </div>
+      ) : (
+        <Button variant="outline" size="sm" className="shrink-0" disabled={busy || installing} onClick={check}>
           {busy ? <Loader2 className="size-3 animate-spin" /> : <RefreshCw className="size-3" />}
           Check for updates
-        </button>
+        </Button>
       )}
-      {message?.tone === "ok" && <span className="text-[#4ade80]">{message.text}</span>}
-      {message?.tone === "error" && <span className="text-overdue">{message.text}</span>}
-      {found && (
-        <>
-          <span className="text-[#fbbf24]">Relay {found.latest} is available.</span>
-          {installing ? (
-            <span className="inline-flex items-center gap-1">
-              <Loader2 className="size-3 animate-spin" />
-              Downloading{progress && ` ${progress}`}…
-            </span>
-          ) : found.canInstall ? (
-            <button className="text-[#93c5fd] hover:underline" onClick={() => install(found)}>
-              Update now
-            </button>
-          ) : (
-            <button className="text-[#93c5fd] hover:underline" onClick={() => Browser.OpenURL(found.url)}>
-              Download
-            </button>
-          )}
-        </>
-      )}
-    </span>
+    </div>
   );
 }
 
