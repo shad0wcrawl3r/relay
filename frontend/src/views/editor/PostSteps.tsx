@@ -1,9 +1,10 @@
 import { Check } from "lucide-react";
 import { ago } from "@/lib/time";
+import { cn } from "@/lib/utils";
 
 // Where a post is on its way out: written here, sent to Dev.to as a draft,
-// published, promoted. A green tick per step reached, a grey dot per step
-// ahead; each one's name is in its tooltip. The footer's main button is
+// published, promoted. Shown above the article: a green tick for each step
+// reached, a grey dot for each step ahead. The footer's main button is
 // always the next step.
 
 const STEPS = ["Local", "Draft on Dev.to", "Published", "Promoted"] as const;
@@ -24,14 +25,24 @@ export function PostSteps({ step, sentAt, promotions, gone }: { step: number; se
       </span>
     );
   return (
-    <ol aria-label="Post status" className="m-0 flex h-6 list-none items-center gap-1.5 p-0">
+    <ol aria-label="Post status" className="m-0 flex list-none flex-wrap items-center gap-x-4 gap-y-1 p-0 text-xs">
       {STEPS.map((label, i) => {
         const reached = i <= step;
         const detail = i === 1 && sentAt ? ` · sent ${ago(sentAt)}` : i === 3 && promotions > 0 ? ` · ${promotions}` : "";
-        const title = reached ? `${label}${detail}` : `${label}: not yet`;
         return (
-          <li key={label} title={title} aria-label={title} aria-current={i === step ? "step" : undefined} className="flex size-3.5 items-center justify-center">
-            {reached ? <Check aria-hidden className="size-3.5 text-[#4ade80]" strokeWidth={2.5} /> : <span aria-hidden className="size-1.5 rounded-full bg-[#52525b]" />}
+          <li
+            key={label}
+            aria-current={i === step ? "step" : undefined}
+            title={reached ? undefined : "Not yet"}
+            className={cn("flex items-center gap-1.5", reached ? "text-muted-foreground" : "text-[#52525b]")}
+          >
+            {reached ? (
+              <Check aria-hidden className="size-3.5 text-[#4ade80]" strokeWidth={2.5} />
+            ) : (
+              <span aria-hidden className="mx-1 size-1.5 rounded-full bg-[#52525b]" />
+            )}
+            {label}
+            {reached && detail}
           </li>
         );
       })}
