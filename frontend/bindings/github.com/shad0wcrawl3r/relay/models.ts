@@ -22,6 +22,28 @@ export interface AIPreload {
     "label": string;
 }
 
+/**
+ * AIPrompt is one editable system prompt, for Settings → AI → Prompts.
+ */
+export interface AIPrompt {
+    "id": string;
+    "name": string;
+    "use": string;
+
+    /**
+     * Text is what Relay sends: the custom prompt, or Default.
+     */
+    "text": string;
+    "default": string;
+    "custom": boolean;
+
+    /**
+     * Fixed is always added after Text, because Relay parses the reply.
+     */
+    "fixed": string;
+    "placeholders": string[] | null;
+}
+
 export interface AIProvider {
     "id": string;
     "name": string;
@@ -82,6 +104,30 @@ export interface AIStatus {
      * Preload: the setting to warm a local model before it's asked.
      */
     "preload": boolean;
+}
+
+/**
+ * BufferApp is the app Relay signs in to Buffer with.
+ */
+export interface BufferApp {
+    "custom": boolean;
+    "clientId": string;
+    "secretSet": boolean;
+
+    /**
+     * RedirectURI is what the user's app must list as its callback.
+     */
+    "redirectUri": string;
+
+    /**
+     * Scopes are what the app must allow.
+     */
+    "scopes": string[] | null;
+
+    /**
+     * SignedInWith is "relay", "custom" or "" (signed out).
+     */
+    "signedInWith": string;
 }
 
 /**
@@ -363,6 +409,25 @@ export interface Insights {
 export interface Integrations {
     "buffer": boolean;
     "devto": boolean;
+}
+
+/**
+ * LinkCandidate is a recent Buffer post that could be linked.
+ */
+export interface LinkCandidate {
+    "bufferId": string;
+    "text": string;
+    "channel": string;
+    "channelId": string;
+    "service": string;
+    "status": string;
+    "sentAt": string;
+    "dueAt": string;
+
+    /**
+     * Mentions is true when the text has the article's link or slug.
+     */
+    "mentions": boolean;
 }
 
 export interface LogStatus {
@@ -647,7 +712,7 @@ export interface ShipLogQuery {
 }
 
 /**
- * ShipProject is a project the ship log can read.
+ * ShipProject is a project Ship can read.
  */
 export interface ShipProject {
     "id": string;

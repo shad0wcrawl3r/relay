@@ -25,6 +25,13 @@ import * as posts$0 from "./internal/posts/models.js";
 // @ts-ignore: Unused imports
 import * as $models from "./models.js";
 
+/**
+ * App reports which Buffer app is in use.
+ */
+export function App(): $CancellablePromise<$models.BufferApp> {
+    return $Call.ByID(4228985030);
+}
+
 export function Cached(): $CancellablePromise<$models.BufferCached> {
     return $Call.ByID(2530073113);
 }
@@ -153,6 +160,22 @@ export function LastFailed(): $CancellablePromise<$models.FailedPost[] | null> {
 }
 
 /**
+ * LinkCandidates lists recent Buffer posts not linked to any article yet,
+ * those that mention this one first.
+ */
+export function LinkCandidates(postID: string): $CancellablePromise<$models.LinkCandidate[] | null> {
+    return $Call.ByID(3371256497, postID);
+}
+
+/**
+ * LinkPromotion records a Buffer post as one of the article's promotions.
+ * The post is read from Buffer again, rather than trusting the UI.
+ */
+export function LinkPromotion(postID: string, bufferID: string): $CancellablePromise<posts$0.Post> {
+    return $Call.ByID(2634325084, postID, bufferID);
+}
+
+/**
  * Organizations lists the account's organizations, for views that only
  * need to know which one to read.
  */
@@ -207,6 +230,16 @@ export function PromotionPosts(postID: string): $CancellablePromise<$models.Prom
  */
 export function RemoveScheduledPromotions(postID: string): $CancellablePromise<number> {
     return $Call.ByID(3790683276, postID);
+}
+
+/**
+ * SetApp switches to the user's own Buffer app; an empty clientID goes back
+ * to Relay's. A blank secret keeps the saved one for the same app. A sign-in
+ * made with another app is ended: its tokens only refresh with that app, and
+ * the point of switching is to stop using it. The user signs in again.
+ */
+export function SetApp(clientID: string, secret: string): $CancellablePromise<$models.BufferApp> {
+    return $Call.ByID(1543622480, clientID, secret);
 }
 
 /**

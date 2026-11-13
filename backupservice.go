@@ -254,6 +254,9 @@ func (s *SettingsService) applyBundle(b settingsBundle) (ImportResult, error) {
 	if c.Plane.ClientID != "" {
 		res.Imported = append(res.Imported, "Plane app")
 	}
+	if c.Buffer.ClientID != "" {
+		res.Imported = append(res.Imported, "Buffer app")
+	}
 	slices.Sort(res.Imported)
 	res.Imported = append([]string{"Settings"}, res.Imported...)
 	integrationsChanged(s.buffer)

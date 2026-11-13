@@ -148,7 +148,7 @@ export function UpdateCheck() {
   );
 }
 
-/** Settings → Privacy: whether to check at launch. */
+/** Settings → Security & privacy: whether to check at launch. */
 export function useAutoCheck() {
   const [on, setOn] = useState<boolean | null>(null);
   const toast = useToast();

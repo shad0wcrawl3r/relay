@@ -5,7 +5,7 @@ import { AIService, type AIPreload } from "@/lib/api";
 
 /**
  * Starts loading the selected local model into memory. Call it when the
- * user is about to ask the model something (opening the ship log, pointing
+ * user is about to ask the model something (opening Ship, pointing
  * at an AI draft button), never in the background. Go ignores it unless the
  * model is a local Ollama or LM Studio and preloading is on.
  */

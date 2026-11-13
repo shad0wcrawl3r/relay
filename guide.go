@@ -1,6 +1,7 @@
 package main
 
 import (
+	"runtime"
 	"strings"
 	"sync"
 
@@ -68,6 +69,15 @@ func (g *GuideService) Open() {
 			CollectionBehavior: application.MacWindowCollectionBehaviorCanJoinAllSpaces |
 				application.MacWindowCollectionBehaviorFullScreenAuxiliary,
 		},
+	}
+	// Tiling window managers (Niri, Sway, i3) tile a normal window beside
+	// Relay but float one with a fixed size, as they do dialogs; Wails can't
+	// mark the guide transient for the main window, so fix its size there
+	// (RELAY-145).
+	if runtime.GOOS == "linux" {
+		opts.MinWidth, opts.MinHeight = guideWidth, guideHeight
+		opts.MaxWidth, opts.MaxHeight = guideWidth, guideHeight
+		opts.DisableResize = true
 	}
 	// Top right of the primary screen, clear of a browser's content.
 	if s := app.Screen.GetPrimary(); s != nil && s.WorkArea.Width > guideWidth+2*guideMargin {

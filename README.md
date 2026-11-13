@@ -22,7 +22,7 @@ frontend. Runs on macOS, Windows and Linux.
   - Linked posts: an item shows the posts written about it and where each one
     is (draft, published, promoted)
   - Attention's "Ready to write about" lists what you finished this week that
-    no post covers yet, with a button to write a ship log from it. J and K move
+    no post covers yet, with a button to open Ship on it. J and K move
     through Attention; Enter opens, D, S and A run Done, Send back and Approve
   - Moves on a board or from Attention can be undone from the toast
   - Quick capture palette (⌘K)
@@ -50,18 +50,22 @@ frontend. Runs on macOS, Windows and Linux.
     with Undo
   - Insights: a published article's Dev.to views, reactions and comments, and
     how each promotion did on Buffer (impressions, reactions, clicks, LinkedIn
-    included). Buffer's metrics need an optional personal API key
-  - Ship log (the ship icon above the post list): pick a date range, the
+    included). Buffer's metrics need an optional personal API key. A post made
+    outside Promote can be linked to the article from the Insights dialog
+  - Ship (the ship icon above the post list): pick a date range, the
     projects and optionally a git repository; Relay lists the items finished
     in that range and the commit subjects, you untick what stays out and add
-    notes, and the AI model drafts a build-in-public post that opens as a new,
-    AI-assisted draft (or a Buffer post). The draft links the items it used.
+    notes, and the AI model drafts a post that opens as a new, AI-assisted
+    draft (or a Buffer post). The draft links the items it used. Writing from
+    Buffer-board items is not implemented yet.
     Private projects and modules never take part, and only item titles and
     commit subjects reach the model
   - Spots edits made on Dev.to: Update draft shows a diff (unified or side by
     side) and asks whether to keep Dev.to's version or replace it
 - **Promotion**
-  - Buffer sign-in with OAuth, with tokens kept in the OS keychain
+  - Buffer sign-in with OAuth, with tokens kept in the OS keychain. Relay's
+    Buffer app is used by default; Settings → Publishing → Buffer → OAuth app switches to
+    your own (for example if Relay's is rate limited)
   - Turns a Dev.to post into social drafts per channel. AI summaries are optional
   - Review and edit each draft before it goes to Buffer
   - Every post carries the article's public link, with a preview of each post
@@ -90,9 +94,12 @@ frontend. Runs on macOS, Windows and Linux.
     adds ("Relay: …"); cards with posts follow them to Scheduled and Published
   - Buffer column on Plane boards: drag work items in to save them as Buffer
     ideas, or drag ideas out to make work items (never for private projects)
+  - Custom prompts: Settings → AI → Prompts rewrites the instructions for
+    each AI action (promoting an article, a post from notes, Ship's article
+    and Buffer post), with a reset to Relay's own
   - AI providers: Anthropic, OpenAI, OpenRouter, Ollama and LM Studio, with
     custom endpoints, model search and a test before saving. Ollama and LM
-    Studio models can load into memory when you open the ship log or point at
+    Studio models can load into memory when you open Ship or point at
     an AI button (Settings → AI → Preload); nothing loads in the background
 - **Terminal**
   - Background sessions owned by Go, with detach and reattach
@@ -145,7 +152,7 @@ frontend. Runs on macOS, Windows and Linux.
     and Windows it can download it, check it against the
     release's `SHA256SUMS` and install it when you say so; elsewhere it opens
     the download page. Nothing installs without you asking. Turn the check off
-    in Settings → Privacy
+    in Settings → Security & privacy
   - What's new: after an update, Relay shows what changed the first time it
     opens; Settings → About lists every release's changes
   - Settings → About → Report a bug opens a GitHub issue with only your

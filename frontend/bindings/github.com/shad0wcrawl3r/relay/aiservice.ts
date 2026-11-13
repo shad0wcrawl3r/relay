@@ -46,6 +46,13 @@ export function Preload(): $CancellablePromise<void> {
 }
 
 /**
+ * Prompts lists the system prompts the user can rewrite.
+ */
+export function Prompts(): $CancellablePromise<$models.AIPrompt[] | null> {
+    return $Call.ByID(1481627306);
+}
+
+/**
  * Select chooses the provider and model used for summaries.
  */
 export function Select(provider: string, model: string): $CancellablePromise<$models.AIStatus> {
@@ -77,6 +84,14 @@ export function SetPreload(on: boolean): $CancellablePromise<$models.AIStatus> {
  */
 export function SetPrivate(provider: string, $private: boolean): $CancellablePromise<$models.AIStatus> {
     return $Call.ByID(2389537316, provider, $private);
+}
+
+/**
+ * SetPrompt saves a custom system prompt; empty, or the default, restores
+ * Relay's own. The text is never logged.
+ */
+export function SetPrompt(id: string, text: string): $CancellablePromise<$models.AIPrompt[] | null> {
+    return $Call.ByID(3495695763, id, text);
 }
 
 export function Status(): $CancellablePromise<$models.AIStatus> {

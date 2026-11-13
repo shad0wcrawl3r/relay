@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/shad0wcrawl3r/relay/internal/buffer"
+	"github.com/shad0wcrawl3r/relay/internal/config"
 	"github.com/shad0wcrawl3r/relay/internal/posts"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
@@ -38,6 +39,10 @@ func NewBufferService(posts *PostService, plane *PlaneService) *BufferService {
 		s.dropInsights()
 		integrationsChanged(s)
 		go s.plane.reloadBufferPlan(context.Background())
+	}
+	s.client.Credentials = func() (string, string) {
+		c := config.GetConfig()
+		return c.Buffer.ClientID, c.Buffer.ClientSecret
 	}
 	return s
 }

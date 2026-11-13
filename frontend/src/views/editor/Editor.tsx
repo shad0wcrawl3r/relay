@@ -48,7 +48,7 @@ export function Editor({
   openId,
   shipLogItems,
 }: {
-  /** Opens the ship log with these items picked. */
+  /** Opens Ship with these items picked. */
   shipLogItems?: string[];
   goSettings: () => void;
   goBuffer: (focus: BufferFocus) => void;
@@ -79,7 +79,7 @@ export function Editor({
   const [promoteOpen, setPromoteOpen] = useState(false);
   const [drift, setDrift] = useState<Drift | null>(null);
   const [shipLog, setShipLog] = useState(!!shipLogItems?.length);
-  // A ship-log post headed for Buffer, open in the composer.
+  // A Ship post headed for Buffer, open in the composer.
   const [social, setSocial] = useState<{ text: string; channels: BufferChannel[] } | null>(null);
   const [, tick] = useState(0);
   const editor = useRef<EditorHandle>(null);
@@ -417,7 +417,10 @@ export function Editor({
                 </Button>
               </div>
             )}
-            <main className="grow overflow-y-auto px-6 pb-8 pt-10">
+            <main className="grow overflow-y-auto px-6 pb-8 pt-6">
+              <div className={cn("mx-auto mb-4", mode === "preview" ? "max-w-[760px]" : "max-w-[860px]")}>
+                <PostSteps step={postStep(sent, published, post.promotions.length)} sentAt={post.sentAt} promotions={post.promotions.length} gone={gone} />
+              </div>
               {mode === "preview" ? (
                 <Preview title={post.title} tags={post.tags} body={post.body} />
               ) : (
@@ -443,7 +446,6 @@ export function Editor({
             </main>
 
             <footer className="flex min-h-14 shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-t border-border px-6 py-2.5 text-[13px] text-muted-foreground">
-              <PostSteps step={postStep(sent, published, post.promotions.length)} sentAt={post.sentAt} promotions={post.promotions.length} gone={gone} />
               <SaveStatus save={save} compact={sent} />
               {!published && (
                 <span className="inline-flex items-center gap-1.5 text-[#fbbf24]">
@@ -452,7 +454,13 @@ export function Editor({
                 </span>
               )}
               {post.promotions.length > 0 && !gone && <Promotions post={post} goBuffer={goBuffer} />}
-              {published && !gone && <InsightsButton post={post} goSettings={goSettings} />}
+              {published && !gone && (
+                <InsightsButton
+                  post={post}
+                  goSettings={goSettings}
+                  onLinked={(updated) => setPost((cur) => (cur && cur.id === updated.id ? { ...cur, promotions: updated.promotions } : cur))}
+                />
+              )}
               <span className="grow" />
               {gone ? null : sent ? (
                 <>
@@ -496,7 +504,7 @@ export function Editor({
           onDrafted={async (p) => {
             setShipLog(false);
             await open(p.id);
-            toast({ tone: "success", title: "Ship log drafted", body: "Review and edit it, then send it to Dev.to when it's ready." });
+            toast({ tone: "success", title: "Article drafted", body: "Review and edit it, then send it to Dev.to when it's ready." });
           }}
           onSocial={(text, channels) => {
             setShipLog(false);

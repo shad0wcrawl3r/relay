@@ -41,6 +41,7 @@ export type PostSummary = Clean<M.PostSummary>;
 export type PostList = Clean<M.PostList>;
 export type Settings = Clean<M.Settings>;
 export type Insights = Clean<M.Insights>;
+export type LinkCandidate = Clean<M.LinkCandidate>;
 export type SettingsInput = Clean<M.SettingsInput>;
 export type Post = Clean<PostM.Post>;
 /** Dev.to's copy of a post next to Relay's, when it was edited on Dev.to. */
@@ -178,6 +179,10 @@ export const BufferService = {
   Status: (): Promise<BufferStatus> => BufferBindings.Status(),
   Connect: () => BufferBindings.Connect(),
   Disconnect: () => BufferBindings.Disconnect(),
+  /** Which OAuth app Relay signs in to Buffer with: Relay's, or the user's own. */
+  App: async (): Promise<BufferApp> => (await BufferBindings.App()) as BufferApp,
+  /** Use your own Buffer app; "" goes back to Relay's. Signs out a sign-in made with the other app. */
+  SetApp: async (clientId: string, secret: string): Promise<BufferApp> => (await BufferBindings.SetApp(clientId, secret)) as BufferApp,
   Channels: async (): Promise<BufferChannel[]> => arr(await BufferBindings.Channels()).map(channel),
   Overview: async (): Promise<BufferOverview> => overview(await BufferBindings.Overview()),
   Posts: async (q: BufferPostQuery): Promise<BufferPostPage> => postPage(await BufferBindings.Posts(q)),
@@ -249,6 +254,10 @@ export const BufferService = {
     const r = await BufferBindings.Insights(postId, refresh);
     return { ...r, devto: r.devto ?? null, promotions: (r.promotions ?? []).map((p) => ({ ...p, metrics: p.metrics ?? [] })) } as Insights;
   },
+  /** Recent Buffer posts not linked to an article, ones that mention this article first. */
+  LinkCandidates: async (postId: string): Promise<LinkCandidate[]> => arr(await BufferBindings.LinkCandidates(postId)) as LinkCandidate[],
+  /** Records a Buffer post as one of the article's promotions. */
+  LinkPromotion: async (postId: string, bufferId: string): Promise<Post> => post(await BufferBindings.LinkPromotion(postId, bufferId)),
   /** Buffer post ID → the local article it promotes. Read from Relay's files; never asks Buffer. */
   PromotionIndex: async (): Promise<Record<string, PromotedArticle>> => {
     const idx = await BufferBindings.PromotionIndex();
@@ -285,7 +294,13 @@ export const AIService = {
   /** Starts loading the selected local model; a no-op unless it's a local Ollama or LM Studio and the setting is on. */
   Preload: (): Promise<void> => AIBindings.Preload(),
   SetPreload: async (on: boolean) => aiStatus(await AIBindings.SetPreload(on)),
+  /** The system prompts you can rewrite in Settings → AI. */
+  Prompts: async (): Promise<AIPrompt[]> => arr(await AIBindings.Prompts()) as AIPrompt[],
+  /** Saves a custom prompt; empty (or the default) restores Relay's own. */
+  SetPrompt: async (id: string, text: string): Promise<AIPrompt[]> => arr(await AIBindings.SetPrompt(id, text)) as AIPrompt[],
 };
+export type AIPrompt = Clean<M.AIPrompt>;
+export type BufferApp = Clean<M.BufferApp>;
 export type AIPreload = Clean<M.AIPreload>;
 
 export type ShipProject = Clean<M.ShipProject>;

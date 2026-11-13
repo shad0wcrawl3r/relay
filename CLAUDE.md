@@ -55,7 +55,7 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
 - Keychain access goes through `internal/keychain`, never go-keyring directly. On Linux with no Secret Service
   (WSL) it falls back to a 0600 plain file, `$XDG_DATA_HOME/relay/secrets.json`; only when the keychain is
   unreachable, never when it refuses. Settings → Storage shows the path while it's in use.
-- Locked projects/modules (`[privacy] LOCKED`, empty by default; picked in Settings → Privacy) never reach the UI until unlocked via
+- Locked projects/modules (`[privacy] LOCKED`, empty by default; picked in Settings → Security & privacy) never reach the UI until unlocked via
   `internal/unlock` (Touch ID / login password); unlocks expire. Never log their data.
 - Dev.to: send as `published: false`; publishing is a separate, confirmed user action, refused while image placeholders remain.
   Unpublishing is too (`PUT /articles/{id}` with only `published: false`; Forem's `/unpublish` is admin-only). The API can't delete
@@ -65,7 +65,11 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
   The Buffer tab's data is cached in `buffer-cache.json` (vault-encrypted, `buffercache.go`), shown first and refreshed; it's dropped on sign-out.
   `bufferwatch.go` checks for failed posts at launch and every 15 minutes and emits `buffer:failed` for ones not yet reported
   (IDs, channel and error only, never post text). Follow-up promotions are ordinary scheduled promotions, so Go adds the link to each.
-  After a 429 the Buffer client refuses every call until Retry-After passes (`buffer.RateLimited`). The Timeline's post lists are
+  A Buffer post made outside Promote can be linked to an article from Insights (`promotionlink.go`); it becomes an ordinary promotion.
+  After a 429 the Buffer client refuses every call until Retry-After passes (`buffer.RateLimited`).
+  The Buffer OAuth app is Relay's (`buffer.DefaultClientID`) unless the user sets their own (`bufferapp.go`, `[buffer] CLIENT_ID`,
+  secret `buffer-client-secret` in the keychain); it uses the same hosted redirect URI. A token records its `ClientID` and refreshes
+  only with it; `SetApp` signs out when the app changes and resets the rate-limit wait. The Timeline's post lists are
   cached in memory only (`buffercalendar.go`, 3 min) and dropped on any write through Relay; don't add per-click Buffer calls.
 - Dev.to AI disclosure: `posts.Meta.AI` (none/assisted/generated, empty = none). Go sends it as Forem's `ai_disclosure_level`
   (no_ai/some_ai/fully_autonomous, the "AI:" marker in Dev.to's editor) and reads it back on pull (`disclosure.go`); the body never carries it.
@@ -73,18 +77,21 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
 - Plane checklists (`internal/plane/checklist.go`): the drawer renders `taskList`/`taskItem` with checkboxes. Ticking calls
   `PlaneService.SetTask(project, item, index, checked)`: Go re-reads the description from Plane and flips only that item's
   `data-checked`. The UI never sends description HTML back (sanitising would drop markup Relay doesn't render).
-- Plane items ↔ posts (`posts.Meta.PlaneItems`, IDs only): linked in the editor (`PlaneItemsSelect`), recorded by a ship log draft,
+- Plane items ↔ posts (`posts.Meta.PlaneItems`, IDs only): linked in the editor (`PlaneItemsSelect`), recorded by a Ship draft,
   shown with the post's status in the item drawer (`LinkedPosts`). Attention's "Ready to write about" (`ReadyToWrite`) lists items
   finished in the last week that no post links to. Lockable projects are never offered, listed or shown there, unlocked or not.
-- Ship log (`shiplogservice.go`): completed items in a window (Plane `completed_at`) plus `git log` subjects from a repo the
+- Ship (`shiplogservice.go`; code and the `shiplog.REPO` config key keep the old "ship log" name): completed items in a window (Plane `completed_at`) plus `git log` subjects from a repo the
   user picks. Lockable projects/modules are always left out (unlocked or not); only titles and subjects reach the model,
   through `ai.Plane(PrivacyKeys…)`. Go re-reads the kept items by ID rather than trusting text from the UI.
 - AI: every prompt goes through `ai.Client.Complete` with an `ai.Origin`. Plane content uses `ai.Plane(plane.PrivacyKeys(...))`;
   content from a lockable project or module only reaches a private provider: one the user marked (`[ai] PRIVATE`,
   tied to the endpoint), or Ollama / LM Studio at their default endpoints until turned off. A loopback address alone
   isn't trusted. Unlocking doesn't change that. Never log a refused prompt or the project it came from.
+  System prompts are editable (`internal/ai/prompts.go`, `[ai] PROMPTS`, Settings → AI → Prompts): register any new prompt there and
+  read it with `ai.SystemPrompt(id)`. Only instructions are editable; fencing of user content, the privacy gate and parsed reply formats
+  (`Fixed`) stay in Go. Never log prompt text.
   Preload (`internal/ai/preload.go`, `[ai] PRELOAD`, on by default) warms a local Ollama / LM Studio model when the user is about to
-  ask it (ship log opened, pointer or focus on an AI button: `preloadModel` / `preloadOnIntent`), never in the background. It sends no user content.
+  ask it (Ship opened, pointer or focus on an AI button: `preloadModel` / `preloadOnIntent`), never in the background. It sends no user content.
 - Insights (`insights.go`, `internal/buffer/metrics.go`, editor **Insights**): every integration that can report engagement feeds
   `Insights`. Add it when you integrate a new service. Dev.to's views/reactions/comments come from the synced article list (no extra call).
   Buffer's `post.metrics` (all channels, LinkedIn included) are cached an hour and fetched only when the user opens insights.

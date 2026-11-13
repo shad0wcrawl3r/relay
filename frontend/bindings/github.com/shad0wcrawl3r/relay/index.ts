@@ -26,8 +26,10 @@ export {
 
 export type {
     AIPreload,
+    AIPrompt,
     AIProvider,
     AIStatus,
+    BufferApp,
     BufferCached,
     BufferOverview,
     BufferPlanning,
@@ -51,6 +53,7 @@ export type {
     ImportResult,
     Insights,
     Integrations,
+    LinkCandidate,
     LogStatus,
     LogSubsystem,
     ModelTest,

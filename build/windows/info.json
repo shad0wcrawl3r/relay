@@ -1,12 +1,12 @@
 {
 	"fixed": {
-		"file_version": "0.1.1",
-		"product_version": "0.1.1"
+		"file_version": "0.1.2",
+		"product_version": "0.1.2"
 	},
 	"info": {
 		"0409": {
-			"FileVersion": "0.1.1",
-			"ProductVersion": "0.1.1",
+			"FileVersion": "0.1.2",
+			"ProductVersion": "0.1.2",
 			"CompanyName": "shadowcrawler",
 			"FileDescription": "Desktop workbench for Plane, Dev.to writing, Buffer and terminals",
 			"LegalCopyright": "© 2026, Ashwin Belbase",

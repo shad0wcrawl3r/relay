@@ -40,7 +40,7 @@ func init() {
 	v.SetDefault("terminal.TMUX_KEYS", false)
 	// Lockable Plane projects ("project:<IDENTIFIER>") and modules
 	// ("module:<id>"): hidden until the device owner unlocks them.
-	// Nothing is locked until the user picks it in Settings → Privacy.
+	// Nothing is locked until the user picks it in Settings → Security & privacy.
 	v.SetDefault("privacy.LOCKED", []string{})
 	v.SetDefault("privacy.AUTO_LOCK_MINUTES", 15)
 	// Load a local model (Ollama, LM Studio) into memory when the user opens
@@ -125,6 +125,7 @@ func write(next Config) error {
 	v.Set("plane.BASE_URL", next.Plane.BaseURL)
 	v.Set("plane.APP_URL", next.Plane.AppURL)
 	v.Set("plane.CLIENT_ID", next.Plane.ClientID)
+	v.Set("buffer.CLIENT_ID", next.Buffer.ClientID)
 	v.Set("plane.WORKSPACE", next.Plane.Workspace)
 	v.Set("plane.REDIRECT_PORT", next.Plane.RedirectPort)
 	v.Set("plane.SCOPE", next.Plane.Scope)
@@ -141,6 +142,7 @@ func write(next Config) error {
 	v.Set("ai.ENDPOINTS", next.AI.Endpoints)
 	v.Set("ai.PRIVATE", next.AI.Private)
 	v.Set("ai.PRELOAD", next.AI.Preload)
+	v.Set("ai.PROMPTS", next.AI.Prompts)
 	v.Set("logs.ENABLED", next.Logs.Enabled)
 	v.Set("logs.LEVELS", next.Logs.Levels)
 	v.Set("onboarding.DONE", next.Onboarding.Done)
@@ -173,6 +175,10 @@ type Config struct {
 		// read post metrics, which Buffer doesn't give OAuth apps. Keychain
 		// only (secrets.go).
 		InsightsKey string `mapstructure:"INSIGHTS_KEY"`
+		// ClientID is the user's own Buffer OAuth app; empty means Relay's.
+		ClientID string `mapstructure:"CLIENT_ID"`
+		// ClientSecret is that app's optional secret. Keychain only.
+		ClientSecret string `mapstructure:"CLIENT_SECRET"`
 	}
 	Plane struct {
 		BaseURL string `mapstructure:"BASE_URL"`
@@ -213,6 +219,9 @@ type Config struct {
 		Private map[string]string `mapstructure:"PRIVATE"`
 		// Preload: warm a local model when a dialog that uses it opens.
 		Preload bool `mapstructure:"PRELOAD"`
+		// Prompts holds custom system prompts, keyed by prompt ID
+		// (internal/ai/prompts.go). Missing means Relay's own.
+		Prompts map[string]string `mapstructure:"PROMPTS"`
 	}
 	Logs struct {
 		Enabled bool `mapstructure:"ENABLED"`
@@ -256,7 +265,7 @@ type Config struct {
 		Seen string `mapstructure:"SEEN"`
 	}
 	ShipLog struct {
-		// Repo is the folder the last ship log read commits from.
+		// Repo is the folder Ship last read commits from.
 		Repo string `mapstructure:"REPO"`
 	}
 }

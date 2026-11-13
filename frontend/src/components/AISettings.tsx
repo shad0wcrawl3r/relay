@@ -369,7 +369,7 @@ export function AISettings({ compact = false, onChange }: { compact?: boolean; o
               Load the model when Relay is about to ask it
             </label>
             <span className="text-xs text-dim">
-              Starts loading the model into memory when you open the ship log or point at an AI draft button, so it's ready by the time you ask.
+              Starts loading the model into memory when you open Ship or point at an AI draft button, so it's ready by the time you ask.
               Nothing of yours is sent; {provider.name === "Ollama" ? "Ollama keeps it loaded for 10 minutes" : "LM Studio keeps it loaded as it's set to"}.
             </span>
           </div>

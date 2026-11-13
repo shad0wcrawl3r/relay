@@ -9,7 +9,7 @@ type Link = Post["planeItems"][number];
 
 // The Plane items a post is about (RELAY-71). Only IDs are stored. Items from
 // lockable projects aren't offered, and links to them aren't shown, unlocked
-// or not, the same rule as the ship log.
+// or not, the same rule as Ship.
 
 export function PlaneItemsSelect({ value, onChange }: { value: Link[] | undefined; onChange: (v: Link[]) => void }) {
   const { snapshot } = usePlane();

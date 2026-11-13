@@ -2,6 +2,7 @@ package buffer
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -69,6 +70,11 @@ func (c *Client) PostMetrics(ctx context.Context, key string, ids []string) (map
 		err = c.queryWithKey(ctx, key, q.String(), vars, &data)
 	} else {
 		err = c.queryVars(ctx, q.String(), vars, &data)
+	}
+	// A post deleted in Buffer fails only its own field; keep the others'.
+	var qe *QueryError
+	if errors.As(err, &qe) && qe.onlyNotFound() {
+		err = json.Unmarshal(qe.Data, &data)
 	}
 	if err != nil {
 		if key == "" && refusedInsights(err) {

@@ -22,13 +22,15 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
-// Ship log drafts a post about finished work: items moved to
-// a completed state in Plane (or on the Buffer board) and, optionally, the
-// commits in a git repository the user picks. The user reviews the material,
-// the model drafts, and the result is an ordinary local post.
+// Ship drafts a post about finished work: items moved to a completed state
+// in Plane and, optionally, the commits in a git repository the user picks.
+// Buffer-board projects aren't a source yet (not implemented): they're
+// listed so the UI can say so, but their items are always left out. The
+// user reviews the material, the model drafts, and the result is an
+// ordinary local post.
 //
-// Lockable projects and modules never take part, unlocked or not: a ship
-// log is meant to be published. Only item titles and commit subjects reach
+// Lockable projects and modules never take part, unlocked or not: a Ship
+// post is meant to be published. Only item titles and commit subjects reach
 // the model, never descriptions or diffs.
 type ShipLogService struct {
 	plane *PlaneService
@@ -62,7 +64,7 @@ type ShipCommit struct {
 	Subject string `json:"subject"`
 }
 
-// ShipProject is a project the ship log can read.
+// ShipProject is a project Ship can read.
 type ShipProject struct {
 	ID     string `json:"id"`
 	Name   string `json:"name"`
@@ -79,7 +81,7 @@ type ShipLogMaterial struct {
 	Skipped int `json:"skipped"`
 }
 
-// Projects lists the projects a ship log may draw from: everything shown
+// Projects lists the projects Ship may draw from: everything shown
 // except lockable projects.
 func (s *ShipLogService) Projects() []ShipProject {
 	out := []ShipProject{}
@@ -114,12 +116,16 @@ func (s *ShipLogService) Material(ctx context.Context, q ShipLogQuery) (ShipLogM
 }
 
 // finishedItems lists items in a completed state whose completion falls in
-// the window, leaving out lockable projects and modules.
+// the window, leaving out lockable projects and modules, and Buffer-board
+// projects (not implemented as a source yet).
 func finishedItems(snap plane.Snapshot, q ShipLogQuery) ([]ShipItem, int) {
 	items := []ShipItem{}
 	skipped := 0
 	for _, p := range snap.Projects {
 		if len(q.ProjectIDs) > 0 && !slices.Contains(q.ProjectIDs, p.ID) {
+			continue
+		}
+		if p.Source == "buffer" {
 			continue
 		}
 		if p.Private || plane.Lockable(plane.ProjectKey(p.Identifier)) {
@@ -219,26 +225,6 @@ type ShipLogDraft struct {
 	Notes   string   `json:"notes"`
 }
 
-const shipSystem = `You write a blog post for Dev.to about work a developer finished, in their own voice: "I", never "we".
-
-Everything in the post comes from the material you are given: the finished work items, the commits and the author's notes. The title, the tags and every section name what was actually built, fixed or changed.
-
-The title says what the work is, specifically, for example "Offline sync and faster search in Relay". It is not a label for the post: no "build in public", "ship log", "devlog", "weekly update", "progress update", "what I shipped" and no dates.
-Don't describe the post itself or the habit of sharing progress: never mention building in public, devlogs, challenges or communities, unless the author's notes do.
-
-Use only the material. Never invent features, numbers, results, motivations, quotes or feelings. If the material is thin, write a short post rather than padding it.
-Group the work by theme instead of listing commits one by one, and say why a change matters only when the material says so.
-
-Reply in Markdown, in this order:
-1. The title, on one line starting with "# ".
-2. One line starting with "Tags: ", then up to four Dev.to tags for the technologies and topics the work is about, lowercase letters and numbers only, comma-separated (for example "Tags: go, sqlite, oauth"). No generic tags such as buildinpublic, devlog, programming or update.
-3. The body: an opening that says what changed, ## sections for the themes, and a brief "What's next" only if the notes mention plans. Short paragraphs, plain words, no hype ("excited", "thrilled", "game-changer").`
-
-// shipSocialRule is added to the social prompt for ship log posts: the
-// hashtags, like the post, come from the work.
-const shipSocialRule = `
-Any hashtags name the technologies or topics of the work, never generic ones such as #buildinpublic, #devlog or #100daysofcode, and the post doesn't talk about building in public, unless the notes do.`
-
 // kept is the material the user kept, re-read by ID from a fresh query
 // rather than taken from the UI, and the privacy keys of its items.
 func (s *ShipLogService) kept(ctx context.Context, d ShipLogDraft) (items []ShipItem, commits []ShipCommit, keys []string, err error) {
@@ -279,7 +265,7 @@ func (s *ShipLogService) Draft(ctx context.Context, d ShipLogDraft) (posts.Post,
 	user := shipPrompt(d.Query, items, commits, d.Notes)
 	// Item titles are Plane data: the privacy gate sees their projects and
 	// modules, even though lockable ones were already left out.
-	reply, err := s.ai.client.Complete(ctx, ai.Plane(keys...), st.Provider, st.Model, shipSystem, user)
+	reply, err := s.ai.client.Complete(ctx, ai.Plane(keys...), st.Provider, st.Model, ai.SystemPrompt(ai.PromptShipArticle)+"\n\n"+ai.ShipArticleFormat, user)
 	if err != nil {
 		return posts.Post{}, err
 	}
@@ -301,7 +287,7 @@ func (s *ShipLogService) Draft(ctx context.Context, d ShipLogDraft) (posts.Post,
 	if err != nil {
 		return posts.Post{}, err
 	}
-	shipLog.Info("ship log drafted", "post", p.ID, "items", len(items), "commits", len(commits))
+	shipLog.Info("ship drafted", "post", p.ID, "items", len(items), "commits", len(commits))
 	return p, nil
 }
 
@@ -317,13 +303,12 @@ func (s *ShipLogService) DraftSocial(ctx context.Context, d ShipLogDraft, limit 
 	if err != nil {
 		return "", err
 	}
-	system, user := ai.SocialPrompt(shipPrompt(d.Query, items, commits, d.Notes), limit)
-	system += shipSocialRule
+	system, user := ai.SocialPromptFor(ai.PromptShipSocial, shipPrompt(d.Query, items, commits, d.Notes), limit)
 	reply, err := s.ai.client.Complete(ctx, ai.Plane(keys...), st.Provider, st.Model, system, user)
 	if err != nil {
 		return "", err
 	}
-	shipLog.Info("ship log social post drafted", "items", len(items), "commits", len(commits), "chars", len([]rune(reply)))
+	shipLog.Info("ship social post drafted", "items", len(items), "commits", len(commits), "chars", len([]rune(reply)))
 	return strings.TrimSpace(reply), nil
 }
 
@@ -415,7 +400,7 @@ func splitTags(body, material string) (tags []string, rest string) {
 	return tags, strings.TrimSpace(after) + "\n"
 }
 
-// RecentRepo is the folder the last ship log read commits from.
+// RecentRepo is the folder Ship last read commits from.
 func (s *ShipLogService) RecentRepo() string { return config.GetConfig().ShipLog.Repo }
 
 // SetRecentRepo remembers the folder for next time.
@@ -427,7 +412,7 @@ func (s *ShipLogService) SetRecentRepo(dir string) error {
 }
 
 // ReadyToWrite lists items finished in the last week that no post is linked
-// to yet, for Attention's "Ready to write about". Like the ship log, it
+// to yet, for Attention's "Ready to write about". Like Ship, it
 // leaves lockable projects and modules out, unlocked or not.
 func (s *ShipLogService) ReadyToWrite() ([]ShipItem, error) {
 	all, err := s.posts.store.List()

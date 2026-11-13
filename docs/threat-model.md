@@ -71,6 +71,12 @@ loopback port. The flow (`internal/buffer/oauth.go`,
 - The listener binds 127.0.0.1 only, compares the state in constant time, and
   ignores any request with the wrong state while it keeps waiting for the real
   one. It times out and allows one sign-in at a time.
+- Users can sign in with their own Buffer app instead of Relay's (Settings →
+  Buffer → OAuth app). It registers the same redirect URI, so the same page
+  and PKCE protect it. Its client ID is in `config.toml`; its optional client
+  secret is in the keychain (`buffer-client-secret`) and is sent only to
+  Buffer's token endpoint. Each token records the app it was issued to and
+  refreshes only with that app; switching apps signs out.
 
 ### Private projects
 
@@ -99,9 +105,14 @@ or text from the UI used to smuggle content into a prompt.
   because any local port can forward to the internet. Unlocking a project
   doesn't change where its content may go.
 - Refused prompts aren't logged, and the refusal doesn't name the project.
-- The ship log re-reads the items it uses by ID in Go instead of trusting
+- Ship re-reads the items it uses by ID in Go instead of trusting
   titles sent by the UI, and leaves lockable projects out entirely.
 - Warming a local model ("preload") sends no user content.
+- Custom prompts (Settings → AI → Prompts) replace only the system prompt.
+  Articles and notes are still fenced off in the user message, the privacy
+  gate is unchanged, and Go still adds promotion links. They're stored as
+  plain text in `config.toml` (`[ai] PROMPTS`), like other settings, and are
+  never logged.
 
 ### Publishing and promotion
 
@@ -133,6 +144,13 @@ OAuth sign-in.
   on the OAuth token does (`TestBadInsightsKeyKeepsSignIn`).
 - Metrics are cached for an hour and fetched only when the user opens a post's
   insights, so viewing them can't spend the Buffer rate limit.
+- Linking a Buffer post to an article (`promotionlink.go`) reads up to two
+  pages of recent sent and scheduled posts per organization, only when the
+  user opens the picker. The post text goes to the UI only; the article file
+  keeps just the Buffer post ID and channel, as for any promotion. Go re-reads
+  the chosen post from Buffer and refuses one already linked to an article.
+  A linked post isn't edited: Go adds the article link to later edits of it,
+  as it does for any promotion.
 
 ### The terminal
 

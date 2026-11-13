@@ -5,6 +5,7 @@ import { BufferService, GuideService, moduleKey, PlaneService, projectKey, Setti
 import { REPO, reportBug } from "@/lib/bugReport";
 import { DataFlows } from "@/views/settings/DataFlows";
 import { InsightsKey } from "@/views/settings/InsightsKey";
+import { BufferAppRow } from "@/views/settings/BufferApp";
 import { useTerminal } from "@/lib/terminal";
 import { showKey } from "@/lib/keys";
 import { Switch } from "@/components/ui/switch";
@@ -21,6 +22,7 @@ import { SecretInput } from "@/components/ui/secret-input";
 import { Dot } from "@/components/bits";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AISettings } from "@/components/AISettings";
+import { AIPrompts } from "@/components/AIPrompts";
 import { LogSettings } from "@/components/LogSettings";
 import { PlaneAppGuide, planeIntegrationsUrl } from "@/components/PlaneAppGuide";
 import { ProjectSettings } from "@/components/ProjectSettings";
@@ -429,6 +431,7 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
                   <Button onClick={connectBuffer}>Connect Buffer</Button>
                 )}
               </div>
+              <BufferAppRow onSignedOut={() => setBuffer({ connected: false, account: "" })} />
               {buffer.connected && <BufferPlanningRow />}
               {buffer.connected && <InsightsKey set={s.bufferInsightsKeySet} onChange={(next) => setS((prev) => (prev ? { ...prev, bufferInsightsKeySet: next.bufferInsightsKeySet } : next))} />}
             </Section>
@@ -436,7 +439,10 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
               </TabsContent>
 
               <TabsContent value="ai">
-                <AISettings />
+                <div className="flex flex-col gap-10">
+                  <AISettings />
+                  <AIPrompts />
+                </div>
               </TabsContent>
 
               <TabsContent value="privacy">
