@@ -133,6 +133,9 @@ type Client struct {
 	token *Token
 
 	signIn sync.Mutex
+	// stopSignIn ends the sign-in waiting in the browser, if any.
+	pendingMu  sync.Mutex
+	stopSignIn context.CancelCauseFunc
 
 	// limitedUntil is when Buffer will take requests again after a 429.
 	// Until then Relay doesn't ask: every request would only extend the wait.

@@ -32,6 +32,7 @@ import { ImportSettingsButton } from "@/components/SettingsTransfer";
 import { DevtoKeyField, DevtoKeyLink } from "@/components/DevtoKeyField";
 import { BufferLogo } from "@/components/icons/BufferLogo";
 import { BufferPlanningRow } from "@/components/BufferPlanningRow";
+import { BufferAppRow } from "@/views/settings/BufferApp";
 import {
   planeAppSteps,
   planeIntegrationsUrl,
@@ -398,6 +399,7 @@ function BufferStep({
         <>
           <Status ok>Connected{account && ` as ${account}`}</Status>
           <BufferPlanningRow title="Also use Buffer to plan your work" />
+          <BufferAppRow label="Buffer app" onSignedOut={() => setAccount("")} />
         </>
       ) : (
         <>
@@ -438,6 +440,14 @@ function BufferStep({
                 </button>
               )}
             </p>
+          )}
+          {!busy && (
+            <>
+              <p className="m-0 text-xs leading-relaxed text-dim">
+                Relay signs in with its own Buffer app. If Buffer says it's rate limited, or you'd rather use yours, set up your own app first, then Connect.
+              </p>
+              <BufferAppRow label="Use your own Buffer app (optional)" onSignedOut={() => setAccount("")} />
+            </>
           )}
         </>
       )}
