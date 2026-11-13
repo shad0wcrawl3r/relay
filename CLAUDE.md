@@ -69,7 +69,7 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
   After a 429 the Buffer client refuses every call until Retry-After passes (`buffer.RateLimited`).
   The Buffer OAuth app is Relay's (`buffer.DefaultClientID`) unless the user sets their own (`bufferapp.go`, `[buffer] CLIENT_ID`,
   secret `buffer-client-secret` in the keychain); it uses the same hosted redirect URI. A token records its `ClientID` and refreshes
-  only with it; `SetApp` signs out when the app changes and resets the rate-limit wait. The Timeline's post lists are
+  only with it; `SetApp` signs out when the app changes, ends a sign-in still waiting in the browser (`CancelSignIn`) and resets the rate-limit wait. The setup guide's Buffer step offers the same card. The Timeline's post lists are
   cached in memory only (`buffercalendar.go`, 3 min) and dropped on any write through Relay; don't add per-click Buffer calls.
 - Dev.to AI disclosure: `posts.Meta.AI` (none/assisted/generated, empty = none). Go sends it as Forem's `ai_disclosure_level`
   (no_ai/some_ai/fully_autonomous, the "AI:" marker in Dev.to's editor) and reads it back on pull (`disclosure.go`); the body never carries it.

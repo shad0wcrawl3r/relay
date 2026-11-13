@@ -31,6 +31,19 @@ func challengeFor(verifier string) string {
 // ErrSignInCancelled is returned when the caller cancels a waiting sign-in.
 var ErrSignInCancelled = errors.New("Buffer sign-in cancelled")
 
+// ErrAppChanged ends a sign-in that was started with another Buffer app.
+var ErrAppChanged = errors.New("the Buffer app changed while you were signing in. Connect again to sign in with the new one")
+
+// CancelSignIn ends a sign-in waiting in the browser, because the Buffer app
+// it was started with is no longer the one to use.
+func (c *Client) CancelSignIn() {
+	c.pendingMu.Lock()
+	defer c.pendingMu.Unlock()
+	if c.stopSignIn != nil {
+		c.stopSignIn(ErrAppChanged)
+	}
+}
+
 // Connect runs the Authorization Code flow with PKCE. Buffer redirects to the
 // hosted callback page, which forwards to the loopback listener here using the
 // port in state as "<port>.<nonce>". Keep that format in step with
@@ -100,12 +113,26 @@ func (c *Client) Connect(ctx context.Context, openURL func(string)) error {
 	}
 	openURL(c.authURL + "?" + q.Encode())
 
+	ctx, stop := context.WithCancelCause(ctx)
+	c.pendingMu.Lock()
+	c.stopSignIn = stop
+	c.pendingMu.Unlock()
+	defer func() {
+		c.pendingMu.Lock()
+		c.stopSignIn = nil
+		c.pendingMu.Unlock()
+		stop(nil)
+	}()
 	ctx, cancel := context.WithTimeout(ctx, signInTimeout)
 	defer cancel()
 	var res result
 	select {
 	case res = <-done:
 	case <-ctx.Done():
+		if errors.Is(context.Cause(ctx), ErrAppChanged) {
+			log.Notice("sign-in ended: the Buffer app changed")
+			return ErrAppChanged
+		}
 		if errors.Is(ctx.Err(), context.Canceled) {
 			log.Notice("sign-in cancelled")
 			return ErrSignInCancelled
