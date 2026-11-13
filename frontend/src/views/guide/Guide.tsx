@@ -22,6 +22,7 @@ import {
 import { usePlane } from "@/lib/store";
 import { useIntegrations } from "@/lib/integrations";
 import { cn, errorMessage } from "@/lib/utils";
+import { syncedAgo } from "@/lib/time";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SecretInput } from "@/components/ui/secret-input";
@@ -94,6 +95,24 @@ export function Guide() {
   }, [step, known]);
 
   const onAi = useCallback((s: AIStatus) => setAi(s), []);
+
+  // The terminal step's footer: nothing picked yet, so save the system's
+  // default shell (by path, so the step counts as done) and move on.
+  const [usingDefault, setUsingDefault] = useState(false);
+  const pickDefaultShell = async () => {
+    setUsingDefault(true);
+    setError("");
+    try {
+      const c = await TerminalService.Shells();
+      const def = c.shells.find((sh) => sh.default)?.path ?? "";
+      setShell((await TerminalService.SetShell(def)).chosen);
+      setStep((n) => Math.min(STEPS.length - 1, (n ?? 0) + 1));
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setUsingDefault(false);
+    }
+  };
 
   const finish = async (view?: "editor" | "buffer" | "attention") => {
     try {
@@ -217,7 +236,13 @@ export function Guide() {
               </button>
             )}
             <span className="grow" />
-            {at > 0 && !done[id] && (
+            {at > 0 && !done[id] && id === "terminal" && (
+              <Button variant="ghost" disabled={usingDefault} onClick={pickDefaultShell}>
+                {usingDefault && <Loader2 className="size-3.5 animate-spin" />}
+                Use Default
+              </Button>
+            )}
+            {at > 0 && !done[id] && id !== "terminal" && (
               <Button variant="ghost" onClick={() => go(1)}>
                 Skip
               </Button>
@@ -491,6 +516,7 @@ function PlaneStep({
         <Status ok>
           Connected{s?.connectedSlug ? ` to ${s.connectedSlug}` : ""}
         </Status>
+        <PlaneSyncStatus />
       </Section>
     );
   }
@@ -654,6 +680,86 @@ function PlaneStep({
         {body}
       </div>
     </Section>
+  );
+}
+
+// What the first fetch from Plane is doing, live from the snapshot events,
+// while the user stays on this step. It never blocks Continue.
+function PlaneSyncStatus() {
+  const { snapshot, syncing, syncNow } = usePlane();
+  const [retrying, setRetrying] = useState(false);
+  const [, tick] = useState(0);
+  // Keep "synced 12s ago" current.
+  useEffect(() => {
+    const t = setInterval(() => tick((n) => n + 1), 5000);
+    return () => clearInterval(t);
+  }, []);
+  if (!snapshot) return null;
+
+  const plane = snapshot.projects.filter((p) => p.source !== "buffer");
+  const open = plane.filter((p) => !p.locked);
+  const locked = plane.length - open.length;
+  const items = open.reduce((n, p) => n + p.items.length, 0);
+  const fetching = syncing || snapshot.syncing;
+  const synced = snapshot.syncedAt && !snapshot.syncedAt.startsWith("0001") ? syncedAgo(snapshot.syncedAt) : "";
+  const retry = async () => {
+    setRetrying(true);
+    try {
+      await syncNow();
+    } catch {
+      // The snapshot's error says what went wrong.
+    } finally {
+      setRetrying(false);
+    }
+  };
+  const count = `${open.length} ${open.length === 1 ? "project" : "projects"} and ${items} work ${items === 1 ? "item" : "items"}`;
+
+  return (
+    <div className="flex flex-col gap-2 text-xs leading-relaxed">
+      {fetching ? (
+        <p className="m-0 flex items-start gap-2 text-muted-foreground">
+          <Loader2 className="mt-0.5 size-3 shrink-0 animate-spin" />
+          <span>
+            Fetching your projects, states, labels and work items from Plane{plane.length > 0 ? ` (${count} so far)` : ""}. The first sync can take a
+            minute on a big workspace; you can continue while it runs.
+          </span>
+        </p>
+      ) : snapshot.error ? (
+        <div className="flex flex-col gap-1.5">
+          <p className="m-0 text-overdue">The last fetch from Plane failed: {snapshot.error}</p>
+          <p className="m-0 text-dim">Relay keeps retrying in the background. You can continue and come back to it in Settings → Plane.</p>
+          <Button variant="outline" size="sm" className="self-start" disabled={retrying} onClick={retry}>
+            {retrying && <Loader2 className="size-3 animate-spin" />}
+            Try again now
+          </Button>
+        </div>
+      ) : snapshot.cached ? (
+        <p className="m-0 flex items-start gap-2 text-muted-foreground">
+          <Loader2 className="mt-0.5 size-3 shrink-0 animate-spin" />
+          <span>Showing what Relay saved last time ({count}) while it refreshes from Plane. Changes wait until the refresh finishes.</span>
+        </p>
+      ) : (
+        <p className="m-0 flex items-start gap-2 text-muted-foreground">
+          <Check className="mt-0.5 size-3 shrink-0 text-[#46a758]" />
+          <span>
+            Fetched {count}
+            {synced ? `, ${synced}` : ""}.
+          </span>
+        </p>
+      )}
+      {!fetching && !snapshot.error && !snapshot.cached && plane.length === 0 && (
+        <p className="m-0 text-dim">No projects came back. Check that you're a member of a project in this workspace, then try again from Settings → Plane.</p>
+      )}
+      {locked > 0 && (
+        <p className="m-0 text-dim">
+          {locked} private {locked === 1 ? "project stays" : "projects stay"} hidden until you unlock {locked === 1 ? "it" : "them"} in the main window.
+        </p>
+      )}
+      <p className="m-0 text-dim">
+        Your boards are in the main window's sidebar. Relay syncs with Plane in the background while it runs, and changes you make on a board are written back to
+        Plane.
+      </p>
+    </div>
   );
 }
 

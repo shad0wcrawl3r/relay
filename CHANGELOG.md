@@ -14,6 +14,8 @@ that heading to the new version.
 - Linux: Backspace works in text fields again. It used to delete only selected text.
 - Linux: the setup guide floats above Relay in tiling window managers such as Niri, instead of opening beside it.
 - Settings → AI → Prompts: rewrite the instructions Relay gives the model for each AI action, and reset to Relay's own at any time.
+- Setup guide: once Plane is connected, it shows what the first sync is doing, what it fetched and any error, with a retry.
+- Setup guide: the terminal step offers Use Default when you haven't picked a shell.
 - Ship log is now called Ship.
 - Writing a Ship post from Buffer-board items is marked not implemented for now; Ship uses your Plane projects and commits.
 
