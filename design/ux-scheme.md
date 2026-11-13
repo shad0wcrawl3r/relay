@@ -30,7 +30,7 @@ until after judging. Each item is marked A or B, with a rough size.
   - The Buffer plan limits are already a footnote, so nothing changes there.
 - **AI preload:** Settings → AI → Preload (on by default; Ollama and LM Studio
   on this machine only) loads the model:
-  - when the ship log opens;
+  - when Ship opens;
   - when the pointer or focus reaches an AI draft or summarise button.
 
   It never runs in the background, and it sends nothing of the user's.
@@ -50,7 +50,7 @@ until after judging. Each item is marked A or B, with a rough size.
 2. **Nothing important disappears on a timer.**
 3. **Relay remembers where you were.**
 4. **Every view is built the same way:** same header, same loading, same empty state.
-5. **The next step is always on screen.** Work done → ship log → article →
+5. **The next step is always on screen.** Work done → Ship → article →
    published → promoted → on the Timeline.
 6. **Shortcuts are easy to find**, not just mentioned in tooltips.
 
@@ -130,7 +130,7 @@ until after judging. Each item is marked A or B, with a rough size.
 
 **What happens now**
 - Each step works, but it lives in a different place:
-  - the ship log is in the editor's posts sidebar;
+  - Ship is in the editor's posts sidebar;
   - Publish and Promote are in the editor footer;
   - the results are in Buffer and the Timeline.
 - After publishing, nothing suggests promoting, and after promoting nothing
@@ -152,8 +152,8 @@ until after judging. Each item is marked A or B, with a rough size.
   already picks channels. Rename the sidebar's **Dev.to editor** to **Posts**,
   which is what the view is.
 - **B · M** In Attention, a **Ready to write about** group: items finished in
-  the last week that no post has used yet, with a **Ship log** action. This
-  needs a record of which items a ship log used (RELAY-71).
+  the last week that no post has used yet, with a **Ship** action. This
+  needs a record of which items a Ship draft used (RELAY-71).
 
 ## 5. Find and use shortcuts
 
@@ -167,7 +167,7 @@ until after judging. Each item is marked A or B, with a rough size.
   the same table the key handler uses, so it can't drift out of date.
 - **B · M** ⌘K becomes a full command palette (RELAY-91). It adds actions
   for the current context: *Send to Dev.to*, *Promote*, *New Buffer post*,
-  *Ship log*, *Lock private items*, *Check for updates*, and *Move FOO-12
+  *Ship*, *Lock private items*, *Check for updates*, and *Move FOO-12
   to…* when the drawer is open. Capture stays as the first row.
 
 ## 6. Settings

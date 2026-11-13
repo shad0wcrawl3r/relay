@@ -22,13 +22,15 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
-// Ship log drafts a post about finished work: items moved to
-// a completed state in Plane (or on the Buffer board) and, optionally, the
-// commits in a git repository the user picks. The user reviews the material,
-// the model drafts, and the result is an ordinary local post.
+// Ship drafts a post about finished work: items moved to a completed state
+// in Plane and, optionally, the commits in a git repository the user picks.
+// Buffer-board projects aren't a source yet (not implemented): they're
+// listed so the UI can say so, but their items are always left out. The
+// user reviews the material, the model drafts, and the result is an
+// ordinary local post.
 //
-// Lockable projects and modules never take part, unlocked or not: a ship
-// log is meant to be published. Only item titles and commit subjects reach
+// Lockable projects and modules never take part, unlocked or not: a Ship
+// post is meant to be published. Only item titles and commit subjects reach
 // the model, never descriptions or diffs.
 type ShipLogService struct {
 	plane *PlaneService
@@ -62,7 +64,7 @@ type ShipCommit struct {
 	Subject string `json:"subject"`
 }
 
-// ShipProject is a project the ship log can read.
+// ShipProject is a project Ship can read.
 type ShipProject struct {
 	ID     string `json:"id"`
 	Name   string `json:"name"`
@@ -79,7 +81,7 @@ type ShipLogMaterial struct {
 	Skipped int `json:"skipped"`
 }
 
-// Projects lists the projects a ship log may draw from: everything shown
+// Projects lists the projects Ship may draw from: everything shown
 // except lockable projects.
 func (s *ShipLogService) Projects() []ShipProject {
 	out := []ShipProject{}
@@ -114,12 +116,16 @@ func (s *ShipLogService) Material(ctx context.Context, q ShipLogQuery) (ShipLogM
 }
 
 // finishedItems lists items in a completed state whose completion falls in
-// the window, leaving out lockable projects and modules.
+// the window, leaving out lockable projects and modules, and Buffer-board
+// projects (not implemented as a source yet).
 func finishedItems(snap plane.Snapshot, q ShipLogQuery) ([]ShipItem, int) {
 	items := []ShipItem{}
 	skipped := 0
 	for _, p := range snap.Projects {
 		if len(q.ProjectIDs) > 0 && !slices.Contains(q.ProjectIDs, p.ID) {
+			continue
+		}
+		if p.Source == "buffer" {
 			continue
 		}
 		if p.Private || plane.Lockable(plane.ProjectKey(p.Identifier)) {
@@ -301,7 +307,7 @@ func (s *ShipLogService) Draft(ctx context.Context, d ShipLogDraft) (posts.Post,
 	if err != nil {
 		return posts.Post{}, err
 	}
-	shipLog.Info("ship log drafted", "post", p.ID, "items", len(items), "commits", len(commits))
+	shipLog.Info("ship drafted", "post", p.ID, "items", len(items), "commits", len(commits))
 	return p, nil
 }
 
@@ -323,7 +329,7 @@ func (s *ShipLogService) DraftSocial(ctx context.Context, d ShipLogDraft, limit 
 	if err != nil {
 		return "", err
 	}
-	shipLog.Info("ship log social post drafted", "items", len(items), "commits", len(commits), "chars", len([]rune(reply)))
+	shipLog.Info("ship social post drafted", "items", len(items), "commits", len(commits), "chars", len([]rune(reply)))
 	return strings.TrimSpace(reply), nil
 }
 
@@ -415,7 +421,7 @@ func splitTags(body, material string) (tags []string, rest string) {
 	return tags, strings.TrimSpace(after) + "\n"
 }
 
-// RecentRepo is the folder the last ship log read commits from.
+// RecentRepo is the folder Ship last read commits from.
 func (s *ShipLogService) RecentRepo() string { return config.GetConfig().ShipLog.Repo }
 
 // SetRecentRepo remembers the folder for next time.
@@ -427,7 +433,7 @@ func (s *ShipLogService) SetRecentRepo(dir string) error {
 }
 
 // ReadyToWrite lists items finished in the last week that no post is linked
-// to yet, for Attention's "Ready to write about". Like the ship log, it
+// to yet, for Attention's "Ready to write about". Like Ship, it
 // leaves lockable projects and modules out, unlocked or not.
 func (s *ShipLogService) ReadyToWrite() ([]ShipItem, error) {
 	all, err := s.posts.store.List()

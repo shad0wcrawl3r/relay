@@ -42,7 +42,7 @@ export function Attention({
 }: {
   openItem: (o: OpenItem) => void;
   goTimeline: () => void;
-  /** Opens the ship log with these items picked. */
+  /** Opens Ship with these items picked. */
   goShipLog: (itemIds: string[]) => void;
 }) {
   const { projects, update, snapshot } = usePlane();
@@ -248,7 +248,7 @@ export function Attention({
               <span className="font-normal text-dim">{ready.length}</span>
               <span className="ml-1 font-normal text-dim">· finished this week, not in a post yet</span>
               <Button variant="outline" size="sm" className="ml-auto" onClick={() => goShipLog(ready.map((r) => r.id))}>
-                <NotebookPen className="size-3.5" /> Write a ship log
+                <NotebookPen className="size-3.5" /> Ship it
               </Button>
             </div>
             <div className="overflow-hidden rounded-[10px] border border-column-border bg-column">
@@ -265,7 +265,7 @@ export function Attention({
                   </span>
                 </button>
               ))}
-              {ready.length > 8 && <div className="px-3.5 py-2 text-xs text-dim">and {ready.length - 8} more in the ship log</div>}
+              {ready.length > 8 && <div className="px-3.5 py-2 text-xs text-dim">and {ready.length - 8} more in Ship</div>}
             </div>
           </section>
         )}

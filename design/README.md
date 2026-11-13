@@ -260,8 +260,10 @@ Buffer
 - Promotions (LinkedIn) can add two follow-ups, 3 days and a week after the
   first post, each with its own text. They're ordinary scheduled promotions,
   so Go adds the article link to each. Not offered for drafts.
-- The ship log drafts either an article or a short Buffer post (sized for
-  the strictest usable channel), which opens in the composer unsent.
+- Ship drafts either an article or a short Buffer post (sized for the
+  strictest usable channel), which opens in the composer unsent. Buffer-board
+  projects (`[planning] BUFFER`) as a source are **not implemented**: they show
+  as a disabled chip labelled so, and `finishedItems` leaves their items out.
 - Buffer ideas can start a local Dev.to article ("Write an article").
 - Failed posts: Go checks at launch (+20 s) and every 15 min, and raises one
   toast per newly failed post, linking to the Failed tab. Only IDs, channel

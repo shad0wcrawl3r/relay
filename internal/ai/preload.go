@@ -11,7 +11,7 @@ import (
 
 // Local models can take many seconds to load into memory before the first
 // reply. Preload starts that load when the user opens something that's about
-// to ask the model (the ship log, an AI draft button), so the wait overlaps
+// to ask the model (Ship, an AI draft button), so the wait overlaps
 // with them picking what to send. It sends no user content: Ollama is asked
 // to load the model with an empty prompt, LM Studio gets a one-token
 // completion of a fixed placeholder.

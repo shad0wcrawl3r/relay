@@ -99,7 +99,7 @@ or text from the UI used to smuggle content into a prompt.
   because any local port can forward to the internet. Unlocking a project
   doesn't change where its content may go.
 - Refused prompts aren't logged, and the refusal doesn't name the project.
-- The ship log re-reads the items it uses by ID in Go instead of trusting
+- Ship re-reads the items it uses by ID in Go instead of trusting
   titles sent by the UI, and leaves lockable projects out entirely.
 - Warming a local model ("preload") sends no user content.
 

@@ -647,7 +647,7 @@ export interface ShipLogQuery {
 }
 
 /**
- * ShipProject is a project the ship log can read.
+ * ShipProject is a project Ship can read.
  */
 export interface ShipProject {
     "id": string;

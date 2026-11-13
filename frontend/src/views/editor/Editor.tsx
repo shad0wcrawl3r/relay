@@ -48,7 +48,7 @@ export function Editor({
   openId,
   shipLogItems,
 }: {
-  /** Opens the ship log with these items picked. */
+  /** Opens Ship with these items picked. */
   shipLogItems?: string[];
   goSettings: () => void;
   goBuffer: (focus: BufferFocus) => void;
@@ -79,7 +79,7 @@ export function Editor({
   const [promoteOpen, setPromoteOpen] = useState(false);
   const [drift, setDrift] = useState<Drift | null>(null);
   const [shipLog, setShipLog] = useState(!!shipLogItems?.length);
-  // A ship-log post headed for Buffer, open in the composer.
+  // A Ship post headed for Buffer, open in the composer.
   const [social, setSocial] = useState<{ text: string; channels: BufferChannel[] } | null>(null);
   const [, tick] = useState(0);
   const editor = useRef<EditorHandle>(null);
@@ -496,7 +496,7 @@ export function Editor({
           onDrafted={async (p) => {
             setShipLog(false);
             await open(p.id);
-            toast({ tone: "success", title: "Ship log drafted", body: "Review and edit it, then send it to Dev.to when it's ready." });
+            toast({ tone: "success", title: "Article drafted", body: "Review and edit it, then send it to Dev.to when it's ready." });
           }}
           onSocial={(text, channels) => {
             setShipLog(false);

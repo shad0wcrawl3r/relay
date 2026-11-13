@@ -73,10 +73,10 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
 - Plane checklists (`internal/plane/checklist.go`): the drawer renders `taskList`/`taskItem` with checkboxes. Ticking calls
   `PlaneService.SetTask(project, item, index, checked)`: Go re-reads the description from Plane and flips only that item's
   `data-checked`. The UI never sends description HTML back (sanitising would drop markup Relay doesn't render).
-- Plane items ↔ posts (`posts.Meta.PlaneItems`, IDs only): linked in the editor (`PlaneItemsSelect`), recorded by a ship log draft,
+- Plane items ↔ posts (`posts.Meta.PlaneItems`, IDs only): linked in the editor (`PlaneItemsSelect`), recorded by a Ship draft,
   shown with the post's status in the item drawer (`LinkedPosts`). Attention's "Ready to write about" (`ReadyToWrite`) lists items
   finished in the last week that no post links to. Lockable projects are never offered, listed or shown there, unlocked or not.
-- Ship log (`shiplogservice.go`): completed items in a window (Plane `completed_at`) plus `git log` subjects from a repo the
+- Ship (`shiplogservice.go`; code and the `shiplog.REPO` config key keep the old "ship log" name): completed items in a window (Plane `completed_at`) plus `git log` subjects from a repo the
   user picks. Lockable projects/modules are always left out (unlocked or not); only titles and subjects reach the model,
   through `ai.Plane(PrivacyKeys…)`. Go re-reads the kept items by ID rather than trusting text from the UI.
 - AI: every prompt goes through `ai.Client.Complete` with an `ai.Origin`. Plane content uses `ai.Plane(plane.PrivacyKeys(...))`;
@@ -84,7 +84,7 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
   tied to the endpoint), or Ollama / LM Studio at their default endpoints until turned off. A loopback address alone
   isn't trusted. Unlocking doesn't change that. Never log a refused prompt or the project it came from.
   Preload (`internal/ai/preload.go`, `[ai] PRELOAD`, on by default) warms a local Ollama / LM Studio model when the user is about to
-  ask it (ship log opened, pointer or focus on an AI button: `preloadModel` / `preloadOnIntent`), never in the background. It sends no user content.
+  ask it (Ship opened, pointer or focus on an AI button: `preloadModel` / `preloadOnIntent`), never in the background. It sends no user content.
 - Insights (`insights.go`, `internal/buffer/metrics.go`, editor **Insights**): every integration that can report engagement feeds
   `Insights`. Add it when you integrate a new service. Dev.to's views/reactions/comments come from the synced article list (no extra call).
   Buffer's `post.metrics` (all channels, LinkedIn included) are cached an hour and fetched only when the user opens insights.

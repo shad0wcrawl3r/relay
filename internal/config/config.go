@@ -256,7 +256,7 @@ type Config struct {
 		Seen string `mapstructure:"SEEN"`
 	}
 	ShipLog struct {
-		// Repo is the folder the last ship log read commits from.
+		// Repo is the folder Ship last read commits from.
 		Repo string `mapstructure:"REPO"`
 	}
 }

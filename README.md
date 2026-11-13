@@ -22,7 +22,7 @@ frontend. Runs on macOS, Windows and Linux.
   - Linked posts: an item shows the posts written about it and where each one
     is (draft, published, promoted)
   - Attention's "Ready to write about" lists what you finished this week that
-    no post covers yet, with a button to write a ship log from it. J and K move
+    no post covers yet, with a button to open Ship on it. J and K move
     through Attention; Enter opens, D, S and A run Done, Send back and Approve
   - Moves on a board or from Attention can be undone from the toast
   - Quick capture palette (⌘K)
@@ -51,11 +51,12 @@ frontend. Runs on macOS, Windows and Linux.
   - Insights: a published article's Dev.to views, reactions and comments, and
     how each promotion did on Buffer (impressions, reactions, clicks, LinkedIn
     included). Buffer's metrics need an optional personal API key
-  - Ship log (the ship icon above the post list): pick a date range, the
+  - Ship (the ship icon above the post list): pick a date range, the
     projects and optionally a git repository; Relay lists the items finished
     in that range and the commit subjects, you untick what stays out and add
-    notes, and the AI model drafts a build-in-public post that opens as a new,
-    AI-assisted draft (or a Buffer post). The draft links the items it used.
+    notes, and the AI model drafts a post that opens as a new, AI-assisted
+    draft (or a Buffer post). The draft links the items it used. Writing from
+    Buffer-board items is not implemented yet.
     Private projects and modules never take part, and only item titles and
     commit subjects reach the model
   - Spots edits made on Dev.to: Update draft shows a diff (unified or side by
@@ -92,7 +93,7 @@ frontend. Runs on macOS, Windows and Linux.
     ideas, or drag ideas out to make work items (never for private projects)
   - AI providers: Anthropic, OpenAI, OpenRouter, Ollama and LM Studio, with
     custom endpoints, model search and a test before saving. Ollama and LM
-    Studio models can load into memory when you open the ship log or point at
+    Studio models can load into memory when you open Ship or point at
     an AI button (Settings → AI → Preload); nothing loads in the background
 - **Terminal**
   - Background sessions owned by Go, with detach and reattach

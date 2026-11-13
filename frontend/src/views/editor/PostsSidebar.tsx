@@ -29,7 +29,7 @@ export function PostsSidebar({
   syncing: boolean;
   onOpen: (id: string) => void;
   onNew: () => void;
-  /** Opens Ship log, which drafts a post from finished work. */
+  /** Opens Ship, which drafts a post from finished work. */
   onShipLog: () => void;
   onSync: () => void;
   /** Opens Settings where the Dev.to key goes. */
@@ -81,8 +81,8 @@ export function PostsSidebar({
         <h2 className="m-0 pb-2.5 text-sm font-semibold text-strong">Posts</h2>
         <div className="no-drag flex items-center">
           <button
-            aria-label="Ship log"
-            title="Ship log: draft a post from what you finished"
+            aria-label="Ship"
+            title="Ship: draft a post from what you finished"
             onClick={onShipLog}
             className="grid size-10 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-strong"
           >

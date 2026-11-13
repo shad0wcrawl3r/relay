@@ -116,3 +116,18 @@ func TestSplitTags(t *testing.T) {
 		t.Errorf("got %v / %q", tags, body)
 	}
 }
+
+// Writing from Buffer-board items isn't implemented: their finished items
+// are left out even when the UI asks for that project by ID.
+func TestShipLeavesOutBufferBoard(t *testing.T) {
+	states := []plane.State{{ID: "done", Group: "completed"}}
+	snap := plane.Snapshot{Projects: []plane.Project{
+		{ID: "bp", Name: "My plan", Source: "buffer", States: states, Items: []plane.Item{
+			{ID: "i", Key: "PLAN-1", Name: "Buffer idea", StateID: "done", CompletedAt: "2026-11-08T10:00:00Z"},
+		}},
+	}}
+	q := ShipLogQuery{Since: time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC), Until: time.Date(2026, 11, 9, 0, 0, 0, 0, time.UTC), ProjectIDs: []string{"bp"}}
+	if items, skipped := finishedItems(snap, q); len(items) != 0 || skipped != 0 {
+		t.Fatalf("finishedItems = %v, %d; want none", items, skipped)
+	}
+}

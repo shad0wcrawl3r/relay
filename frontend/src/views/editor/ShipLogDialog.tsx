@@ -25,10 +25,11 @@ const daysAgo = (n: number) => {
 const shortDay = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
 /**
- * Ship log: drafts a post about work finished in a date
- * range (completed Plane or Buffer-board items, plus commits from a repo
- * you pick). You choose what goes in; the model drafts; the result opens as
- * a new post.
+ * Ship: drafts a post about work finished in a date range (completed Plane
+ * items, plus commits from a repo you pick). You choose what goes in; the
+ * model drafts; the result opens as a new post. Buffer-board projects as a
+ * source aren't implemented yet: they show disabled and labelled so, and Go
+ * leaves their items out.
  */
 export function ShipLogDialog({
   only,
@@ -66,13 +67,13 @@ export function ShipLogDialog({
     ShipLogService.Projects().then(
       (ps) => {
         setProjects(ps);
-        setPicked(ps.map((p) => p.id));
+        setPicked(ps.filter((p) => p.source !== "buffer").map((p) => p.id));
       },
       () => setPicked([]),
     );
     ShipLogService.RecentRepo().then(setRepo, () => {});
     AIService.Status().then(setAi, () => {});
-    // Opening the ship log means a draft is coming: start loading a local model now.
+    // Opening Ship means a draft is coming: start loading a local model now.
     preloadModel();
   }, []);
 
@@ -166,7 +167,7 @@ export function ShipLogDialog({
     <Dialog open onOpenChange={(o) => !o && !drafting && onClose()}>
       <DialogContent className="flex max-h-[88vh] max-w-[640px] flex-col gap-4">
         <DialogHeader>
-          <DialogTitle>Ship log</DialogTitle>
+          <DialogTitle>Ship</DialogTitle>
           <DialogDescription>
             Draft a post about what you finished. Pick what goes in; AI writes an article you edit like any post
             {bufferOn ? ", or a short post you finish in the Buffer composer" : ""}.
@@ -190,16 +191,28 @@ export function ShipLogDialog({
             <div className="flex flex-col gap-1.5">
               <span className="text-xs font-medium text-muted-foreground">Projects</span>
               <div className="flex flex-wrap gap-2">
-                {projects.map((p) => (
-                  <Chip
-                    key={p.id}
-                    on={!!picked?.includes(p.id)}
-                    onClick={() => setPicked((cur) => (cur?.includes(p.id) ? cur.filter((x) => x !== p.id) : [...(cur ?? []), p.id]))}
-                  >
-                    {p.name}
-                    {p.source === "buffer" && <span className="text-dim"> · Buffer</span>}
-                  </Chip>
-                ))}
+                {projects.map((p) =>
+                  p.source === "buffer" ? (
+                    <span
+                      key={p.id}
+                      aria-disabled
+                      title="Writing from Buffer-board items isn't implemented yet"
+                      className="inline-flex h-8 cursor-not-allowed items-center gap-1.5 rounded-md border border-border px-3 text-[13px] text-dim opacity-60"
+                    >
+                      {p.name}
+                      <span> · Buffer</span>
+                      <span className="rounded border border-border px-1 text-[10px] font-medium uppercase tracking-wide">Not implemented</span>
+                    </span>
+                  ) : (
+                    <Chip
+                      key={p.id}
+                      on={!!picked?.includes(p.id)}
+                      onClick={() => setPicked((cur) => (cur?.includes(p.id) ? cur.filter((x) => x !== p.id) : [...(cur ?? []), p.id]))}
+                    >
+                      {p.name}
+                    </Chip>
+                  ),
+                )}
               </div>
               {(material?.skipped ?? 0) > 0 && <p className="m-0 text-xs text-dim">Private projects are always left out.</p>}
             </div>
