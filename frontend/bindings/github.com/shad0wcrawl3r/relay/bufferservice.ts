@@ -160,6 +160,22 @@ export function LastFailed(): $CancellablePromise<$models.FailedPost[] | null> {
 }
 
 /**
+ * LinkCandidates lists recent Buffer posts not linked to any article yet,
+ * those that mention this one first.
+ */
+export function LinkCandidates(postID: string): $CancellablePromise<$models.LinkCandidate[] | null> {
+    return $Call.ByID(3371256497, postID);
+}
+
+/**
+ * LinkPromotion records a Buffer post as one of the article's promotions.
+ * The post is read from Buffer again, rather than trusting the UI.
+ */
+export function LinkPromotion(postID: string, bufferID: string): $CancellablePromise<posts$0.Post> {
+    return $Call.ByID(2634325084, postID, bufferID);
+}
+
+/**
  * Organizations lists the account's organizations, for views that only
  * need to know which one to read.
  */

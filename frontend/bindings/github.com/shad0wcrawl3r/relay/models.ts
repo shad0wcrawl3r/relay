@@ -411,6 +411,25 @@ export interface Integrations {
     "devto": boolean;
 }
 
+/**
+ * LinkCandidate is a recent Buffer post that could be linked.
+ */
+export interface LinkCandidate {
+    "bufferId": string;
+    "text": string;
+    "channel": string;
+    "channelId": string;
+    "service": string;
+    "status": string;
+    "sentAt": string;
+    "dueAt": string;
+
+    /**
+     * Mentions is true when the text has the article's link or slug.
+     */
+    "mentions": boolean;
+}
+
 export interface LogStatus {
     "enabled": boolean;
     "subsystems": LogSubsystem[] | null;

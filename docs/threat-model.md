@@ -144,6 +144,13 @@ OAuth sign-in.
   on the OAuth token does (`TestBadInsightsKeyKeepsSignIn`).
 - Metrics are cached for an hour and fetched only when the user opens a post's
   insights, so viewing them can't spend the Buffer rate limit.
+- Linking a Buffer post to an article (`promotionlink.go`) reads up to two
+  pages of recent sent and scheduled posts per organization, only when the
+  user opens the picker. The post text goes to the UI only; the article file
+  keeps just the Buffer post ID and channel, as for any promotion. Go re-reads
+  the chosen post from Buffer and refuses one already linked to an article.
+  A linked post isn't edited: Go adds the article link to later edits of it,
+  as it does for any promotion.
 
 ### The terminal
 

@@ -41,6 +41,7 @@ export type PostSummary = Clean<M.PostSummary>;
 export type PostList = Clean<M.PostList>;
 export type Settings = Clean<M.Settings>;
 export type Insights = Clean<M.Insights>;
+export type LinkCandidate = Clean<M.LinkCandidate>;
 export type SettingsInput = Clean<M.SettingsInput>;
 export type Post = Clean<PostM.Post>;
 /** Dev.to's copy of a post next to Relay's, when it was edited on Dev.to. */
@@ -253,6 +254,10 @@ export const BufferService = {
     const r = await BufferBindings.Insights(postId, refresh);
     return { ...r, devto: r.devto ?? null, promotions: (r.promotions ?? []).map((p) => ({ ...p, metrics: p.metrics ?? [] })) } as Insights;
   },
+  /** Recent Buffer posts not linked to an article, ones that mention this article first. */
+  LinkCandidates: async (postId: string): Promise<LinkCandidate[]> => arr(await BufferBindings.LinkCandidates(postId)) as LinkCandidate[],
+  /** Records a Buffer post as one of the article's promotions. */
+  LinkPromotion: async (postId: string, bufferId: string): Promise<Post> => post(await BufferBindings.LinkPromotion(postId, bufferId)),
   /** Buffer post ID → the local article it promotes. Read from Relay's files; never asks Buffer. */
   PromotionIndex: async (): Promise<Record<string, PromotedArticle>> => {
     const idx = await BufferBindings.PromotionIndex();

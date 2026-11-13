@@ -50,7 +50,8 @@ frontend. Runs on macOS, Windows and Linux.
     with Undo
   - Insights: a published article's Dev.to views, reactions and comments, and
     how each promotion did on Buffer (impressions, reactions, clicks, LinkedIn
-    included). Buffer's metrics need an optional personal API key
+    included). Buffer's metrics need an optional personal API key. A post made
+    outside Promote can be linked to the article from the Insights dialog
   - Ship (the ship icon above the post list): pick a date range, the
     projects and optionally a git repository; Relay lists the items finished
     in that range and the commit subjects, you untick what stays out and add

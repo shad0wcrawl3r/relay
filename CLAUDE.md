@@ -65,6 +65,7 @@ terminal (Go-owned background sessions, in-app splits, Warp-style blocks).
   The Buffer tab's data is cached in `buffer-cache.json` (vault-encrypted, `buffercache.go`), shown first and refreshed; it's dropped on sign-out.
   `bufferwatch.go` checks for failed posts at launch and every 15 minutes and emits `buffer:failed` for ones not yet reported
   (IDs, channel and error only, never post text). Follow-up promotions are ordinary scheduled promotions, so Go adds the link to each.
+  A Buffer post made outside Promote can be linked to an article from Insights (`promotionlink.go`); it becomes an ordinary promotion.
   After a 429 the Buffer client refuses every call until Retry-After passes (`buffer.RateLimited`).
   The Buffer OAuth app is Relay's (`buffer.DefaultClientID`) unless the user sets their own (`bufferapp.go`, `[buffer] CLIENT_ID`,
   secret `buffer-client-secret` in the keychain); it uses the same hosted redirect URI. A token records its `ClientID` and refreshes

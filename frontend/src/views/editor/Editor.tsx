@@ -452,7 +452,13 @@ export function Editor({
                 </span>
               )}
               {post.promotions.length > 0 && !gone && <Promotions post={post} goBuffer={goBuffer} />}
-              {published && !gone && <InsightsButton post={post} goSettings={goSettings} />}
+              {published && !gone && (
+                <InsightsButton
+                  post={post}
+                  goSettings={goSettings}
+                  onLinked={(updated) => setPost((cur) => (cur && cur.id === updated.id ? { ...cur, promotions: updated.promotions } : cur))}
+                />
+              )}
               <span className="grow" />
               {gone ? null : sent ? (
                 <>

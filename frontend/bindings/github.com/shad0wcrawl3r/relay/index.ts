@@ -53,6 +53,7 @@ export type {
     ImportResult,
     Insights,
     Integrations,
+    LinkCandidate,
     LogStatus,
     LogSubsystem,
     ModelTest,
