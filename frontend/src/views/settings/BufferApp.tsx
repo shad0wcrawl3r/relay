@@ -63,10 +63,12 @@ export function BufferAppRow({ onSignedOut, label = "OAuth app" }: { onSignedOut
 
   return (
     <div className="flex flex-col gap-2 rounded-[10px] border border-column-border bg-column px-4 py-3">
-      <button aria-expanded={open} onClick={() => setOpen(!open)} className="flex items-center gap-2 text-left">
+      <button aria-expanded={open} onClick={() => setOpen(!open)} className="flex min-w-0 items-center gap-2 text-left">
         <ChevronRight className={cn("size-3.5 shrink-0 text-dim transition-transform", open && "rotate-90")} />
-        <span className="text-[13px] text-strong">{label}</span>
-        <span className="text-xs text-dim">{app.custom ? `Your own (${app.clientId})` : "Relay's"}</span>
+        <span className="shrink-0 text-[13px] text-strong">{label}</span>
+        <span className="min-w-0 truncate text-xs text-dim" title={app.custom ? app.clientId : undefined}>
+          {app.custom ? `Your own (${app.clientId})` : "Relay's"}
+        </span>
       </button>
       {open && (
         <div className="flex flex-col gap-3 pl-5">

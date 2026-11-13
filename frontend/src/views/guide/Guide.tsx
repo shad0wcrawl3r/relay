@@ -175,7 +175,9 @@ export function Guide() {
         ))}
       </nav>
 
-      <main className="min-h-0 flex-1 overflow-y-auto px-5 pb-4">
+      {/* The guide is narrow: long words (emails, URLs, IDs, paths) wrap
+          instead of pushing past their box. */}
+      <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-5 pb-4 [overflow-wrap:anywhere]">
         {step === null ? (
           <Loader2 className="mx-auto mt-16 size-4 animate-spin text-dim" />
         ) : id === "welcome" ? (

@@ -9,6 +9,12 @@ that heading to the new version.
 
 ## Unreleased
 
+## 0.1.4 — 2026-11-13
+
+- Buffer: Relay signs in with its new Buffer app; the old one was removed. If Buffer was connected, connect it again.
+- Setup guide: long text such as emails, links and IDs wraps instead of spilling out of its box.
+- Settings: the version and update check now sit in their own card, with when Relay last checked and one button for the next step.
+
 ## 0.1.3 — 2026-11-13
 
 - Setup guide: the Buffer step offers your own Buffer app, as in Settings → Publishing → Buffer.

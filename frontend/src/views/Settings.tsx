@@ -230,7 +230,7 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
                 title="Settings"
                 subtitle={`Settings are saved to ${s.configPath}. API keys and secrets go to the system keychain, never that file, and aren't shown again.`}
               />
-              <div className="mt-2 flex gap-4 text-xs">
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 text-xs">
                 {[
                   { label: "Source on GitHub", url: REPO },
                   { label: "Status", url: "https://relay.shadowcrawler.dev" },
@@ -244,11 +244,13 @@ export function Settings({ route }: { route: Extract<Route, { name: "settings" }
                   <Bug className="size-3" />
                   Report a bug
                 </button>
-                <UpdateCheck />
                 <button className="ml-auto inline-flex items-center gap-1 text-[#93c5fd] hover:underline" onClick={() => GuideService.Open()}>
                   <Compass className="size-3" />
                   Run setup guide
                 </button>
+              </div>
+              <div className="mt-4">
+                <UpdateCheck />
               </div>
             </div>
 

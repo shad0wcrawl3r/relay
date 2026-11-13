@@ -42,7 +42,7 @@ const (
 	// secret: desktop apps sign in with PKCE alone. Users can sign in with
 	// their own Buffer app instead (Settings → Publishing → Buffer, Client.Credentials),
 	// for example when Relay's is rate limited.
-	DefaultClientID = "rN1FEFOV2TyYR2anIMmuAnYwUGwxWLyVwDhfOL5XtU6"
+	DefaultClientID = "xsMEmIPh3en3hTnQKBj2IhKHoNjY8Icks76JeA_1DgQ"
 
 	// RedirectURI must match the App Client exactly and be https, so Buffer
 	// sends users to this page, which forwards to the loopback listener. A
