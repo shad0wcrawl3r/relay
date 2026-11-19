@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
-import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import { Group, Panel, Separator } from "react-resizable-panels";
 import { Columns2, Info, Maximize2, PanelLeftClose, PanelLeftOpen, Plus, Rows2, SquareTerminal } from "lucide-react";
 import { useTerminal } from "@/lib/terminal";
 import type { TermBinding, TermInfo, TermKeymap } from "@/lib/api";
@@ -172,24 +172,27 @@ function Tree({ node, focus }: { node: L.LayoutNode; focus: string }) {
   const { setSizes } = useTerminal();
   if (node.kind === "pane") return <Pane node={node} focused={node.id === focus} zoomed={false} />;
   return (
-    <PanelGroup direction={node.dir === "h" ? "horizontal" : "vertical"} onLayout={(sizes) => setSizes(node.id, sizes)}>
+    <Group
+      orientation={node.dir === "h" ? "horizontal" : "vertical"}
+      onLayoutChanged={(layout) => setSizes(node.id, node.children.map((c, i) => layout[c.id] ?? node.sizes[i]))}
+    >
       {node.children.map((c, i) => (
         <Fragment key={c.id}>
           {i > 0 && (
-            <PanelResizeHandle
+            <Separator
               className={cn(
                 "shrink-0 bg-background",
                 node.dir === "h" ? "w-[5px] border-l border-border" : "h-[5px] border-t border-border",
-                "data-[resize-handle-state=drag]:border-border-strong data-[resize-handle-state=hover]:border-border-strong",
+                "data-[separator=active]:border-border-strong data-[separator=hover]:border-border-strong",
               )}
             />
           )}
-          <Panel id={c.id} order={i} defaultSize={node.sizes[i]} minSize={8}>
+          <Panel id={c.id} defaultSize={`${node.sizes[i]}%`} minSize="8%">
             <Tree node={c} focus={focus} />
           </Panel>
         </Fragment>
       ))}
-    </PanelGroup>
+    </Group>
   );
 }
 

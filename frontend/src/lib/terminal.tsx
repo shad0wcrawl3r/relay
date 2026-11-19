@@ -353,7 +353,7 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
     (splitId: string, sizes: number[]) =>
       updateActive((t) => {
         const root = L.setSizes(t.root, splitId, sizes);
-        // react-resizable-panels reports the layout on every mount; skip no-ops.
+        // Skip no-op layout reports (e.g. on mount).
         return JSON.stringify(root) === JSON.stringify(t.root) ? t : { ...t, root };
       }),
     [updateActive],
