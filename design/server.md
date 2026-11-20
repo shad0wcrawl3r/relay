@@ -17,8 +17,18 @@ client. Sync between devices is a later, separate project (§9).
 - **Where tokens live depends on how many devices there are:**
   - **One device:** tokens stay on the device (OS keychain / Android
     Keystore). The server sees a token only in transit, when it proxies a call.
-  - **Two or more devices:** the tokens move to the server. Devices then call
-    through the proxy, and the server attaches the token.
+  - **Two or more devices:** the tokens move to the server. Every call goes
+    through the proxy, and the server attaches the token. There is no way to
+    turn the proxy off in this mode.
+- **One device has a proxy toggle** ("Route calls through my server"):
+  - **off (default):** the device calls Plane, Dev.to and Buffer directly.
+    The server is used only for OAuth steps that need it (Plane bot tokens).
+  - **on:** calls go through the proxy, with the device's token passed through
+    and never kept.
+  - Pairing a second device turns the proxy on for everyone and greys out the
+    toggle. Going back to one device restores the toggle at its last setting.
+- **Anyone who forks Relay can run their own server with one click** (§8.1).
+  The server code lives in this repo, so a fork carries it.
 - **The terminal stays desktop-only.** So do Ship's `git log` and anything
   else that needs the local machine.
 - **AI never goes through the server.** Prompts still go from the device
@@ -111,8 +121,10 @@ client. Sync between devices is a later, separate project (§9).
 
 - **Fixed allowlist of upstream hosts:** the user's Plane base URL, `dev.to`
   and Buffer's API. Anything else is refused, so it can't become an open proxy.
-- **The server adds the token** in multi-device mode. In one-device mode the
-  device sends it, and the server passes it on without keeping it.
+- **The server adds the token** in multi-device mode, where the proxy is
+  mandatory. In one-device mode the proxy is used only if the toggle is on
+  (§1); then the device sends its token, and the server passes it on without
+  keeping it.
 - **No storage:** bodies are streamed, never written to D1, KV or logs.
   Worker logs record method, upstream host, status and timing only.
 - **Rate limits:** the server honours `Retry-After` per account. It refuses
@@ -136,6 +148,41 @@ client. Sync between devices is a later, separate project (§9).
   GitHub Action, or the user clicks a sync button. The device shows the
   server's version and warns when it's behind the minimum the app needs.
 
+### 8.1 Forks: click the button, done
+
+The bar: someone forks Relay, clicks one button, signs in to Cloudflare, and
+has a working server. They don't edit code, run a CLI or copy secrets around.
+
+- **The server lives in this repo, under `server/`.** A fork gets it with
+  everything else. A separate template repo would mean forking two repos.
+- **The button follows the repo it's clicked from**, never upstream's:
+  - **Site:** the Pages build fills in the button URL from
+    `GITHUB_REPOSITORY`, so a fork's site points at the fork.
+  - **App:** builds stamp the repo the same way as the commit
+    (`-ldflags -X main.buildRepo`, set from `GITHUB_REPOSITORY` in CI). The
+    setup screen builds its Deploy link from that.
+  - **README:** the button can't be dynamic there. It sits next to one line:
+    "Forked? Use the button on your fork's site or in the app's setup screen."
+- **No upstream values anywhere in `server/`:** no `shadowcrawl3r`, no
+  `relay.shadowcrawler.dev`, no Relay Buffer client ID. Everything comes from
+  the deploy prompts or is generated. A CI check enforces it (SV-11).
+- **No upstream-hosted pieces at runtime.** OAuth callbacks land on the
+  user's own `workers.dev` URL. Relay's hosted callback is never required.
+- **Nothing to set up by hand:**
+  - tables are created on first request (`CREATE TABLE IF NOT EXISTS`), so
+    there's no migration step;
+  - the token encryption key and the claim code are generated during deploy,
+    not typed by the user. The Deploy-button spike finds the way that works
+    (build script running `wrangler secret put`, or the button's secret
+    prompts with generated defaults);
+  - Plane app credentials are the only thing the user enters, and only when
+    they connect Plane. The server shows exactly what to paste into Plane's
+    app settings (redirect URI, scopes).
+- **After deploy:** the server's landing page shows its version and "Open
+  Relay → Settings → Server and paste this URL". It never shows the claim
+  code: that goes to the account owner only (deploy output or the
+  Cloudflare dashboard).
+
 ## 9. Later: sync engine
 
 - Not part of this work.
@@ -147,14 +194,11 @@ client. Sync between devices is a later, separate project (§9).
 
 ## 10. Open questions
 
-1. **Does one-device mode need the proxy at all?** The Android app is native,
-   so CORS doesn't block it, and it could call the services directly. The
-   proxy would then be needed only in multi-device mode and for any future web
-   client. Recommendation: call directly in one-device mode; keep the proxy
-   for multi-device.
-2. **Server repo:** a subdirectory of this repo, or a separate public template
-   repo, `relay-server`? Depends on whether the Deploy button handles
-   subdirectories and secret prompts the way we need (spike).
+1. ~~Does one-device mode need the proxy?~~ Decided 2026-11-20: mandatory for
+   multi-device, a toggle (default off) for one device (§1).
+2. ~~Server repo layout?~~ Decided 2026-11-20: `server/` in this repo, so
+   forks carry it (§8.1). The spike still has to confirm the Deploy button
+   works from a subdirectory.
 3. **Buffer app:** Relay's app (`buffer.DefaultClientID`) with a hosted
    redirect to the Android app, or the user's own app pointed at their server?
 4. **Android stack:** native Kotlin (Compose), or a WebView shell that reuses
@@ -178,3 +222,5 @@ client. Sync between devices is a later, separate project (§9).
 | SV-8 | Two devices in multi-device mode use Buffer at the same time | Only the server refreshes; neither device ends up with a dead token |
 | SV-9 | Buffer returns 429 | The server refuses calls for that account until `Retry-After` |
 | SV-10 | Android: open a locked project without an active biometric unlock | Not shown; never logged |
+| SV-11 | CI: scan `server/` for upstream values (`shadowcrawl3r`, `relay.shadowcrawler.dev`, Relay's Buffer client ID) | None found; deploying from a fork in a test account reaches a working server with no manual step |
+| SV-12 | One device, proxy toggle off / on; then pair a second device | Off: no proxied calls. On: calls proxied, token not kept. Second device: proxy forced on, toggle disabled |
