@@ -34,7 +34,7 @@
     "marked": "^18.2.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-resizable-panels": "^2.1.9",
+    "react-resizable-panels": "^4.24.1",
     "tailwind-merge": "^3.7.1",
     "tailwindcss": "^4.3.3"
   },
